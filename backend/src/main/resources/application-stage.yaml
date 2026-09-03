@@ -3,9 +3,9 @@ server:
     session:
       cookie:
         domain: taonity.org
-        name: JSESSIONID-FULLSTACK-STARTER-STAGE
+        name: JSESSIONID-GENTOOL-DATA-VIEWER-STAGE
 
 app:
-  default-success-url: https://fullstack-starter-stage.taonity.org
-  login-url: https://fullstack-starter-stage.taonity.org
-  csrf-cookie-name: XSRF-TOKEN-FULLSTACK-STARTER-STAGE
+  default-success-url: https://gentool-data-viewer-stage.taonity.org
+  login-url: https://gentool-data-viewer-stage.taonity.org
+  csrf-cookie-name: XSRF-TOKEN-GENTOOL-DATA-VIEWER-STAGE

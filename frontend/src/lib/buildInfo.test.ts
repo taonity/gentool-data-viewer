@@ -15,7 +15,7 @@ describe('frontend build info', () => {
 
     expect(getBuildInfo()).toEqual({
       app: {
-        name: 'fullstack-starter-frontend',
+        name: 'gentool-data-viewer-frontend',
         version: '0.1.0',
       },
       git: {

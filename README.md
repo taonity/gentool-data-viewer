@@ -1,4 +1,4 @@
-# Fullstack Starter
+# Gentool Data Viewer
 
 A template for building full-stack web applications with Google OAuth2 authentication.
 
@@ -62,7 +62,7 @@ mvn clean install -P build-docker-image -DskipTests
 Build the frontend container image from the repository root:
 
 ```bash
-docker build -t generaltao725/fullstack-starter-frontend:latest frontend
+docker build -t generaltao725/gentool-data-viewer-frontend:latest frontend
 ```
 
 For the complete local stack with published images:

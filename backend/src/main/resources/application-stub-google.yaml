@@ -3,11 +3,11 @@ spring:
     oauth2:
       client:
         registration:
-          google-fullstack-starter:
+          google-gentool-data-viewer:
             provider: google
             client-id: stub-google-client-id
             client-secret: stub-google-client-secret
-            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/google-fullstack-starter
+            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/google-gentool-data-viewer
             authorization-grant-type: authorization_code
             scope: profile,email
           stub-alice:
@@ -49,7 +49,7 @@ app:
   # Dev-only: lets the frontend offer "log in as" shortcuts for the stub users above.
   dev:
     stub-logins:
-      - registration-id: google-fullstack-starter
+      - registration-id: google-gentool-data-viewer
         label: Owner (test@example.com)
       - registration-id: stub-alice
         label: Alice (no access)

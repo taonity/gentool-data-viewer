@@ -24,7 +24,7 @@ describe('app info', () => {
 
   it('selects release fields and formats process uptime from frontend info', () => {
     const data: InfoObject = {
-      app: { name: 'fullstack-starter-frontend', version: '0.1.0' },
+      app: { name: 'gentool-data-viewer-frontend', version: '0.1.0' },
       git: { commit, branch: 'main' },
       build: { time: buildTime, nodeVersion: 'v26.7.0' },
       runtime: { env: 'development', uptime: 183845 },

@@ -15,14 +15,14 @@ export const FRONTEND_PROFILE_CONFIG: Record<FrontendProfile, FrontendProfileCon
     csrfCookieName: 'XSRF-TOKEN-LOCAL',
   },
   stage: {
-    localBackendUrl: 'https://fullstack-starter-api-stage.taonity.org',
-    publicBackendUrl: 'https://fullstack-starter-api-stage.taonity.org',
-    csrfCookieName: 'XSRF-TOKEN-FULLSTACK-STARTER-STAGE',
+    localBackendUrl: 'https://gentool-data-viewer-api-stage.taonity.org',
+    publicBackendUrl: 'https://gentool-data-viewer-api-stage.taonity.org',
+    csrfCookieName: 'XSRF-TOKEN-GENTOOL-DATA-VIEWER-STAGE',
   },
   prod: {
-    localBackendUrl: 'https://fullstack-starter-api.taonity.org',
-    publicBackendUrl: 'https://fullstack-starter-api.taonity.org',
-    csrfCookieName: 'XSRF-TOKEN-FULLSTACK-STARTER-PROD',
+    localBackendUrl: 'https://gentool-data-viewer-api.taonity.org',
+    publicBackendUrl: 'https://gentool-data-viewer-api.taonity.org',
+    csrfCookieName: 'XSRF-TOKEN-GENTOOL-DATA-VIEWER-PROD',
   },
 }
 

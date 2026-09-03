@@ -10,7 +10,7 @@ import { DevToolsPanel } from '@/features/console/DevToolsPanel'
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'Fullstack Starter',
+  title: 'Gentool Data Viewer',
 }
 
 export default function RootLayout({

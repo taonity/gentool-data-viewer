@@ -1,7 +1,7 @@
 {
-  "name": "fullstack-starter-frontend",
+  "name": "gentool-data-viewer-frontend",
   "version": "0.1.0",
-  "repository": "https://github.com/taonity/fullstack-starter",
+  "repository": "https://github.com/taonity/gentool-data-viewer",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 -H 127.0.0.1",

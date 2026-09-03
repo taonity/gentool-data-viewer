@@ -63,7 +63,7 @@ management:
       enabled: false
   metrics:
     tags:
-      application: fullstack-starter
+      application: gentool-data-viewer
 
 spring:
   profiles:
@@ -72,7 +72,7 @@ spring:
       stage: postgres-container,prod-google
       prod: postgres-container,prod-google
   application:
-    name: fullstack-starter
+    name: gentool-data-viewer
   session:
     jdbc:
       initialize-schema: never

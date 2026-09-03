@@ -7,7 +7,7 @@ services:
       FLYWAY_PLACEHOLDER_SUFFIX: " }}"
       POSTGRES_ADDRESS: db
       POSTGRES_PORT: 5432
-      POSTGRES_DB: fullstack_starter_db
+      POSTGRES_DB: gentool_data_viewer_db
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_APP_USER: ${POSTGRES_APP_USER:?POSTGRES_APP_USER must be set}

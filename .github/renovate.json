@@ -5,7 +5,7 @@
   ],
   "schedule": ["before 4am"],
   "ignoreDeps": [
-    "org.example:fullstack-starter"
+    "org.example:gentool-data-viewer"
   ],
   "packageRules": [
     {

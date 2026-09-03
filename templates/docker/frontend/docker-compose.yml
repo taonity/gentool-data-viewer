@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: generaltao725/fullstack-starter-frontend:latest
+    image: generaltao725/gentool-data-viewer-frontend:latest
     environment:
       FRONTEND_PROFILE: ${FRONTEND_PROFILE:?FRONTEND_PROFILE must be set}
       LOCAL_BACKEND_URL: http://backend:8080

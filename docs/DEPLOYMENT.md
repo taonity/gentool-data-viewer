@@ -5,7 +5,7 @@
 Run the image build from the repository root. Images are published under the fixed `generaltao725` Docker Hub namespace:
 
 ```bash
-mvn -pl backend -am -P build-docker-image package -DskipTests; docker build -t generaltao725/fullstack-starter-frontend:latest frontend
+mvn -pl backend -am -P build-docker-image package -DskipTests; docker build -t generaltao725/gentool-data-viewer-frontend:latest frontend
 ```
 
 ## Docker Compose
@@ -19,7 +19,7 @@ docker compose --env-file templates/docker/.env.test -f templates/docker/docker-
 For production, create an environment file with deployment-specific values:
 
 ```env
-COMPOSE_PROJECT_NAME=fullstack-starter-prod
+COMPOSE_PROJECT_NAME=gentool-data-viewer-prod
 
 POSTGRES_USER=dbadmin
 POSTGRES_PASSWORD=strong-password
@@ -31,7 +31,7 @@ SPRING_PROFILES_ACTIVE=prod
 FRONTEND_PROFILE=prod
 ```
 
-The environment file contains Compose bootstrap selectors, credentials, and the backend/frontend profiles. Use `COMPOSE_PROJECT_NAME=fullstack-starter-stage`, `SPRING_PROFILES_ACTIVE=stage`, and `FRONTEND_PROFILE=stage` for staging. Public URLs, cookie names, database topology, and internal service addresses remain committed in application profiles and Compose configuration.
+The environment file contains Compose bootstrap selectors, credentials, and the backend/frontend profiles. Use `COMPOSE_PROJECT_NAME=gentool-data-viewer-stage`, `SPRING_PROFILES_ACTIVE=stage`, and `FRONTEND_PROFILE=stage` for staging. Public URLs, cookie names, database topology, and internal service addresses remain committed in application profiles and Compose configuration.
 
 The file is passed with Compose's `--env-file` option for interpolation. Services receive only their explicitly listed variables, so database and OAuth credentials are not injected into the frontend container.
 

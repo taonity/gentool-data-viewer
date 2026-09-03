@@ -1,4 +1,4 @@
 name: stage
 variables:
   - name: frontendUrl
-    value: https://fullstack-starter-stage.taonity.org
+    value: https://gentool-data-viewer-stage.taonity.org

@@ -1,6 +1,6 @@
 # syntax=docker.io/docker/dockerfile:1
-# docker build -t generaltao725/fullstack-starter-frontend .
-# docker run -p 3000:3000 generaltao725/fullstack-starter-frontend
+# docker build -t generaltao725/gentool-data-viewer-frontend .
+# docker run -p 3000:3000 generaltao725/gentool-data-viewer-frontend
 
 FROM node:24-alpine AS base
 

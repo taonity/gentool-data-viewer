@@ -18,7 +18,7 @@ export interface BuildInfo {
 export function getBuildInfo(): BuildInfo {
   return {
     app: {
-      name: 'fullstack-starter-frontend',
+      name: 'gentool-data-viewer-frontend',
       version: process.env.APP_VERSION || 'unknown',
     },
     git: {

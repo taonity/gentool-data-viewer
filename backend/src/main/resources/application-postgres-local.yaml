@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/fullstack_starter_db
+    url: jdbc:postgresql://localhost:5432/gentool_data_viewer_db
     username: d
     password: d
   flyway:

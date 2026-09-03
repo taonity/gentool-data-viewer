@@ -9,8 +9,8 @@ afterEach(() => {
 describe('server environment', () => {
   it.each([
     ['local', 'http://127.0.0.1:8080', 'XSRF-TOKEN-LOCAL'],
-    ['stage', 'https://fullstack-starter-api-stage.taonity.org', 'XSRF-TOKEN-FULLSTACK-STARTER-STAGE'],
-    ['prod', 'https://fullstack-starter-api.taonity.org', 'XSRF-TOKEN-FULLSTACK-STARTER-PROD'],
+    ['stage', 'https://gentool-data-viewer-api-stage.taonity.org', 'XSRF-TOKEN-GENTOOL-DATA-VIEWER-STAGE'],
+    ['prod', 'https://gentool-data-viewer-api.taonity.org', 'XSRF-TOKEN-GENTOOL-DATA-VIEWER-PROD'],
   ])('returns the %s profile configuration', (profile, backendUrl, csrfCookieName) => {
     vi.stubEnv('FRONTEND_PROFILE', profile)
 

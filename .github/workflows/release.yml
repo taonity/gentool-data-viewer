@@ -228,7 +228,7 @@ jobs:
     needs: release-finalize
     uses: taonity/docker-webhook/.github/workflows/deploy.yml@main
     with:
-      project_name: fullstack-starter
+      project_name: gentool-data-viewer
       environment: stage
     secrets:
       WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
@@ -265,7 +265,7 @@ jobs:
     if: ${{ always() && needs.deploy-stage.result == 'success' && (needs.prepare.outputs.skip_approval == 'true' || needs.approve-prod.result == 'success') }}
     uses: taonity/docker-webhook/.github/workflows/deploy.yml@main
     with:
-      project_name: fullstack-starter
+      project_name: gentool-data-viewer
       environment: prod
     secrets:
       WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}

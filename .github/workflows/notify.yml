@@ -51,5 +51,5 @@ jobs:
             -H "Priority: ${priority}" \
             -H "Tags: ${tags}" \
             -H "Click: ${RUN_URL}" \
-            -d "fullstack-starter ${GITHUB_REF_NAME} @ ${GITHUB_SHA:0:7}" \
+            -d "gentool-data-viewer ${GITHUB_REF_NAME} @ ${GITHUB_SHA:0:7}" \
             "${NTFY_URL%/}/${NTFY_TOPIC}"

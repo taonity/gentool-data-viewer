@@ -3,7 +3,7 @@ spring:
     oauth2:
       client:
         registration:
-          google-fullstack-starter:
+          google-gentool-data-viewer:
             provider: google
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}

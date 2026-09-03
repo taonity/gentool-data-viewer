@@ -1,6 +1,6 @@
 services:
   backend:
-    image: generaltao725/fullstack-starter-backend:latest
+    image: generaltao725/gentool-data-viewer-backend:latest
     environment:
       JDK_JAVA_OPTIONS: --add-opens java.base/java.lang=ALL-UNNAMED
       JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
@@ -9,10 +9,10 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID must be set}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET must be set}
 #      LOGGING_LEVEL_ROOT: TRACE
-#      LOGGING_LEVEL_ORG_EXAMPLE_FULLSTACKSTARTER: DEBUG
+#      LOGGING_LEVEL_ORG_TAONITY_GENTOOLDATAVIEWER: DEBUG
     command: --spring.profiles.active=${SPRING_PROFILES_ACTIVE:?SPRING_PROFILES_ACTIVE must be set}
     volumes:
-      - ./config:/fullstack-starter/config
+      - ./config:/gentool-data-viewer/config
     healthcheck:
       test: curl localhost:8080/actuator/health || exit 1
       interval: 10s

@@ -4,8 +4,8 @@ Use this checklist to add one vertical feature without bypassing existing bounda
 
 ## Checklist
 
-1. Choose a package under [`backend/src/main/kotlin/org/example/fullstackstarter`](../backend/src/main/kotlin/org/example/fullstackstarter).
-   Keep feature code together; use the [`console` feature](../backend/src/main/kotlin/org/example/fullstackstarter/console/) as the representative layout.
+1. Choose a package under [`backend/src/main/kotlin/org/example/gentooldataviewer`](../backend/src/main/kotlin/org/example/gentooldataviewer).
+   Keep feature code together; use the [`console` feature](../backend/src/main/kotlin/org/example/gentooldataviewer/console/) as the representative layout.
 2. Add only the layers the feature needs: controller, service, DTO, entity, repository, exception, or configuration.
    Do not create empty layers.
 3. Keep HTTP payloads at a DTO boundary.
