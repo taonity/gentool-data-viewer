@@ -1,6 +1,7 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { PreviewCard } from '@base-ui/react/preview-card'
 import {
   ArrowDown,
   ArrowRightToLine,
@@ -54,6 +55,7 @@ export type Column<T> = {
 
 type DataTabProps<T> = {
   columns: Column<T>[]
+  columnWidthsKey?: string
   rowKey: (row: T) => string
   load: (
     page: number,
@@ -88,6 +90,14 @@ type DataTabProps<T> = {
 const PAGE_SIZES = [20, 50, 100]
 const DEFAULT_PAGE_SIZE = 50
 const SKELETON_ROWS = 10
+const MIN_COLUMN_WIDTH = 64
+const MAX_COLUMN_WIDTH = 640
+const KEYBOARD_RESIZE_STEP = 16
+
+type OverflowPreviewPayload = {
+  getText: () => string
+  isOverflowing: () => boolean
+}
 
 const SKELETON_BAR_WIDTHS = [
   'w-[85%]',
@@ -102,6 +112,7 @@ const SKELETON_BAR_WIDTHS = [
 
 export function DataTab<T>({
   columns,
+  columnWidthsKey,
   rowKey,
   load,
   locate,
@@ -137,8 +148,223 @@ export function DataTab<T>({
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<Set<string>>(
     () => new Set(columns.filter((column) => column.defaultVisible !== false).map((column) => column.key)),
   )
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [hasCustomColumnWidths, setHasCustomColumnWidths] = useState(false)
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null)
+  const [overflowPreviewHandle] = useState(() => PreviewCard.createHandle<OverflowPreviewPayload>())
+  const tableRef = useRef<HTMLTableElement | null>(null)
+  const columnWidthsRef = useRef<Record<string, number>>({})
+  const defaultColumnWidthsRef = useRef<Record<string, number>>({})
+  const customColumnKeysRef = useRef<Set<string>>(new Set())
+  const resizeRef = useRef<{
+    key: string
+    nextKey: string
+    pointerId: number
+    startX: number
+    startWidth: number
+    startNextWidth: number
+  } | null>(null)
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const columnWidthsStorageKey = `data-console.column-widths.v2.${columnWidthsKey ?? columns.map((column) => column.key).join('.')}`
+
+  const persistColumnWidths = useCallback((widths: Record<string, number>) => {
+    try {
+      const customWidths = Object.fromEntries(
+        [...customColumnKeysRef.current]
+          .filter((key) => widths[key] !== undefined)
+          .map((key) => [key, widths[key]]),
+      )
+      localStorage.setItem(columnWidthsStorageKey, JSON.stringify(customWidths))
+    } catch {
+      // Resizing remains available when storage is blocked or full.
+    }
+  }, [columnWidthsStorageKey])
+
+  const updateColumnBoundary = useCallback((
+    key: string,
+    nextKey: string,
+    startWidth: number,
+    startNextWidth: number,
+    requestedDelta: number,
+    persist = false,
+  ) => {
+    const minimumDelta = Math.max(MIN_COLUMN_WIDTH - startWidth, startNextWidth - MAX_COLUMN_WIDTH)
+    const maximumDelta = Math.min(MAX_COLUMN_WIDTH - startWidth, startNextWidth - MIN_COLUMN_WIDTH)
+    const delta = Math.min(maximumDelta, Math.max(minimumDelta, requestedDelta))
+    const width = Math.round(startWidth + delta)
+    const nextWidth = startWidth + startNextWidth - width
+    const next = { ...columnWidthsRef.current, [key]: width, [nextKey]: nextWidth }
+    columnWidthsRef.current = next
+    for (const changedKey of [key, nextKey]) {
+      const defaultWidth = defaultColumnWidthsRef.current[changedKey]
+      const changedWidth = next[changedKey]
+      if (defaultWidth !== undefined && changedWidth !== undefined && Math.abs(changedWidth - defaultWidth) < 1) {
+        customColumnKeysRef.current.delete(changedKey)
+      } else {
+        customColumnKeysRef.current.add(changedKey)
+      }
+    }
+    setHasCustomColumnWidths(customColumnKeysRef.current.size > 0)
+    setColumnWidths(next)
+    if (persist) persistColumnWidths(next)
+  }, [persistColumnWidths])
+
+  const resetColumnBoundary = useCallback((key: string, nextKey: string) => {
+    const defaultWidth = defaultColumnWidthsRef.current[key]
+    const currentWidth = columnWidthsRef.current[key]
+    const nextWidth = columnWidthsRef.current[nextKey]
+    if (defaultWidth === undefined || currentWidth === undefined || nextWidth === undefined) return
+    updateColumnBoundary(key, nextKey, currentWidth, nextWidth, defaultWidth - currentWidth, true)
+  }, [updateColumnBoundary])
+
+  const resetColumnWidths = useCallback(() => {
+    const defaults = { ...defaultColumnWidthsRef.current }
+    customColumnKeysRef.current.clear()
+    columnWidthsRef.current = defaults
+    setColumnWidths(defaults)
+    setHasCustomColumnWidths(false)
+    try {
+      localStorage.removeItem(columnWidthsStorageKey)
+    } catch {
+      // The in-memory reset still applies when storage is unavailable.
+    }
+  }, [columnWidthsStorageKey])
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(columnWidthsStorageKey) ?? '{}') as Record<string, unknown>
+      const validKeys = new Set(columns.map((column) => column.key))
+      const restored = Object.fromEntries(
+        Object.entries(stored).filter(
+          ([key, width]) => validKeys.has(key) && typeof width === 'number' && Number.isFinite(width),
+        ),
+      ) as Record<string, number>
+      customColumnKeysRef.current = new Set(Object.keys(restored))
+      setHasCustomColumnWidths(customColumnKeysRef.current.size > 0)
+      const merged = { ...columnWidthsRef.current, ...restored }
+      columnWidthsRef.current = merged
+      setColumnWidths(merged)
+    } catch {
+      try {
+        localStorage.removeItem(columnWidthsStorageKey)
+      } catch {
+        // Ignore inaccessible storage and keep default widths.
+      }
+    }
+  }, [columnWidthsStorageKey, columns])
+
+  useLayoutEffect(() => {
+    const headers = tableRef.current?.querySelectorAll<HTMLElement>('[data-column-key]')
+    if (!headers?.length) return
+    const next = { ...columnWidthsRef.current }
+    let changed = false
+    headers.forEach((header) => {
+      const key = header.dataset.columnKey
+      if (!key) return
+      const measuredWidth = header.getBoundingClientRect().width
+      if (defaultColumnWidthsRef.current[key] === undefined) {
+        defaultColumnWidthsRef.current[key] = measuredWidth
+      }
+      if (next[key] === undefined) {
+        next[key] = measuredWidth
+        changed = true
+      }
+    })
+    if (changed) {
+      columnWidthsRef.current = next
+      setColumnWidths(next)
+    }
+  }, [columns, visibleColumnKeys])
+
+  useEffect(() => () => {
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }, [])
+
+  const startColumnResize = (
+    event: React.PointerEvent<HTMLDivElement>,
+    key: string,
+    nextKey: string,
+  ) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
+    const header = event.currentTarget.parentElement
+    if (!header) return
+    const measuredWidths = { ...columnWidthsRef.current }
+    tableRef.current?.querySelectorAll<HTMLElement>('[data-column-key]').forEach((columnHeader) => {
+      const columnKey = columnHeader.dataset.columnKey
+      if (columnKey) measuredWidths[columnKey] = columnHeader.getBoundingClientRect().width
+    })
+    const startWidth = measuredWidths[key] ?? header.getBoundingClientRect().width
+    const startNextWidth = measuredWidths[nextKey]
+    if (startNextWidth === undefined) return
+    columnWidthsRef.current = measuredWidths
+    setColumnWidths(measuredWidths)
+    resizeRef.current = {
+      key,
+      nextKey,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startWidth,
+      startNextWidth,
+    }
+    setResizingColumn(key)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const resizeColumn = (event: React.PointerEvent<HTMLDivElement>) => {
+    const resize = resizeRef.current
+    if (!resize || resize.pointerId !== event.pointerId) return
+    updateColumnBoundary(
+      resize.key,
+      resize.nextKey,
+      resize.startWidth,
+      resize.startNextWidth,
+      event.clientX - resize.startX,
+    )
+  }
+
+  const finishColumnResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    const resize = resizeRef.current
+    if (!resize || resize.pointerId !== event.pointerId) return
+    resizeRef.current = null
+    setResizingColumn(null)
+    persistColumnWidths(columnWidthsRef.current)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+
+  const resizeColumnWithKeyboard = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    key: string,
+    nextKey: string,
+  ) => {
+    if (event.key === 'Home') {
+      event.preventDefault()
+      resetColumnBoundary(key, nextKey)
+      return
+    }
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    event.preventDefault()
+    const currentWidth = columnWidthsRef.current[key]
+      ?? event.currentTarget.parentElement?.getBoundingClientRect().width
+      ?? MIN_COLUMN_WIDTH
+    const nextWidth = columnWidthsRef.current[nextKey]
+    if (nextWidth === undefined) return
+    const direction = event.key === 'ArrowLeft' ? -1 : 1
+    updateColumnBoundary(
+      key,
+      nextKey,
+      currentWidth,
+      nextWidth,
+      direction * KEYBOARD_RESIZE_STEP,
+      true,
+    )
+  }
 
   const reload = useCallback(
     async (
@@ -260,7 +486,7 @@ export function DataTab<T>({
   const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (canEdit ? 1 : 0)
   const firstRow = rows[0]
   const roomName = roomAccessor && firstRow ? roomAccessor(firstRow) : null
-  const searchableColumns = columns.filter((c) => c.searchKey)
+  const searchableColumns = visibleColumns.filter((column) => column.searchKey)
   const hasSortableColumns = columns.some((column) => column.sortKey)
 
   const toggleExpanded = (id: string) => {
@@ -273,6 +499,13 @@ export function DataTab<T>({
   }
 
   const toggleColumn = (key: string) => {
+    const column = columns.find((candidate) => candidate.key === key)
+    if (visibleColumnKeys.has(key) && column?.searchKey === field) {
+      setField('all')
+      if (activeQuery.trim()) {
+        void reload(0, size, activeQuery, 'all', sortKey, direction, { silent: true })
+      }
+    }
     setVisibleColumnKeys((previous) => {
       const next = new Set(previous)
       if (next.has(key)) {
@@ -400,6 +633,11 @@ export function DataTab<T>({
                       </label>
                     )
                   })}
+                  {hasCustomColumnWidths && (
+                    <Button variant="ghost" size="sm" className="mt-1 justify-start" onClick={resetColumnWidths}>
+                      Reset column widths
+                    </Button>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
@@ -429,14 +667,21 @@ export function DataTab<T>({
       </div>
 
       <div className="overflow-hidden rounded-lg border">
-        <Table className="min-w-[720px] table-fixed [&_td]:py-1.5 [&_th]:h-9 [&_tr]:border-border/50">
+        <Table
+          ref={tableRef}
+          className="min-w-[720px] table-fixed [&_td]:py-1.5 [&_th]:h-9 [&_tr]:border-border/50"
+        >
           <TableHeader>
             <TableRow className="bg-muted/40">
               {expand && <TableHead className="w-[40px]" />}
-              {visibleColumns.map((c) => (
+              {visibleColumns.map((c, index) => {
+                const nextColumn = visibleColumns[index + 1]
+                return (
                 <TableHead
                   key={c.key}
-                  className={c.headClassName}
+                  data-column-key={c.key}
+                  className={cn('relative', c.headClassName)}
+                  style={columnWidths[c.key] ? { width: columnWidths[c.key] } : undefined}
                   aria-sort={sortKey === c.sortKey ? (direction === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
                   {c.sortKey ? (
@@ -451,9 +696,39 @@ export function DataTab<T>({
                         ? direction === 'asc' ? <ArrowUp className="size-3.5" /> : <ArrowDown className="size-3.5" />
                         : <ArrowUpDown className="size-3.5 text-muted-foreground/50" />}
                     </button>
-                  ) : c.label}
+                  ) : <span className="block truncate">{c.label}</span>}
+                  {nextColumn && (
+                    <div
+                      role="separator"
+                      aria-label={`Resize ${c.label} column`}
+                      aria-orientation="vertical"
+                      aria-valuemin={MIN_COLUMN_WIDTH}
+                      aria-valuemax={MAX_COLUMN_WIDTH}
+                      aria-valuenow={columnWidths[c.key]}
+                      tabIndex={0}
+                      title="Drag to resize. Double-click to reset."
+                      className={cn(
+                        'absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize touch-none outline-none',
+                        'before:absolute before:inset-y-2 before:left-1/2 before:w-px before:bg-border/70',
+                        'hover:before:w-0.5 hover:before:bg-primary focus-visible:before:w-0.5 focus-visible:before:bg-primary',
+                        resizingColumn === c.key && 'before:w-0.5 before:bg-primary',
+                      )}
+                      onPointerDown={(event) => startColumnResize(event, c.key, nextColumn.key)}
+                      onPointerMove={resizeColumn}
+                      onPointerUp={finishColumnResize}
+                      onPointerCancel={finishColumnResize}
+                      onLostPointerCapture={finishColumnResize}
+                      onDoubleClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        resetColumnBoundary(c.key, nextColumn.key)
+                      }}
+                      onKeyDown={(event) => resizeColumnWithKeyboard(event, c.key, nextColumn.key)}
+                    />
+                  )}
                 </TableHead>
-              ))}
+                )
+              })}
               {locate && <TableHead className="w-[48px]" />}
               {canEdit && <TableHead className="w-[64px] pr-4 text-right">Actions</TableHead>}
             </TableRow>
@@ -514,7 +789,12 @@ export function DataTab<T>({
                       )}
                       {visibleColumns.map((c) => (
                         <TableCell key={c.key} className={c.cellClassName}>
-                          {c.render ? c.render(row) : c.value(row)}
+                          <OverflowPreviewTrigger
+                            handle={overflowPreviewHandle}
+                            fallbackText={c.value(row)}
+                          >
+                            {c.render ? c.render(row) : c.value(row)}
+                          </OverflowPreviewTrigger>
                         </TableCell>
                       ))}
                       {locate && (
@@ -615,6 +895,67 @@ export function DataTab<T>({
           </Button>
         </div>
       </div>
+
+      <PreviewCard.Root handle={overflowPreviewHandle}>
+        {({ payload }) => {
+          if (!payload?.isOverflowing()) return null
+          const text = payload.getText()
+          return (
+            <PreviewCard.Portal>
+              <PreviewCard.Positioner
+                side="top"
+                sideOffset={6}
+                align="start"
+                collisionPadding={8}
+                className="isolate z-50"
+              >
+                <PreviewCard.Popup className="max-h-64 w-max min-w-40 max-w-[min(32rem,calc(100vw-1rem))] cursor-text select-text overflow-auto whitespace-pre-wrap break-words rounded-md border bg-popover p-2 text-sm leading-5 text-popover-foreground shadow-md outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95">
+                  {text}
+                </PreviewCard.Popup>
+              </PreviewCard.Positioner>
+            </PreviewCard.Portal>
+          )
+        }}
+      </PreviewCard.Root>
     </div>
+  )
+}
+
+function OverflowPreviewTrigger({
+  handle,
+  fallbackText,
+  children,
+}: {
+  handle: PreviewCard.Handle<OverflowPreviewPayload>
+  fallbackText: string
+  children: React.ReactNode
+}) {
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const payload: OverflowPreviewPayload = {
+    getText: () => triggerRef.current?.innerText.trim() || fallbackText,
+    isOverflowing: () => {
+      const trigger = triggerRef.current
+      if (!trigger) return false
+      if (trigger.scrollWidth > trigger.clientWidth + 1) return true
+      return [...trigger.querySelectorAll<HTMLElement>('*')]
+        .some((element) => element.scrollWidth > element.clientWidth + 1)
+    },
+  }
+
+  return (
+    <PreviewCard.Trigger
+      handle={handle}
+      payload={payload}
+      delay={350}
+      closeDelay={250}
+      render={
+        <div
+          ref={triggerRef}
+          className="block min-w-0 max-w-full truncate outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        />
+      }
+    >
+      {children}
+    </PreviewCard.Trigger>
   )
 }

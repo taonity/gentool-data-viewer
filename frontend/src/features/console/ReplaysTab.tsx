@@ -179,6 +179,7 @@ export function ReplaysTab({
   return (
     <DataTab<Replay>
       columns={REPLAY_COLUMNS}
+      columnWidthsKey="replays"
       defaultSortKey="matchAt"
       defaultSortDirection="desc"
       active={active}
@@ -196,6 +197,8 @@ export function ReplaysTab({
 
 function ReplayDetails({ replay }: { replay: Replay }) {
   const teams = Map.groupBy(replay.players, (player) => player.teamNumber)
+  const parsedFields = Object.entries(replay.fields)
+    .filter(([label]) => label !== 'Associated files')
   return (
     <div className="grid gap-5 bg-muted/20 p-4 text-sm">
       <div className="grid gap-4 lg:grid-cols-3">
@@ -225,7 +228,7 @@ function ReplayDetails({ replay }: { replay: Replay }) {
       <section className="grid gap-2">
         <h3 className="font-medium">All parsed fields</h3>
         <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
-          {Object.entries(replay.fields).map(([label, value]) => (
+          {parsedFields.map(([label, value]) => (
             <div key={label} className="contents">
               <dt className="text-muted-foreground">{label}</dt>
               <dd className="whitespace-pre-wrap break-words">{value || '—'}</dd>

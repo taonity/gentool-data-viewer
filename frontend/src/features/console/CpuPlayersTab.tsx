@@ -194,6 +194,7 @@ export function CpuPlayersTab({
         active={active}
         refreshToken={tableRefreshToken}
         columns={PLAYER_COLUMNS}
+        columnWidthsKey="players"
         defaultSortKey="score"
         defaultSortDirection="desc"
         columnSelection

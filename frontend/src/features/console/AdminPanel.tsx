@@ -231,6 +231,7 @@ export function AdminPanel({
           <DataTab<AuditLog>
             active={active}
             columns={AUDIT_COLUMNS}
+            columnWidthsKey="audit-log"
             rowKey={(a) => a.id}
             load={(page, size, q, field) => consoleApi.listAuditLogs(page, size, q, field)}
             emptyLabel="No audit entries."
