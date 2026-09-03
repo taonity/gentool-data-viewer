@@ -47,6 +47,26 @@ app:
     audit:
       retention-days: 14
       cron: "0 30 3 * * *"
+  replay-collector:
+    base-url: https://gentool.net/data/
+    game: zh
+    request-delay: 0ms
+    request-timeout: 1s
+    max-text-file-size: 64KB
+    max-days-per-job: 31
+    user-agent: gentool-data-viewer-test/1.0
+    schedule-enabled: false
+    schedule-cron: "0 15 2 * * *"
+    schedule-zone: UTC
+  cpu-benchmark:
+    base-url: https://www.cpubenchmark.net/single-thread/
+    max-pages: 8
+    request-delay: 0ms
+    request-timeout: 1s
+    user-agent: gentool-data-viewer-test/1.0
+    schedule-enabled: false
+    schedule-cron: "0 30 4 * * SUN"
+    schedule-zone: UTC
 
 #logging:
 #  level:

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,11 +64,13 @@ const AUDIT_COLUMNS: Column<AuditLog>[] = [
 ]
 
 export function AdminPanel({
+  active = true,
   access,
   forceLoading = false,
   onError,
   onPendingCountChange,
 }: {
+  active?: boolean
   access: AccessInfo
   forceLoading?: boolean
   onError: (message: string) => void
@@ -77,6 +79,7 @@ export function AdminPanel({
   const [requests, setRequests] = useState<PendingRequest[] | null>(null)
   const [grantRoles, setGrantRoles] = useState<Record<string, ConsoleRole>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
+  const wasActive = useRef(false)
 
   const loadRequests = useCallback(async () => {
     try {
@@ -94,9 +97,13 @@ export function AdminPanel({
   }, [onError, onPendingCountChange])
 
   useEffect(() => {
-    if (forceLoading) return
-    void loadRequests()
-  }, [forceLoading, loadRequests])
+    if (forceLoading || !active) {
+      wasActive.current = false
+      return
+    }
+    if (!wasActive.current) void loadRequests()
+    wasActive.current = true
+  }, [active, forceLoading, loadRequests])
 
   const visibleRequests = forceLoading ? null : requests
 
@@ -211,7 +218,7 @@ export function AdminPanel({
         </CardContent>
       </Card>
 
-      <UsersCard access={access} forceLoading={forceLoading} onError={onError} />
+      <UsersCard active={active} access={access} forceLoading={forceLoading} onError={onError} />
 
       <Card>
         <CardHeader>
@@ -222,6 +229,7 @@ export function AdminPanel({
         </CardHeader>
         <CardContent>
           <DataTab<AuditLog>
+            active={active}
             columns={AUDIT_COLUMNS}
             rowKey={(a) => a.id}
             load={(page, size, q, field) => consoleApi.listAuditLogs(page, size, q, field)}
@@ -244,16 +252,19 @@ const ROLE_LABELS: Record<ConsoleRole, string> = {
 }
 
 function UsersCard({
+  active,
   access,
   forceLoading,
   onError,
 }: {
+  active: boolean
   access: AccessInfo
   forceLoading: boolean
   onError: (message: string) => void
 }) {
   const [users, setUsers] = useState<UserSummary[] | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const wasActive = useRef(false)
 
   const load = useCallback(async () => {
     try {
@@ -264,9 +275,13 @@ function UsersCard({
   }, [onError])
 
   useEffect(() => {
-    if (forceLoading) return
-    void load()
-  }, [forceLoading, load])
+    if (forceLoading || !active) {
+      wasActive.current = false
+      return
+    }
+    if (!wasActive.current) void load()
+    wasActive.current = true
+  }, [active, forceLoading, load])
 
   const visibleUsers = forceLoading ? null : users
 

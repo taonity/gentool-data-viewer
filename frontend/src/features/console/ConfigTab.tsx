@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RotateCcw, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -62,10 +62,12 @@ function formatValue(field: ConfigField, raw: unknown): string {
 const STACKED_TYPES = new Set(['STRING', 'STRING_LIST', 'TEXT'])
 
 export function ConfigTab({
+  active = true,
   canEdit,
   forceLoading = false,
   onError,
 }: {
+  active?: boolean
   canEdit: boolean
   forceLoading?: boolean
   onError: (message: string) => void
@@ -76,6 +78,7 @@ export function ConfigTab({
   const [resettingKey, setResettingKey] = useState<string | null>(null)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const wasActive = useRef(false)
 
   const draftsFromSchema = (next: ConfigSchema) =>
     Object.fromEntries(next.fields.map((f) => [f.key, toDraft(f)]))
@@ -94,9 +97,13 @@ export function ConfigTab({
   }, [applySchema, onError])
 
   useEffect(() => {
-    if (forceLoading) return
-    void load()
-  }, [forceLoading, load])
+    if (forceLoading || !active) {
+      wasActive.current = false
+      return
+    }
+    if (!wasActive.current) void load()
+    wasActive.current = true
+  }, [active, forceLoading, load])
 
   const groups = useMemo(() => {
     if (!schema) return []

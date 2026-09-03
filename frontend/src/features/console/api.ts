@@ -8,6 +8,11 @@ import type {
   ConsoleRole,
   PageResponse,
   PendingRequest,
+  ReplayCollectionJob,
+  Replay,
+  CpuBenchmarkSync,
+  CpuPlayer,
+  CpuPlayerSummary,
   UserSummary,
 } from './types'
 
@@ -48,7 +53,7 @@ async function get<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
-async function mutate<T>(path: string, method: string, body?: unknown): Promise<T | null> {
+async function mutate<T>(path: string, method: string, body?: unknown, timeoutMs = 10000): Promise<T | null> {
   const token = await csrfToken()
   const res = await fetchWithTimeout(`${BASE}${path}`, {
     method,
@@ -57,7 +62,7 @@ async function mutate<T>(path: string, method: string, body?: unknown): Promise<
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
-    timeoutMs: 10000,
+    timeoutMs,
   })
   if (!res.ok) {
     throw new ApiError(res.status, await errorMessage(res))
@@ -100,6 +105,22 @@ export const consoleApi = {
 
   resetConfig: (key: string) =>
     mutate<ConfigSchema>(`/config/${encodeURIComponent(key)}`, 'DELETE'),
+
+  listReplayCollectionJobs: () => get<ReplayCollectionJob[]>('/replay-collection/jobs'),
+
+  startReplayCollection: (startDate: string, endDate: string, userLimit?: number) =>
+    mutate<{ jobId: string }>('/replay-collection/jobs', 'POST', { startDate, endDate, userLimit }),
+
+  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string) =>
+    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction)),
+
+  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string) =>
+    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction)),
+
+  getCpuPlayerSummary: () => get<CpuPlayerSummary>('/cpu-players/summary'),
+
+  refreshCpuBenchmarks: () =>
+    mutate<CpuBenchmarkSync>('/cpu-players/benchmarks/refresh', 'POST', undefined, 120000),
 }
 
 function buildListQuery(
@@ -108,6 +129,7 @@ function buildListQuery(
   size: number,
   q?: string,
   field?: string,
+  sort?: string,
   direction?: string,
 ): string {
   const params = new URLSearchParams({ page: String(page), size: String(size) })
@@ -116,6 +138,9 @@ function buildListQuery(
     if (field && field !== 'all') {
       params.set('field', field)
     }
+  }
+  if (sort) {
+    params.set('sort', sort)
   }
   if (direction) {
     params.set('direction', direction)

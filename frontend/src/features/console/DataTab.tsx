@@ -2,18 +2,21 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ArrowDownWideNarrow,
+  ArrowDown,
   ArrowRightToLine,
-  ArrowUpWideNarrow,
+  ArrowUp,
+  ArrowUpDown,
   ChevronDown,
   ChevronRight,
   Loader2,
+  Columns3,
   RotateCw,
   Trash2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -22,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import {
   Table,
@@ -43,12 +47,22 @@ export type Column<T> = {
   skeleton?: string
   /** Backend field id this column maps to; when set, the column is offered as a search scope. */
   searchKey?: string
+  sortKey?: string
+  initialSortDirection?: 'asc' | 'desc'
+  defaultVisible?: boolean
 }
 
 type DataTabProps<T> = {
   columns: Column<T>[]
   rowKey: (row: T) => string
-  load: (page: number, size: number, q?: string, field?: string, direction?: string) => Promise<PageResponse<T>>
+  load: (
+    page: number,
+    size: number,
+    q?: string,
+    field?: string,
+    sort?: string,
+    direction?: string,
+  ) => Promise<PageResponse<T>>
   /** Resolves the page index where a searched row lives in the unfiltered list, enabling the jump action. */
   locate?: (row: T, size: number, direction?: string) => Promise<number>
   /** When set, rows get a chevron toggle that reveals this content in a full-width row below. */
@@ -60,7 +74,14 @@ type DataTabProps<T> = {
   emptyLabel: string
   /** Label for the column the rows are ordered by (shown on the sort toggle). Defaults to "time". */
   sortLabel?: string
+  sortDescendingLabel?: string
+  sortAscendingLabel?: string
+  defaultSortKey?: string
+  defaultSortDirection?: 'asc' | 'desc'
   forceLoading?: boolean
+  columnSelection?: boolean
+  active?: boolean
+  refreshToken?: number
   onError: (message: string) => void
 }
 
@@ -90,7 +111,14 @@ export function DataTab<T>({
   onDelete,
   emptyLabel,
   sortLabel = 'time',
+  sortDescendingLabel = 'Newest',
+  sortAscendingLabel = 'Oldest',
+  defaultSortKey,
+  defaultSortDirection = 'desc',
   forceLoading = false,
+  columnSelection = false,
+  active = true,
+  refreshToken = 0,
   onError,
 }: DataTabProps<T>) {
   const [page, setPage] = useState(0)
@@ -101,10 +129,14 @@ export function DataTab<T>({
   const [query, setQuery] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
   const [field, setField] = useState('all')
-  const [direction, setDirection] = useState<'desc' | 'asc'>('desc')
+  const [sortKey, setSortKey] = useState(() => defaultSortKey ?? columns.find((column) => column.sortKey)?.sortKey ?? '')
+  const [direction, setDirection] = useState<'desc' | 'asc'>(defaultSortDirection)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [jumpingId, setJumpingId] = useState<string | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<Set<string>>(
+    () => new Set(columns.filter((column) => column.defaultVisible !== false).map((column) => column.key)),
+  )
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -114,6 +146,7 @@ export function DataTab<T>({
       targetSize: number,
       q: string,
       searchField: string,
+      targetSortKey: string,
       dir: string,
       // A silent reload keeps the current table visible and only spins the refresh icon,
       // instead of swapping the rows out for skeletons.
@@ -122,7 +155,14 @@ export function DataTab<T>({
       if (opts?.silent) setRefreshing(true)
       else setLoading(true)
       try {
-        const result = await load(targetPage, targetSize, q.trim() || undefined, searchField, dir)
+        const result = await load(
+          targetPage,
+          targetSize,
+          q.trim() || undefined,
+          searchField,
+          targetSortKey || undefined,
+          dir,
+        )
         setData(result)
         setPage(result.page)
       } catch {
@@ -141,12 +181,29 @@ export function DataTab<T>({
   // `reload` is recreated whenever the parent passes a fresh inline `load` prop (e.g. on every
   // re-render), and without the guard that would re-trigger a skeleton load on each parent render.
   const didInitialLoad = useRef(false)
+  const wasActive = useRef(false)
+  const lastRefreshToken = useRef(refreshToken)
   useEffect(() => {
-    if (forceLoading) return
-    if (didInitialLoad.current) return
-    didInitialLoad.current = true
-    void reload(0, DEFAULT_PAGE_SIZE, '', 'all', 'desc')
-  }, [forceLoading, reload])
+    if (forceLoading || !active) {
+      wasActive.current = false
+      return
+    }
+    if (!wasActive.current) {
+      if (didInitialLoad.current) {
+        void reload(page, size, activeQuery, field, sortKey, direction, { silent: true })
+      } else {
+        didInitialLoad.current = true
+        void reload(0, DEFAULT_PAGE_SIZE, '', 'all', sortKey, defaultSortDirection)
+      }
+    }
+    wasActive.current = true
+  }, [active, activeQuery, defaultSortDirection, direction, field, forceLoading, page, reload, size, sortKey])
+
+  useEffect(() => {
+    if (lastRefreshToken.current === refreshToken) return
+    lastRefreshToken.current = refreshToken
+    if (active && data) void reload(page, size, activeQuery, field, sortKey, direction, { silent: true })
+  }, [active, activeQuery, data, direction, field, page, refreshToken, reload, size, sortKey])
 
   useEffect(
     () => () => {
@@ -164,35 +221,47 @@ export function DataTab<T>({
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => {
       setActiveQuery(value)
-      void reload(0, size, value, field, direction, { silent: true })
+      void reload(0, size, value, field, sortKey, direction, { silent: true })
     }, 300)
   }
 
   const onFieldChange = (next: string) => {
     setField(next)
     if (activeQuery.trim()) {
-      void reload(0, size, activeQuery, next, direction, { silent: true })
+      void reload(0, size, activeQuery, next, sortKey, direction, { silent: true })
     }
   }
 
   const onSizeChange = (next: number) => {
     setSize(next)
-    void reload(0, next, activeQuery, field, direction)
+    void reload(0, next, activeQuery, field, sortKey, direction)
   }
 
   const onToggleDirection = () => {
     const next = direction === 'desc' ? 'asc' : 'desc'
     setDirection(next)
-    void reload(0, size, activeQuery, field, next)
+    void reload(0, size, activeQuery, field, sortKey, next, { silent: true })
+  }
+
+  const onSort = (column: Column<T>) => {
+    if (!column.sortKey) return
+    const nextDirection = sortKey === column.sortKey
+      ? direction === 'asc' ? 'desc' : 'asc'
+      : column.initialSortDirection ?? 'asc'
+    setSortKey(column.sortKey)
+    setDirection(nextDirection)
+    void reload(0, size, activeQuery, field, column.sortKey, nextDirection, { silent: true })
   }
 
   const searching = activeQuery.trim().length > 0
   const showLoading = forceLoading || loading
   const rows = data?.content ?? []
-  const columnCount = columns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (canEdit ? 1 : 0)
+  const visibleColumns = columns.filter((column) => visibleColumnKeys.has(column.key))
+  const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (canEdit ? 1 : 0)
   const firstRow = rows[0]
   const roomName = roomAccessor && firstRow ? roomAccessor(firstRow) : null
   const searchableColumns = columns.filter((c) => c.searchKey)
+  const hasSortableColumns = columns.some((column) => column.sortKey)
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -203,12 +272,24 @@ export function DataTab<T>({
     })
   }
 
+  const toggleColumn = (key: string) => {
+    setVisibleColumnKeys((previous) => {
+      const next = new Set(previous)
+      if (next.has(key)) {
+        if (next.size > 1) next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
   const remove = async (row: T) => {
     if (!onDelete) return
     if (!confirm('Delete this row? This action cannot be undone.')) return
     try {
       await onDelete(row)
-      await reload(page, size, activeQuery, field, direction)
+      await reload(page, size, activeQuery, field, sortKey, direction)
     } catch {
       onError('Failed to delete row.')
     }
@@ -223,7 +304,7 @@ export function DataTab<T>({
       if (searchTimer.current) clearTimeout(searchTimer.current)
       setQuery('')
       setActiveQuery('')
-      await reload(targetPage, size, '', field, direction)
+      await reload(targetPage, size, '', field, sortKey, direction)
       setHighlightId(id)
       if (highlightTimer.current) clearTimeout(highlightTimer.current)
       highlightTimer.current = setTimeout(() => setHighlightId(null), 3000)
@@ -291,21 +372,55 @@ export function DataTab<T>({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={showLoading}
-            onClick={onToggleDirection}
-            title={`Sort by ${sortLabel}: ${direction === 'desc' ? 'newest first' : 'oldest first'}`}
-          >
-            {direction === 'desc' ? <ArrowDownWideNarrow /> : <ArrowUpWideNarrow />}
-            {direction === 'desc' ? 'Newest' : 'Oldest'}
-          </Button>
+          {columnSelection && (
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button variant="ghost" size="sm">
+                    <Columns3 />
+                    Columns
+                  </Button>
+                }
+              />
+              <PopoverContent side="bottom" align="end" className="w-56 p-2">
+                <div className="grid gap-1">
+                  {columns.map((column) => {
+                    const checked = visibleColumnKeys.has(column.key)
+                    return (
+                      <label
+                        key={column.key}
+                        className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                      >
+                        <span>{column.label}</span>
+                        <Switch
+                          checked={checked}
+                          disabled={checked && visibleColumnKeys.size === 1}
+                          onCheckedChange={() => toggleColumn(column.key)}
+                        />
+                      </label>
+                    )
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+          {!hasSortableColumns && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={showLoading}
+              onClick={onToggleDirection}
+              title={`Sort by ${sortLabel}: ${direction === 'desc' ? sortDescendingLabel.toLowerCase() : sortAscendingLabel.toLowerCase()} first`}
+            >
+              {direction === 'desc' ? <ArrowDown /> : <ArrowUp />}
+              {direction === 'desc' ? sortDescendingLabel : sortAscendingLabel}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
             disabled={showLoading || refreshing}
-            onClick={() => reload(page, size, activeQuery, field, direction, { silent: true })}
+            onClick={() => reload(page, size, activeQuery, field, sortKey, direction, { silent: true })}
           >
             <RotateCw className={showLoading || refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -318,9 +433,25 @@ export function DataTab<T>({
           <TableHeader>
             <TableRow className="bg-muted/40">
               {expand && <TableHead className="w-[40px]" />}
-              {columns.map((c) => (
-                <TableHead key={c.key} className={c.headClassName}>
-                  {c.label}
+              {visibleColumns.map((c) => (
+                <TableHead
+                  key={c.key}
+                  className={c.headClassName}
+                  aria-sort={sortKey === c.sortKey ? (direction === 'asc' ? 'ascending' : 'descending') : undefined}
+                >
+                  {c.sortKey ? (
+                    <button
+                      type="button"
+                      className="flex h-full w-full items-center gap-1 text-left font-medium hover:text-foreground"
+                      disabled={showLoading}
+                      onClick={() => onSort(c)}
+                    >
+                      <span className="truncate">{c.label}</span>
+                      {sortKey === c.sortKey
+                        ? direction === 'asc' ? <ArrowUp className="size-3.5" /> : <ArrowDown className="size-3.5" />
+                        : <ArrowUpDown className="size-3.5 text-muted-foreground/50" />}
+                    </button>
+                  ) : c.label}
                 </TableHead>
               ))}
               {locate && <TableHead className="w-[48px]" />}
@@ -332,7 +463,7 @@ export function DataTab<T>({
               Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`} className="h-[33px] hover:bg-transparent">
                   {expand && <TableCell className="w-[40px]" />}
-                  {columns.map((c, idx) => (
+                  {visibleColumns.map((c, idx) => (
                     <TableCell key={c.key} className={c.cellClassName}>
                       <Skeleton
                         className={cn(
@@ -381,7 +512,7 @@ export function DataTab<T>({
                           </Button>
                         </TableCell>
                       )}
-                      {columns.map((c) => (
+                      {visibleColumns.map((c) => (
                         <TableCell key={c.key} className={c.cellClassName}>
                           {c.render ? c.render(row) : c.value(row)}
                         </TableCell>
@@ -469,7 +600,7 @@ export function DataTab<T>({
             variant="outline"
             size="sm"
             disabled={showLoading || page <= 0}
-            onClick={() => reload(page - 1, size, activeQuery, field, direction)}
+            onClick={() => reload(page - 1, size, activeQuery, field, sortKey, direction)}
           >
             Previous
           </Button>
@@ -478,7 +609,7 @@ export function DataTab<T>({
             variant="outline"
             size="sm"
             disabled={showLoading || !data || page + 1 >= data.totalPages}
-            onClick={() => reload(page + 1, size, activeQuery, field, direction)}
+            onClick={() => reload(page + 1, size, activeQuery, field, sortKey, direction)}
           >
             Next
           </Button>

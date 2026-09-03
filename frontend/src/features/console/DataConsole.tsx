@@ -17,6 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AdminPanel } from './AdminPanel'
 import { consoleApi } from './api'
 import { ConfigTab } from './ConfigTab'
+import { ReplayCollectionTab } from './ReplayCollectionTab'
+import { ReplaysTab } from './ReplaysTab'
+import { CpuPlayersTab } from './CpuPlayersTab'
 import { AppInfoPanel } from '@/features/info/AppInfoPanel'
 import type { AccessInfo, ConsoleRole } from './types'
 
@@ -40,43 +43,36 @@ const LOADING_ADMIN_ACCESS: AccessInfo = {
   isOwner: true,
 }
 
-type TabKey = 'about' | 'config' | 'admin'
+type TabKey = 'players' | 'replays' | 'collection' | 'config' | 'admin' | 'about'
 const TAB_STORAGE_KEY = 'console.activeTab'
 
 function storedTab(): TabKey {
   const value = localStorage.getItem(TAB_STORAGE_KEY)
-  return value === 'config' || value === 'admin' ? value : 'about'
+  return value === 'replays' || value === 'collection' || value === 'config' || value === 'admin' || value === 'about'
+    ? value
+    : 'players'
 }
 
 export default function DataConsole({
-  enabled = true,
+  authenticated = false,
   forceLoading = false,
 }: {
-  enabled?: boolean
+  authenticated?: boolean
   forceLoading?: boolean
 }) {
   const [access, setAccess] = useState<AccessInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<TabKey>('about')
+  const [tab, setTab] = useState<TabKey>('players')
   const [tabRestored, setTabRestored] = useState(false)
   const [tabAnimationsReady, setTabAnimationsReady] = useState(false)
   const [pendingCount, setPendingCount] = useState<number | null>(null)
-  // Tabs are mounted lazily on first visit and then kept mounted (see keepMounted below), so
-  // switching back to an already-seen tab restores its state instantly instead of replaying the
-  // skeleton load. Trade-off: a revisited tab shows data from its first load until the user hits
-  // Refresh.
-  const [visited, setVisited] = useState<Set<TabKey>>(() => new Set<TabKey>(['about']))
+  const [visited, setVisited] = useState<Set<TabKey>>(() => new Set<TabKey>(['players']))
 
   const selectTab = useCallback((next: TabKey) => {
     setTab(next)
     localStorage.setItem(TAB_STORAGE_KEY, next)
-    setVisited((prev) => {
-      if (prev.has(next)) return prev
-      const updated = new Set(prev)
-      updated.add(next)
-      return updated
-    })
+    setVisited((previous) => new Set(previous).add(next))
   }, [])
 
   const loadAccess = useCallback(async () => {
@@ -103,20 +99,30 @@ export default function DataConsole({
   }, [tabRestored])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!authenticated) {
+      setAccess(null)
+      setLoading(false)
+      return
+    }
+    setLoading(true)
     void loadAccess()
-  }, [enabled, loadAccess])
+  }, [authenticated, loadAccess])
 
   useEffect(() => {
-    if (!forceLoading && !loading && access && tab === 'admin' && !access.isAdmin) {
-      selectTab('about')
+    if (forceLoading || loading) return
+    const protectedTab = tab === 'collection' || tab === 'config' || tab === 'admin'
+    const allowed = !protectedTab || (
+      authenticated && (tab === 'admin' ? access?.isAdmin === true : access?.canView === true)
+    )
+    if (!allowed) {
+      selectTab('players')
     }
-  }, [access, forceLoading, loading, selectTab, tab])
+  }, [access, authenticated, forceLoading, loading, selectTab, tab])
 
   // Load the pending-request count independently of the Admin tab so the tab badge is accurate
   // even before an admin opens the tab (the tab is mounted lazily).
   useEffect(() => {
-    if (forceLoading || !access?.isAdmin) return
+    if (forceLoading || !authenticated || !access?.isAdmin) return
     let active = true
     consoleApi
       .listPendingRequests()
@@ -129,49 +135,41 @@ export default function DataConsole({
     return () => {
       active = false
     }
-  }, [access?.isAdmin, forceLoading])
-
-  const isLoading = forceLoading || loading
-
-  if (!isLoading && access && !access.canView) {
-    return (
-      <div className="flex flex-col gap-3">
-        {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
-        <AccessGate access={access} onUpdated={setAccess} onError={setError} />
-      </div>
-    )
-  }
-
-  if (!isLoading && !access) {
-    return error ? (
-      <ErrorNotification message={error} onClose={() => setError(null)} />
-    ) : null
-  }
+  }, [access?.isAdmin, authenticated, forceLoading])
 
   const canView = access?.canView === true
-  const showAdmin = isLoading || access?.isAdmin === true
-  const selectedTab = !isLoading && tab === 'admin' && !access?.isAdmin ? 'about' : tab
+  const accessLoading = authenticated && loading
+  const showProtected = authenticated && (accessLoading || canView)
+  const showAdmin = authenticated && (accessLoading || access?.isAdmin === true)
+  const selectedTab = !showProtected && (tab === 'collection' || tab === 'config' || tab === 'admin')
+    ? 'players'
+    : tab
   const hasPending = (pendingCount ?? 0) > 0
   const pendingLabel = hasPending
     ? `${pendingCount} pending access request${pendingCount === 1 ? '' : 's'}`
     : 'No pending access requests'
   const tabItems: Record<string, string> = {
-    about: 'About',
-    config: 'Config',
+    players: 'Players',
+    replays: 'Replays',
+    ...(showProtected ? { collection: 'Collection', config: 'Config' } : {}),
     ...(showAdmin ? { admin: 'Admin' } : {}),
+    about: 'About',
   }
 
   return (
     <div className={`flex flex-col gap-3 ${tabRestored ? '' : 'invisible'}`}>
       {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
+      {authenticated && !accessLoading && access && !access.canView && (
+        <AccessGate access={access} onUpdated={setAccess} onError={setError} />
+      )}
 
-      <Tabs value={selectedTab} onValueChange={(v) => selectTab((v ?? 'about') as TabKey)}>
+      <Tabs value={selectedTab} onValueChange={(v) => selectTab((v ?? 'players') as TabKey)}>
         <div className="flex items-center justify-between gap-2">
           {/* Mobile: compact dropdown keeps every tab one tap away without hidden horizontal scroll. */}
           <Select
             items={tabItems}
             value={selectedTab}
-            onValueChange={(v) => selectTab((v ?? 'about') as TabKey)}
+            onValueChange={(v) => selectTab((v ?? 'players') as TabKey)}
           >
             <SelectTrigger size="sm" className="h-8 w-36 sm:hidden">
               <SelectValue />
@@ -187,22 +185,38 @@ export default function DataConsole({
           {/* Tablet and up: full tab bar. */}
           <TabsList variant="line" className="hidden h-9 min-w-48 justify-start sm:flex">
             <TabsTrigger
-              value="about"
+              value="players"
               className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
             >
-              About
+              Players
             </TabsTrigger>
             <TabsTrigger
-              value="config"
+              value="replays"
               className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
             >
-              Config
+              Replays
             </TabsTrigger>
+            {showProtected && (
+              <>
+                <TabsTrigger
+                  value="collection"
+                  className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
+                >
+                  Collection
+                </TabsTrigger>
+                <TabsTrigger
+                  value="config"
+                  className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
+                >
+                  Config
+                </TabsTrigger>
+              </>
+            )}
             {showAdmin && (
               <TabsTrigger
                 value="admin"
                 className={`${tabAnimationsReady ? '' : 'transition-none after:transition-none'} relative w-20 justify-center`}
-                disabled={isLoading && !forceLoading && !access?.isAdmin}
+                disabled={accessLoading && !forceLoading && !access?.isAdmin}
               >
                 <span className="text-center">Admin</span>
                 <span
@@ -211,45 +225,83 @@ export default function DataConsole({
                 />
               </TabsTrigger>
             )}
+            <TabsTrigger
+              value="about"
+              className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
+            >
+              About
+            </TabsTrigger>
           </TabsList>
-          <div className="flex items-center gap-2">
-            {access ? (
-              <>
-                <UpgradeAccessControl access={access} onUpdated={setAccess} onError={setError} />
-                <Badge variant={ROLE_BADGE[access.role]}>{access.role}</Badge>
-              </>
-            ) : (
-              <Skeleton className="h-6 w-16 rounded-full" />
-            )}
-          </div>
+          {authenticated && (accessLoading || access) && (
+            <div className="flex items-center gap-2">
+              {access ? (
+                <>
+                  <UpgradeAccessControl access={access} onUpdated={setAccess} onError={setError} />
+                  <Badge variant={ROLE_BADGE[access.role]}>{access.role}</Badge>
+                </>
+              ) : (
+                <Skeleton className="h-6 w-16 rounded-full" />
+              )}
+            </div>
+          )}
         </div>
 
-        <TabsContent value="about" className="pt-2" keepMounted>
-          {visited.has('about') && <AppInfoPanel forceLoading={forceLoading} />}
-        </TabsContent>
-
-        <TabsContent value="config" className="pt-2" keepMounted>
+        {showProtected && <TabsContent value="config" className="pt-2" keepMounted>
           {visited.has('config') && (
             <ConfigTab
+              active={selectedTab === 'config'}
               canEdit={access?.isOwner === true}
-              forceLoading={isLoading || !canView}
+              forceLoading={forceLoading || accessLoading || !canView}
+              onError={setError}
+            />
+          )}
+        </TabsContent>}
+
+        <TabsContent value="replays" className="pt-2" keepMounted>
+          {visited.has('replays') && (
+            <ReplaysTab active={selectedTab === 'replays'} forceLoading={forceLoading} onError={setError} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="players" className="pt-2" keepMounted>
+          {visited.has('players') && (
+            <CpuPlayersTab
+              active={selectedTab === 'players'}
+              canRefresh={access?.isAdmin === true}
+              forceLoading={forceLoading}
               onError={setError}
             />
           )}
         </TabsContent>
 
+        {showProtected && <TabsContent value="collection" className="pt-2" keepMounted>
+          {visited.has('collection') && (
+            <ReplayCollectionTab
+              active={selectedTab === 'collection'}
+              canRun={access?.isAdmin === true}
+              forceLoading={forceLoading || accessLoading || !canView}
+              onError={setError}
+            />
+          )}
+        </TabsContent>}
+
         {showAdmin && (
           <TabsContent value="admin" className="pt-2" keepMounted>
             {visited.has('admin') && (
               <AdminPanel
+                active={selectedTab === 'admin'}
                 access={access?.isAdmin ? access : LOADING_ADMIN_ACCESS}
-                forceLoading={isLoading || !access?.isAdmin}
+                forceLoading={forceLoading || accessLoading || !access?.isAdmin}
                 onError={setError}
                 onPendingCountChange={setPendingCount}
               />
             )}
           </TabsContent>
         )}
+
+        <TabsContent value="about" className="pt-2" keepMounted>
+          {visited.has('about') && <AppInfoPanel active={selectedTab === 'about'} forceLoading={forceLoading} />}
+        </TabsContent>
       </Tabs>
     </div>
   )

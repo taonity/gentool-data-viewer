@@ -27,7 +27,7 @@ Choose one profile from each resource group.
 | Logging | `plain-log` (included by `local`) | default |
 | Environment | `local` | `stage` or `prod` |
 
-Local development uses `h2,stub-google,local`. Stage and production use only `stage` or `prod`; each environment profile includes `postgres` and `prod-google` and owns its non-secret deployment settings. Add the optional `demo-data` profile to seed local feature fixtures.
+Local development uses `h2,stub-google,local`. Stage and production use only `stage` or `prod`; each environment profile includes `postgres` and `prod-google` and owns its non-secret deployment settings. Add the optional `demo-data` profile to seed local feature fixtures, including 50 anonymized replays and 15 fictional players with CPU ratings.
 
 ## Run locally
 
@@ -39,7 +39,7 @@ Start the backend:
 mvn -pl backend spring-boot:run '-Dspring-boot.run.jvmArguments="-Dspring.profiles.active=h2,stub-google,local"'
 ```
 
-Start the backend with pending access requests and audit records:
+Start the backend with pending access requests, audit records, and anonymized replay/player fixtures:
 
 ```bash
 mvn -pl backend spring-boot:run '-Dspring-boot.run.jvmArguments="-Dspring.profiles.active=h2,stub-google,local,demo-data"'

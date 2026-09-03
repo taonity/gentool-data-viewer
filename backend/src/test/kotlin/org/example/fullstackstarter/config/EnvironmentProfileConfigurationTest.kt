@@ -40,7 +40,7 @@ class EnvironmentProfileConfigurationTest {
                 val environment = context.environment
 
                 assertThat(environment.getProperty("app.default-success-url")).isEqualTo(frontendUrl)
-                assertThat(environment.getProperty("app.login-url")).isEqualTo("$frontendUrl/login")
+                assertThat(environment.getProperty("app.login-url")).isEqualTo(frontendUrl)
                 assertThat(environment.getProperty("server.servlet.session.cookie.domain"))
                     .isEqualTo("taonity.org")
                 assertThat(environment.getProperty("server.servlet.session.cookie.name"))
