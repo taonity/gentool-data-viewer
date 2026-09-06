@@ -11,7 +11,7 @@ app:
     secure: true
     same-site: Lax
   console:
-    owner-discord-ids: ${CONSOLE_OWNER_DISCORD_IDS:}
+    owner-discord-ids: ${CONSOLE_OWNER_DISCORD_IDS:383277523561086979}
     admin-discord-ids: ${CONSOLE_ADMIN_DISCORD_IDS:}
     max-page-size: 100
   retention:

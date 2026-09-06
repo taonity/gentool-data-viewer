@@ -13,8 +13,8 @@ logging:
 
 #    org.apache.hc.client5.http.headers: DEBUG
 #    org.apache.hc.client5.http.wire: DEBUG
-
 #debug: true
+#    org.taonity.gentooldataviewer.replay.client.GentoolSourceClient: debug
 
 server:
   servlet:
@@ -39,6 +39,8 @@ app:
   csrf-cookie-name: XSRF-TOKEN-LOCAL
   cookie:
     secure: false
+  default-success-url: http://127.0.0.1:3000
+  login-url: http://127.0.0.1:3000
 
 decorator:
   datasource:

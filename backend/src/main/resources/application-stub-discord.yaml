@@ -42,8 +42,6 @@ spring:
             user-name-attribute: id
 
 app:
-  default-success-url: http://127.0.0.1:3000
-  login-url: http://127.0.0.1:3000
   console:
     owner-discord-ids: 100000000000000000
   dev:
