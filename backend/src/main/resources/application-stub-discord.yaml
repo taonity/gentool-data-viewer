@@ -43,7 +43,7 @@ spring:
 
 app:
   console:
-    owner-discord-ids: 100000000000000000
+    owner-discord-ids: "100000000000000000"
   dev:
     stub-logins:
       - registration-id: discord-gentool-data-viewer
