@@ -11,7 +11,10 @@ import jakarta.persistence.Table
 @Table(name = "app_user")
 class UserEntity(
     @Id
+    @Column(name = "user_id")
     val googleId: String,
+    @Column(name = "auth_provider", nullable = false)
+    val authProvider: String,
     var email: String,
     var displayName: String,
     var pictureUrl: String? = null,
@@ -25,6 +28,9 @@ class UserEntity(
     @Column(name = "requested_role")
     var requestedRole: ConsoleRole? = null,
 ) {
+    val userId: String
+        get() = googleId
+
     fun updateDetails(displayName: String, email: String, pictureUrl: String?): UserEntity {
         this.displayName = displayName
         this.email = email

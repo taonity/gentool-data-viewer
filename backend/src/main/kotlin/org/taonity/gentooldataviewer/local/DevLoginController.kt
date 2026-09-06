@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/dev")
-@Profile("stub-google")
+@Profile("stub-discord")
 class DevLoginController(
     private val devLoginProperties: DevLoginProperties,
 ) {

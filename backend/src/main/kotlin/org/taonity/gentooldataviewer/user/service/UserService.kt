@@ -34,11 +34,18 @@ class UserService(
             }
             LOGGER.debug { "Updated user: ${existing.googleId}" }
         } else {
+            val legacyUser = userRepository.findFirstByEmailIgnoreCase(principal.getEmail())
+                ?.takeIf { it.authProvider == "google" }
             val newUser = UserEntity(
-                googleId = principal.getGoogleId(),
+                googleId = principal.getUserId(),
+                authProvider = principal.userInfo.provider,
                 email = principal.getEmail(),
                 displayName = principal.getDisplayName(),
-                pictureUrl = principal.getPictureUrl()
+                pictureUrl = principal.getPictureUrl(),
+                role = legacyUser?.role ?: ConsoleRole.VIEWER,
+                accessStatus = legacyUser?.accessStatus
+                    ?: org.taonity.gentooldataviewer.user.entity.AccessRequestStatus.APPROVED,
+                requestedRole = legacyUser?.requestedRole,
             )
             if (isOwner) {
                 newUser.grantOwner()
@@ -48,6 +55,10 @@ class UserService(
                 LOGGER.info { "Bootstrapped admin console user: ${newUser.googleId}" }
             }
             userRepository.save(newUser)
+            if (legacyUser != null) {
+                userRepository.delete(legacyUser)
+                LOGGER.info { "Migrated legacy Google access to Discord user: ${newUser.googleId}" }
+            }
             LOGGER.info { "Created new user: ${newUser.googleId}" }
         }
     }

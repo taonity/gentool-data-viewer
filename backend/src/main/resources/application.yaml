@@ -29,6 +29,14 @@ app:
     schedule-enabled: true
     schedule-cron: "0 15 2 * * *"
     schedule-zone: UTC
+  replay-rescan:
+    lookback-days: 7
+    other-daily-limit: 20
+    target-cooldown: 5m
+    privileged-other-daily-limit: 100
+    privileged-target-cooldown: 1m
+  discord:
+    cdn-base-url: https://cdn.discordapp.com
   cpu-benchmark:
     base-url: https://www.cpubenchmark.net/single-thread/
     max-pages: 8
@@ -53,7 +61,7 @@ management:
         time-to-live: 60s
       group:
         external:
-          include: google
+          include: discord
     prometheus:
       enabled: true
   info:
@@ -69,8 +77,8 @@ spring:
   profiles:
     group:
       local: plain-log,active-properties-logging
-      stage: postgres-container,prod-google
-      prod: postgres-container,prod-google
+      stage: postgres-container,prod-discord
+      prod: postgres-container,prod-discord
   application:
     name: gentool-data-viewer
   session:

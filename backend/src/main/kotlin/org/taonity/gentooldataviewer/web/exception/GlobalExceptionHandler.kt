@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import org.taonity.gentooldataviewer.config.ConfigValidationException
 import org.taonity.gentooldataviewer.console.exception.ConsoleForbiddenException
@@ -19,6 +20,20 @@ import org.taonity.gentooldataviewer.console.exception.ConsoleNotFoundException
 class GlobalExceptionHandler {
     companion object {
         private val LOGGER = KotlinLogging.logger {}
+    }
+
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatus(e: ResponseStatusException): ResponseEntity<ClientErrorResponse> {
+        LOGGER.debug(e) { "Request rejected with ${e.statusCode}" }
+        val code = when (e.statusCode) {
+            HttpStatus.TOO_MANY_REQUESTS -> ClientErrorCode.TOO_MANY_REQUESTS
+            HttpStatus.CONFLICT -> ClientErrorCode.CONFLICT
+            HttpStatus.FORBIDDEN -> ClientErrorCode.FORBIDDEN
+            HttpStatus.NOT_FOUND -> ClientErrorCode.NOT_FOUND
+            else -> ClientErrorCode.VALIDATION_ERROR
+        }
+        return ResponseEntity.status(e.statusCode)
+            .body(ClientErrorResponse(code, e.reason ?: "Request rejected"))
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

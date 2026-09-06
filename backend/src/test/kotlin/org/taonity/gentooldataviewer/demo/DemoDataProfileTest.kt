@@ -88,7 +88,7 @@ class DemoDataProfileTest {
         )
         assertThat(CPU_PLAYER_SORT_PROPERTIES.keys).containsExactlyInAnyOrder(
             "mainName", "playerId", "aliases", "replayCount", "reportedCpu", "score", "latestName",
-            "benchmark", "status", "observedAt", "scoreUpdatedAt",
+            "benchmark", "status", "observedAt", "gentoolRefreshedAt", "scoreUpdatedAt",
         )
         val maps = replayRepository.findAll(PageRequest.of(0, 50, Sort.by("mapName"))).content.mapNotNull { it.mapName }
         assertThat(maps).isSorted

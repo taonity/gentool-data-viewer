@@ -11,7 +11,7 @@ import jakarta.persistence.Table
 import java.time.Instant
 import java.time.LocalDate
 
-enum class CollectionTrigger { SCHEDULED, MANUAL }
+enum class CollectionTrigger { SCHEDULED, MANUAL, USER_RESCAN }
 enum class CollectionStatus { QUEUED, RUNNING, COMPLETED, FAILED }
 
 @Entity
@@ -34,6 +34,8 @@ class ReplayCollectionJobEntity(
     val requestedBy: String,
     @Column(name = "user_limit")
     val userLimit: Int? = null,
+    @Column(name = "target_player_id", length = 12)
+    val targetPlayerId: String? = null,
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     @Column(name = "started_at")

@@ -4,6 +4,7 @@ import org.taonity.gentooldataviewer.replay.dto.ReplayCollectionJobDto
 import org.taonity.gentooldataviewer.replay.entity.CollectionStatus
 import org.taonity.gentooldataviewer.replay.entity.CollectionTrigger
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
+import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayCollectionJobRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -13,9 +14,17 @@ import java.time.LocalDate
 @Service
 class ReplayCollectionJobService(
     private val repository: ReplayCollectionJobRepository,
+    private val playerHardwareRepository: PlayerHardwareRepository,
 ) {
     @Transactional
-    fun create(trigger: CollectionTrigger, startDate: LocalDate, endDate: LocalDate, requestedBy: String, userLimit: Int?): String =
+    fun create(
+        trigger: CollectionTrigger,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        requestedBy: String,
+        userLimit: Int?,
+        targetPlayerId: String? = null,
+    ): String =
         requireNotNull(
             repository.save(
                 ReplayCollectionJobEntity(
@@ -24,6 +33,7 @@ class ReplayCollectionJobService(
                     endDate = endDate,
                     requestedBy = requestedBy,
                     userLimit = userLimit,
+                    targetPlayerId = targetPlayerId,
                 ),
             ).id,
         )
@@ -50,8 +60,15 @@ class ReplayCollectionJobService(
     fun complete(id: String, progress: CollectionProgress) {
         updateProgress(id, progress)
         val job = repository.getReferenceById(id)
+        val finishedAt = Instant.now()
         job.status = CollectionStatus.COMPLETED
-        job.finishedAt = Instant.now()
+        job.finishedAt = finishedAt
+        val targetPlayerId = job.targetPlayerId
+        if (job.triggerType == CollectionTrigger.USER_RESCAN && targetPlayerId != null) {
+            playerHardwareRepository.findById(targetPlayerId).ifPresent { player ->
+                player.gentoolRefreshedAt = finishedAt
+            }
+        }
     }
 
     @Transactional

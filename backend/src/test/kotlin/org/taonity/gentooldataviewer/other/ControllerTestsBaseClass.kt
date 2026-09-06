@@ -16,8 +16,8 @@ import java.nio.charset.StandardCharsets
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("h2", "stub-google")
-class ControllerTestsBaseClass {
+@ActiveProfiles("h2", "stub-discord")
+open class ControllerTestsBaseClass {
 
     @Autowired
     lateinit var mockMvc: MockMvc
@@ -25,7 +25,7 @@ class ControllerTestsBaseClass {
     @Value("\${server.servlet.session.cookie.name}")
     lateinit var sessionCookieName: String
 
-    fun authorizeOAuth2(registrationId: String = "google-gentool-data-viewer"): Cookie {
+    fun authorizeOAuth2(registrationId: String = "discord-gentool-data-viewer"): Cookie {
         val authResult = mockMvc.perform(
             get("/oauth2/authorization/$registrationId")
         )

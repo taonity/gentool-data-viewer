@@ -1,5 +1,6 @@
 package org.taonity.gentooldataviewer.replay.client
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.taonity.gentooldataviewer.replay.config.ReplayCollectorProperties
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -38,6 +39,7 @@ class GentoolSourceClient(
             .header("User-Agent", properties.userAgent)
             .GET()
             .build()
+        LOGGER.debug { "GenTool data request: GET $uri" }
         val response = try {
             httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray())
         } finally {
@@ -50,6 +52,10 @@ class GentoolSourceClient(
             throw SourceRequestException("GET $uri exceeded the $maxBytes byte limit")
         }
         return String(response.body(), StandardCharsets.UTF_8)
+    }
+
+    private companion object {
+        private val LOGGER = KotlinLogging.logger {}
     }
 }
 

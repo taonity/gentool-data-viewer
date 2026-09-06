@@ -1,0 +1,60 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          discord-gentool-data-viewer:
+            provider: discord
+            client-id: stub-discord-client-id
+            client-secret: stub-discord-client-secret
+            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/discord-gentool-data-viewer
+            authorization-grant-type: authorization_code
+            scope: identify,email
+          stub-alice:
+            provider: discord-stub-alice
+            client-id: stub-discord-client-id
+            client-secret: stub-discord-client-secret
+            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/stub-alice
+            authorization-grant-type: authorization_code
+            scope: identify,email
+          stub-bob:
+            provider: discord-stub-bob
+            client-id: stub-discord-client-id
+            client-secret: stub-discord-client-secret
+            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/stub-bob
+            authorization-grant-type: authorization_code
+            scope: identify,email
+        provider:
+          discord:
+            authorization-uri: http://127.0.0.1:9561/oauth2/authorize
+            token-uri: http://127.0.0.1:9561/api/oauth2/token
+            user-info-uri: http://127.0.0.1:9561/api/users/@me
+            user-name-attribute: id
+          discord-stub-alice:
+            authorization-uri: http://127.0.0.1:9561/oauth2/authorize
+            token-uri: http://127.0.0.1:9561/api/oauth2/token
+            user-info-uri: http://127.0.0.1:9561/api/users/@me/alice
+            user-name-attribute: id
+          discord-stub-bob:
+            authorization-uri: http://127.0.0.1:9561/oauth2/authorize
+            token-uri: http://127.0.0.1:9561/api/oauth2/token
+            user-info-uri: http://127.0.0.1:9561/api/users/@me/bob
+            user-name-attribute: id
+
+app:
+  default-success-url: http://127.0.0.1:3000
+  login-url: http://127.0.0.1:3000
+  console:
+    owner-emails: test@example.com
+  dev:
+    stub-logins:
+      - registration-id: discord-gentool-data-viewer
+        label: Owner (test@example.com)
+      - registration-id: stub-alice
+        label: Alice (Viewer)
+      - registration-id: stub-bob
+        label: Bob (Viewer)
+
+logging:
+  level:
+    WireMock: warn

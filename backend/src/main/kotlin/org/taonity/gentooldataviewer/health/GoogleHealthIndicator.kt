@@ -9,9 +9,9 @@ import org.springframework.web.client.RestClient
 import java.time.Duration
 import java.time.Instant
 
-@Component("google")
-class GoogleHealthIndicator(
-    @Value("\${spring.security.oauth2.client.provider.google.user-info-uri}") private val userInfoUri: String,
+@Component("discord")
+class DiscordHealthIndicator(
+    @Value("\${spring.security.oauth2.client.provider.discord.user-info-uri}") private val userInfoUri: String,
 ) : HealthIndicator {
 
     companion object {
@@ -30,7 +30,7 @@ class GoogleHealthIndicator(
                 .toEntity(String::class.java)
             val elapsedMs = Duration.between(start, Instant.now()).toMillis()
             val statusCode = responseEntity.statusCode
-            // 4xx (e.g. 401 Unauthorized without a token) still means Google is reachable
+            // 4xx (e.g. 401 Unauthorized without a token) still means Discord is reachable
             val builder = if (!statusCode.is5xxServerError) Health.up() else Health.down()
             builder.withDetail("url", userInfoUri)
                 .withDetail("statusCode", statusCode.value())
@@ -41,7 +41,7 @@ class GoogleHealthIndicator(
             builder.build()
         } catch (exception: Exception) {
             val elapsedMs = Duration.between(start, Instant.now()).toMillis()
-            LOGGER.warn { "Google availability check failed for $userInfoUri" }
+            LOGGER.warn { "Discord availability check failed for $userInfoUri" }
             Health.down()
                 .withDetail("url", userInfoUri)
                 .withDetail("responseTimeMs", elapsedMs)

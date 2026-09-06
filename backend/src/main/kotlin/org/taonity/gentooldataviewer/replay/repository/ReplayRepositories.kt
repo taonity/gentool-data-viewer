@@ -1,6 +1,8 @@
 package org.taonity.gentooldataviewer.replay.repository
 
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
+import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
+import org.taonity.gentooldataviewer.replay.entity.ReplayRescanRequestEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayAssociatedFileEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayEntity
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 @Repository
 interface ReplayRepository : JpaRepository<ReplayEntity, String> {
@@ -77,4 +80,24 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
 @Repository
 interface ReplayCollectionJobRepository : JpaRepository<ReplayCollectionJobEntity, String> {
     fun findTop20ByOrderByCreatedAtDesc(): List<ReplayCollectionJobEntity>
+}
+
+@Repository
+interface GentoolUserLinkRepository : JpaRepository<GentoolUserLinkEntity, String> {
+    fun findByPlayerId(playerId: String): GentoolUserLinkEntity?
+}
+
+@Repository
+interface ReplayRescanRequestRepository : JpaRepository<ReplayRescanRequestEntity, String> {
+    fun countByRequestedByUserIdAndOwnTargetFalseAndRequestedAtGreaterThanEqual(
+        requestedByUserId: String,
+        requestedAt: Instant,
+    ): Long
+
+    fun findTopByRequestedByUserIdAndTargetPlayerIdOrderByRequestedAtDesc(
+        requestedByUserId: String,
+        targetPlayerId: String,
+    ): ReplayRescanRequestEntity?
+
+    fun findTop10ByRequestedByUserIdOrderByRequestedAtDesc(requestedByUserId: String): List<ReplayRescanRequestEntity>
 }

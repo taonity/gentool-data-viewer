@@ -10,7 +10,6 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.atomic.AtomicBoolean
 
 @Service
 class ReplayCollectionCoordinator(
@@ -19,20 +18,24 @@ class ReplayCollectionCoordinator(
     private val jobService: ReplayCollectionJobService,
     private val replayCollectorExecutor: ExecutorService,
 ) {
-    private val running = AtomicBoolean(false)
     private val clock = Clock.systemUTC()
 
     fun startManual(startDate: LocalDate, endDate: LocalDate, requestedBy: String, userLimit: Int?): String {
         validateRange(startDate, endDate, userLimit)
-        return start(CollectionTrigger.MANUAL, startDate, endDate, requestedBy, userLimit)
+        return start(CollectionTrigger.MANUAL, startDate, endDate, requestedBy, userLimit, null)
+    }
+
+    fun startUserRescan(startDate: LocalDate, endDate: LocalDate, requestedBy: String, targetPlayerId: String): String {
+        validateRange(startDate, endDate, null)
+        return start(CollectionTrigger.USER_RESCAN, startDate, endDate, requestedBy, null, targetPlayerId)
     }
 
     fun startScheduledYesterday() {
         val yesterday = LocalDate.now(clock).minusDays(1)
         try {
-            start(CollectionTrigger.SCHEDULED, yesterday, yesterday, "scheduler", null)
-        } catch (error: ResponseStatusException) {
-            LOGGER.info { "Skipping scheduled replay collection because another job is active" }
+            start(CollectionTrigger.SCHEDULED, yesterday, yesterday, "scheduler", null, null)
+        } catch (error: Exception) {
+            LOGGER.error(error) { "Could not queue scheduled replay collection" }
         }
     }
 
@@ -42,25 +45,24 @@ class ReplayCollectionCoordinator(
         endDate: LocalDate,
         requestedBy: String,
         userLimit: Int?,
+        targetPlayerId: String?,
     ): String {
-        if (!running.compareAndSet(false, true)) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "A replay collection job is already active")
-        }
-        val jobId = try {
-            jobService.create(trigger, startDate, endDate, requestedBy, userLimit)
-        } catch (error: Exception) {
-            running.set(false)
-            throw error
-        }
-        replayCollectorExecutor.submit { run(jobId, startDate, endDate, userLimit) }
+        val jobId = jobService.create(trigger, startDate, endDate, requestedBy, userLimit, targetPlayerId)
+        replayCollectorExecutor.submit { run(jobId, startDate, endDate, userLimit, targetPlayerId) }
         return jobId
     }
 
-    private fun run(jobId: String, startDate: LocalDate, endDate: LocalDate, userLimit: Int?) {
+    private fun run(
+        jobId: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        userLimit: Int?,
+        targetPlayerId: String?,
+    ) {
         var latestProgress = CollectionProgress()
         try {
             jobService.markRunning(jobId)
-            latestProgress = collector.collect(startDate, endDate, userLimit) {
+            latestProgress = collector.collect(startDate, endDate, userLimit, targetPlayerId) {
                 latestProgress = it
                 jobService.updateProgress(jobId, it)
             }
@@ -68,8 +70,6 @@ class ReplayCollectionCoordinator(
         } catch (error: Exception) {
             LOGGER.error(error) { "Replay collection job $jobId failed" }
             jobService.fail(jobId, latestProgress, error)
-        } finally {
-            running.set(false)
         }
     }
 

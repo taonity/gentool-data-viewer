@@ -23,7 +23,7 @@ class AuditLogEntity(
     val targetType: String,
     @Column(name = "target_id")
     val targetId: String? = null,
-    @Column(name = "actor_google_id", nullable = false)
+    @Column(name = "actor_user_id", nullable = false)
     val actorGoogleId: String,
     @Column(name = "actor_email", nullable = false)
     val actorEmail: String,

@@ -1,11 +1,11 @@
 info:
-  name: /oauth2/authorization/google-gentool-data-viewer
+  name: /oauth2/authorization/discord-gentool-data-viewer
   type: http
   seq: 4
 
 http:
   method: GET
-  url: "{{backendBaseUrl}}/oauth2/authorization/google-gentool-data-viewer"
+  url: "{{backendBaseUrl}}/oauth2/authorization/discord-gentool-data-viewer"
   auth: inherit
 
 settings:

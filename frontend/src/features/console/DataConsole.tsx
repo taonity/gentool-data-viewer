@@ -110,10 +110,9 @@ export default function DataConsole({
 
   useEffect(() => {
     if (forceLoading || loading) return
-    const protectedTab = tab === 'collection' || tab === 'config' || tab === 'admin'
-    const allowed = !protectedTab || (
-      authenticated && (tab === 'admin' ? access?.isAdmin === true : access?.canView === true)
-    )
+    const allowed = tab !== 'config'
+      ? tab !== 'collection' && tab !== 'admin' || (authenticated && access?.isAdmin === true)
+      : authenticated && access?.canView === true
     if (!allowed) {
       selectTab('players')
     }
@@ -139,9 +138,12 @@ export default function DataConsole({
 
   const canView = access?.canView === true
   const accessLoading = authenticated && loading
-  const showProtected = authenticated && (accessLoading || canView)
+  const showConfig = authenticated && (accessLoading || canView)
+  const showCollection = authenticated && (accessLoading || access?.isAdmin === true)
   const showAdmin = authenticated && (accessLoading || access?.isAdmin === true)
-  const selectedTab = !showProtected && (tab === 'collection' || tab === 'config' || tab === 'admin')
+  const selectedTab = ((!showConfig && tab === 'config')
+    || (!showCollection && tab === 'collection')
+    || (!showAdmin && tab === 'admin'))
     ? 'players'
     : tab
   const hasPending = (pendingCount ?? 0) > 0
@@ -151,7 +153,8 @@ export default function DataConsole({
   const tabItems: Record<string, string> = {
     players: 'Players',
     replays: 'Replays',
-    ...(showProtected ? { collection: 'Collection', config: 'Config' } : {}),
+    ...(showCollection ? { collection: 'Collection' } : {}),
+    ...(showConfig ? { config: 'Config' } : {}),
     ...(showAdmin ? { admin: 'Admin' } : {}),
     about: 'About',
   }
@@ -196,21 +199,21 @@ export default function DataConsole({
             >
               Replays
             </TabsTrigger>
-            {showProtected && (
-              <>
+            {showCollection && (
                 <TabsTrigger
                   value="collection"
                   className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
                 >
                   Collection
                 </TabsTrigger>
+            )}
+            {showConfig && (
                 <TabsTrigger
                   value="config"
                   className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
                 >
                   Config
                 </TabsTrigger>
-              </>
             )}
             {showAdmin && (
               <TabsTrigger
@@ -246,7 +249,7 @@ export default function DataConsole({
           )}
         </div>
 
-        {showProtected && <TabsContent value="config" className="pt-2" keepMounted>
+        {showConfig && <TabsContent value="config" className="pt-2" keepMounted>
           {visited.has('config') && (
             <ConfigTab
               active={selectedTab === 'config'}
@@ -259,7 +262,11 @@ export default function DataConsole({
 
         <TabsContent value="replays" className="pt-2" keepMounted>
           {visited.has('replays') && (
-            <ReplaysTab active={selectedTab === 'replays'} forceLoading={forceLoading} onError={setError} />
+            <ReplaysTab
+              active={selectedTab === 'replays'}
+              forceLoading={forceLoading}
+              onError={setError}
+            />
           )}
         </TabsContent>
 
@@ -267,6 +274,7 @@ export default function DataConsole({
           {visited.has('players') && (
             <CpuPlayersTab
               active={selectedTab === 'players'}
+              canManage={authenticated && canView}
               canRefresh={access?.isAdmin === true}
               forceLoading={forceLoading}
               onError={setError}
@@ -274,7 +282,7 @@ export default function DataConsole({
           )}
         </TabsContent>
 
-        {showProtected && <TabsContent value="collection" className="pt-2" keepMounted>
+        {showCollection && <TabsContent value="collection" className="pt-2" keepMounted>
           {visited.has('collection') && (
             <ReplayCollectionTab
               active={selectedTab === 'collection'}

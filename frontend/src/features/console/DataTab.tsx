@@ -71,6 +71,7 @@ type DataTabProps<T> = {
   expand?: (row: T) => React.ReactNode
   /** Reads the room name off a row so it can be shown once instead of as a per-row column. */
   roomAccessor?: (row: T) => string
+  rowActions?: (row: T) => React.ReactNode
   canEdit?: boolean
   onDelete?: (row: T) => Promise<unknown>
   emptyLabel: string
@@ -118,6 +119,7 @@ export function DataTab<T>({
   locate,
   expand,
   roomAccessor,
+  rowActions,
   canEdit = false,
   onDelete,
   emptyLabel,
@@ -483,7 +485,8 @@ export function DataTab<T>({
   const showLoading = forceLoading || loading
   const rows = data?.content ?? []
   const visibleColumns = columns.filter((column) => visibleColumnKeys.has(column.key))
-  const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (canEdit ? 1 : 0)
+  const hasActions = Boolean(rowActions) || canEdit
+  const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (hasActions ? 1 : 0)
   const firstRow = rows[0]
   const roomName = roomAccessor && firstRow ? roomAccessor(firstRow) : null
   const searchableColumns = visibleColumns.filter((column) => column.searchKey)
@@ -730,7 +733,11 @@ export function DataTab<T>({
                 )
               })}
               {locate && <TableHead className="w-[48px]" />}
-              {canEdit && <TableHead className="w-[64px] pr-4 text-right">Actions</TableHead>}
+              {hasActions && (
+                <TableHead className="sticky right-0 z-20 w-[88px] border-l bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))] pr-3 text-right shadow-[-4px_0_8px_-8px_rgba(0,0,0,0.5)]">
+                  Actions
+                </TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -750,17 +757,19 @@ export function DataTab<T>({
                     </TableCell>
                   ))}
                   {locate && <TableCell />}
-                  {canEdit && (
-                    <TableCell className="pr-4 text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-muted-foreground"
-                        aria-label="Delete row"
-                        disabled
-                      >
-                        <Trash2 />
-                      </Button>
+                  {hasActions && (
+                    <TableCell className="sticky right-0 z-10 border-l bg-background pr-3 text-right">
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-muted-foreground"
+                          aria-label="Delete row"
+                          disabled
+                        >
+                          <Trash2 />
+                        </Button>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
@@ -772,7 +781,7 @@ export function DataTab<T>({
                 const isExpanded = expandedIds.has(id)
                 return (
                   <Fragment key={id}>
-                    <TableRow className={cn('h-[33px]', highlightId === id && 'bg-primary/10')}>
+                    <TableRow className={cn('group h-[33px]', highlightId === id && 'bg-primary/10')}>
                       {expand && (
                         <TableCell className="w-[40px]">
                           <Button
@@ -814,17 +823,29 @@ export function DataTab<T>({
                           )}
                         </TableCell>
                       )}
-                      {canEdit && (
-                        <TableCell className="pr-4 text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-muted-foreground hover:text-destructive"
-                            aria-label="Delete row"
-                            onClick={() => remove(row)}
-                          >
-                            <Trash2 />
-                          </Button>
+                      {hasActions && (
+                        <TableCell
+                          className={cn(
+                            'sticky right-0 z-10 border-l pr-3 text-right transition-colors',
+                            highlightId === id
+                              ? 'bg-primary/10'
+                              : 'bg-background group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-has-aria-expanded:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]',
+                          )}
+                        >
+                          <div className="flex justify-end gap-0.5">
+                            {rowActions?.(row)}
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-muted-foreground hover:text-destructive"
+                                aria-label="Delete row"
+                                onClick={() => remove(row)}
+                              >
+                                <Trash2 />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>

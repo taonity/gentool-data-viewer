@@ -1,0 +1,1 @@
+ALTER TABLE player_hardware ADD COLUMN gentool_refreshed_at TIMESTAMP;

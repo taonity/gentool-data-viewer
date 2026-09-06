@@ -104,8 +104,9 @@ export function ReplayCollectionTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-end lg:justify-between">
-        {canRun && (
+      {canRun && (
+        <>
+          <div className="flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-wrap items-end gap-2">
             <label className="grid gap-1 text-xs text-muted-foreground">
               Start date (UTC)
@@ -150,25 +151,25 @@ export function ReplayCollectionTab({
               Run
             </Button>
           </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="self-end"
-          disabled={showLoading || refreshing}
-          onClick={() => void load(true)}
-        >
-          <RotateCw className={refreshing ? 'animate-spin' : ''} />
-          Refresh
-        </Button>
-      </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-end"
+              disabled={showLoading || refreshing}
+              onClick={() => void load(true)}
+            >
+              <RotateCw className={refreshing ? 'animate-spin' : ''} />
+              Refresh
+            </Button>
+          </div>
 
-      <div className="overflow-x-auto rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
         <Table className="min-w-[900px] table-fixed">
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead className="w-28">Status</TableHead>
               <TableHead className="w-48">Date range</TableHead>
+              <TableHead className="w-32">Target</TableHead>
               <TableHead className="w-36">Directories</TableHead>
               <TableHead className="w-20">Limit</TableHead>
               <TableHead className="w-28">Discovered</TableHead>
@@ -181,7 +182,7 @@ export function ReplayCollectionTab({
           <TableBody>
             {showLoading && Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                {Array.from({ length: 9 }).map((__, cell) => (
+                {Array.from({ length: 10 }).map((__, cell) => (
                   <TableCell key={cell}><Skeleton className="h-4 w-4/5" /></TableCell>
                 ))}
               </TableRow>
@@ -192,6 +193,7 @@ export function ReplayCollectionTab({
                 <TableCell className="font-mono text-xs">
                   {job.startDate === job.endDate ? job.startDate : `${job.startDate} to ${job.endDate}`}
                 </TableCell>
+                <TableCell className="font-mono text-xs">{job.targetPlayerId ?? 'All users'}</TableCell>
                 <TableCell>{job.directoriesScanned.toLocaleString()} / {job.directoriesDiscovered.toLocaleString()}</TableCell>
                 <TableCell>{job.userLimit?.toLocaleString() ?? 'All'}</TableCell>
                 <TableCell>{job.filesDiscovered.toLocaleString()}</TableCell>
@@ -204,11 +206,13 @@ export function ReplayCollectionTab({
               </TableRow>
             ))}
             {!showLoading && jobs.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="h-24 text-center text-muted-foreground">No collection jobs</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="h-24 text-center text-muted-foreground">No collection jobs</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

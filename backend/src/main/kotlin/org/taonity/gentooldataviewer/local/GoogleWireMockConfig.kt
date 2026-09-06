@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 
 @Configuration
-@Profile("stub-google")
-class GoogleWireMockConfig {
+@Profile("stub-discord")
+class DiscordWireMockConfig {
 
     companion object {
         private val LOGGER = KotlinLogging.logger {}
@@ -19,22 +19,22 @@ class GoogleWireMockConfig {
             WireMockServer(
                 wireMockConfig()
                     .port(9561)
-                    .usingFilesUnderClasspath("wiremock/google")
+                    .usingFilesUnderClasspath("wiremock/discord")
                     .globalTemplating(true)
             ).also {
                 it.start()
                 Runtime.getRuntime().addShutdownHook(Thread { it.stop() })
-                LOGGER.info { "Google WireMock stub started on port ${it.port()}" }
+                LOGGER.info { "Discord WireMock stub started on port ${it.port()}" }
             }
         }
 
         @JvmStatic
         @Bean
-        fun googleWireMockInitializer(): BeanFactoryPostProcessor = BeanFactoryPostProcessor {
+        fun discordWireMockInitializer(): BeanFactoryPostProcessor = BeanFactoryPostProcessor {
             server // Force lazy init before other beans
         }
     }
 
     @Bean(destroyMethod = "")
-    fun googleWireMockServer(): WireMockServer = server
+    fun discordWireMockServer(): WireMockServer = server
 }

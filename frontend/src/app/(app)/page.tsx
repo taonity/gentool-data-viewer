@@ -80,7 +80,7 @@ export default function Home() {
     }
     try {
       const config = await getRuntimeConfig()
-      window.location.href = `${config.publicBackendUrl}/oauth2/authorization/google-gentool-data-viewer`
+      window.location.href = `${config.publicBackendUrl}/oauth2/authorization/discord-gentool-data-viewer`
     } catch {
       setError('Application configuration is unavailable. Please try again later.')
       setAuthenticating(false)

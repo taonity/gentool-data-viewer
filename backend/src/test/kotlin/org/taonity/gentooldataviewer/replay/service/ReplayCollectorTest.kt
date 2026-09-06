@@ -39,6 +39,27 @@ class ReplayCollectorTest {
         verify(sourceClient, never()).list(directories[2].uri)
     }
 
+    @Test
+    fun `targeted rescan scans only matching player directory`() {
+        val day = URI.create("https://gentool.net/data/zh/2026_09_September/02_Wednesday/")
+        val target = SourceEntry("Player_ABCDEF123456", day.resolve("Player_ABCDEF123456/"), true)
+        val other = SourceEntry("Other_123456ABCDEF", day.resolve("Other_123456ABCDEF/"), true)
+        `when`(sourceClient.list(day)).thenReturn(listOf(other, target))
+        `when`(sourceClient.list(target.uri)).thenReturn(emptyList())
+
+        val progress = collector.collect(
+            LocalDate.parse("2026-09-02"),
+            LocalDate.parse("2026-09-02"),
+            null,
+            "abcdef123456",
+        ) {}
+
+        assertThat(progress.directoriesDiscovered).isEqualTo(1)
+        assertThat(progress.directoriesScanned).isEqualTo(1)
+        verify(sourceClient).list(target.uri)
+        verify(sourceClient, never()).list(other.uri)
+    }
+
     private fun properties() = ReplayCollectorProperties(
         baseUrl = URI.create("https://gentool.net/data/"),
         game = "zh",

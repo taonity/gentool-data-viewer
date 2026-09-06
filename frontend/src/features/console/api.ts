@@ -8,7 +8,10 @@ import type {
   ConsoleRole,
   PageResponse,
   PendingRequest,
+  GentoolLink,
   ReplayCollectionJob,
+  ReplayRescanAccepted,
+  ReplayRescanDashboard,
   Replay,
   CpuBenchmarkSync,
   CpuPlayer,
@@ -110,6 +113,14 @@ export const consoleApi = {
 
   startReplayCollection: (startDate: string, endDate: string, userLimit?: number) =>
     mutate<{ jobId: string }>('/replay-collection/jobs', 'POST', { startDate, endDate, userLimit }),
+
+  getReplayRescanDashboard: () => get<ReplayRescanDashboard>('/replay-rescans/me'),
+
+  claimGentoolPlayer: (playerId: string) =>
+    mutate<GentoolLink>('/replay-rescans/link', 'POST', { playerId }),
+
+  requestReplayRescan: (playerId: string) =>
+    mutate<ReplayRescanAccepted>('/replay-rescans', 'POST', { playerId }),
 
   listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string) =>
     get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction)),

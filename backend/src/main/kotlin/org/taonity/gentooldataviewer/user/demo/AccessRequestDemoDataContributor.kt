@@ -27,7 +27,8 @@ class AccessRequestDemoDataContributor(
 
     private fun fixtures() = listOf(
         UserEntity(
-            googleId = "google-user-alice",
+            googleId = "discord:200000000000000001",
+            authProvider = "discord",
             email = "alice@example.com",
             displayName = "Alice Tester",
             role = ConsoleRole.NONE,
@@ -35,7 +36,8 @@ class AccessRequestDemoDataContributor(
             requestedRole = ConsoleRole.VIEWER,
         ),
         UserEntity(
-            googleId = "google-user-bob",
+            googleId = "discord:200000000000000002",
+            authProvider = "discord",
             email = "bob@example.com",
             displayName = "Bob Tester",
             role = ConsoleRole.NONE,

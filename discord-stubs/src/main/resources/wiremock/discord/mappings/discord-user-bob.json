@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/users/@me/bob"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "100000000000000002",
+      "username": "bob",
+      "global_name": "Bob Tester",
+      "email": "bob@example.com",
+      "verified": true,
+      "avatar": "bob-avatar"
+    }
+  }
+}

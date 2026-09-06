@@ -19,6 +19,7 @@ data class CpuPlayerDto(
     val benchmarkUrl: String?,
     val matchStatus: CpuMatchStatus,
     val observedAt: Instant,
+    val gentoolRefreshedAt: Instant?,
     val scoreUpdatedAt: Instant?,
 ) {
     companion object {
@@ -36,6 +37,7 @@ data class CpuPlayerDto(
             benchmarkUrl = entity.cpuBenchmarkUrl,
             matchStatus = entity.cpuMatchStatus,
             observedAt = entity.observedAt,
+            gentoolRefreshedAt = entity.gentoolRefreshedAt,
             scoreUpdatedAt = entity.cpuScoreUpdatedAt,
         )
     }

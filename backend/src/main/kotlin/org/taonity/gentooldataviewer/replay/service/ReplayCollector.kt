@@ -30,12 +30,13 @@ class ReplayCollector(
         startDate: LocalDate,
         endDate: LocalDate,
         userLimit: Int?,
+        targetPlayerId: String? = null,
         onProgress: (CollectionProgress) -> Unit,
     ): CollectionProgress {
         val progress = CollectionProgress()
         var date = startDate
         while (!date.isAfter(endDate) && !limitReached(progress, userLimit)) {
-            collectDate(date, userLimit, progress, onProgress)
+            collectDate(date, userLimit, targetPlayerId, progress, onProgress)
             date = date.plusDays(1)
         }
         onProgress(progress)
@@ -45,6 +46,7 @@ class ReplayCollector(
     private fun collectDate(
         date: LocalDate,
         userLimit: Int?,
+        targetPlayerId: String?,
         progress: CollectionProgress,
         onProgress: (CollectionProgress) -> Unit,
     ) {
@@ -57,11 +59,16 @@ class ReplayCollector(
             onProgress(progress)
             return
         }
-        progress.directoriesDiscovered += directories.size
+        val selectedDirectories = if (targetPlayerId == null) {
+            directories
+        } else {
+            directories.filter { it.name.substringAfterLast('_').equals(targetPlayerId, ignoreCase = true) }
+        }
+        progress.directoriesDiscovered += selectedDirectories.size
         onProgress(progress)
 
         val remaining = userLimit?.minus(progress.directoriesScanned.toInt())
-        directories.take(remaining ?: directories.size).forEach { directory ->
+        selectedDirectories.take(remaining ?: selectedDirectories.size).forEach { directory ->
             try {
                 val textFiles = sourceClient.list(directory.uri)
                     .filter { !it.directory && it.name.endsWith(".txt", ignoreCase = true) }

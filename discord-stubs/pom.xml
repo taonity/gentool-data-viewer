@@ -9,7 +9,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>google-stubs</artifactId>
+    <artifactId>discord-stubs</artifactId>
 
     <build>
         <resources>
@@ -18,5 +18,4 @@
             </resource>
         </resources>
     </build>
-
 </project>

@@ -10,6 +10,7 @@ SQL migrations live in `templates/docker/flyway/sql/tables/`.
 
 ```ini
 V{version}__{description}.sql
+
 ```
 
 - Version numbers start at `100000` and increment
@@ -22,6 +23,7 @@ Examples:
 V100000__create_user_table.sql
 V100001__add_profile_columns.sql
 V100002__create_orders_table.sql
+
 ```
 
 ## Local Development (H2)
@@ -31,7 +33,8 @@ When running with the `h2` profile, Flyway reads migrations from `filesystem:tem
 Run from the project root:
 
 ```bash
-mvn -pl backend spring-boot:run '-Dspring-boot.run.jvmArguments="-Dspring.profiles.active=h2,stub-google,local"'
+mvn -pl backend spring-boot:run '-Dspring-boot.run.jvmArguments="-Dspring.profiles.active=h2,stub-discord,local"'
+
 ```
 
 ## Production (PostgreSQL)
@@ -50,6 +53,7 @@ CREATE TABLE orders (
     total       DECIMAL(10,2) NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT now()
 );
+
 ```
 
 ### Add a column
@@ -57,6 +61,7 @@ CREATE TABLE orders (
 ```sql
 -- V100002__add_order_status.sql
 ALTER TABLE orders ADD COLUMN status VARCHAR NOT NULL DEFAULT 'pending';
+
 ```
 
 ### H2 Compatibility
@@ -69,6 +74,7 @@ spring:
     locations:
       - filesystem:templates/docker/flyway/sql/tables
       - filesystem:templates/docker/flyway/sql/conflicts/h2
+
 ```
 
 ## Tips

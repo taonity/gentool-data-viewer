@@ -88,12 +88,13 @@ export type ReplayCollectionStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILE
 
 export interface ReplayCollectionJob {
   id: string
-  triggerType: 'SCHEDULED' | 'MANUAL'
+  triggerType: 'SCHEDULED' | 'MANUAL' | 'USER_RESCAN'
   status: ReplayCollectionStatus
   startDate: string
   endDate: string
   requestedBy: string
   userLimit: number | null
+  targetPlayerId: string | null
   createdAt: string
   startedAt: string | null
   finishedAt: string | null
@@ -104,6 +105,43 @@ export interface ReplayCollectionJob {
   filesSkipped: number
   failures: number
   errorMessage: string | null
+}
+
+export type GentoolLinkStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface GentoolLink {
+  userId: string
+  email: string
+  displayName: string
+  playerId: string
+  playerName: string | null
+  status: GentoolLinkStatus
+  requestedAt: string
+  decidedAt: string | null
+}
+
+export interface ReplayRescanHistory {
+  id: string
+  targetPlayerId: string
+  ownTarget: boolean
+  jobId: string
+  status: ReplayCollectionStatus
+  requestedAt: string
+}
+
+export interface ReplayRescanDashboard {
+  link: GentoolLink | null
+  otherUsedToday: number
+  otherDailyLimit: number
+  quotaResetsAt: string
+  targetCooldownSeconds: number
+  lookbackDays: number
+  history: ReplayRescanHistory[]
+}
+
+export interface ReplayRescanAccepted {
+  jobId: string
+  ownTarget: boolean
 }
 
 export interface ReplayPlayer {
@@ -161,6 +199,7 @@ export interface CpuPlayer {
   benchmarkUrl: string | null
   matchStatus: CpuMatchStatus
   observedAt: string
+  gentoolRefreshedAt: string | null
   scoreUpdatedAt: string | null
 }
 

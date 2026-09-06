@@ -48,8 +48,8 @@ class EnvironmentProfileConfigurationTest {
                 assertThat(environment.getProperty("app.csrf-cookie-name")).isEqualTo(csrfCookieName)
                 assertThat(environment.getProperty("spring.datasource.url"))
                     .isEqualTo("jdbc:postgresql://db:5432/gentool_data_viewer_db")
-                assertThat(environment.getProperty("spring.security.oauth2.client.provider.google.authorization-uri"))
-                    .isEqualTo("https://accounts.google.com/o/oauth2/v2/auth")
+                assertThat(environment.getProperty("spring.security.oauth2.client.provider.discord.authorization-uri"))
+                    .isEqualTo("https://discord.com/oauth2/authorize")
             }
     }
 }

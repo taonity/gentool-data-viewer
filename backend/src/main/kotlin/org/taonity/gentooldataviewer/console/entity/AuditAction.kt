@@ -7,4 +7,11 @@ enum class AuditAction {
     CHANGE_ROLE,
     EDIT_CONFIG,
     RESET_CONFIG,
+    CLAIM_GENTOOL_LINK,
+    RECLAIM_GENTOOL_LINK,
+    // Existing PostgreSQL audit rows may still contain these pre-direct-claim actions.
+    REQUEST_GENTOOL_LINK,
+    APPROVE_GENTOOL_LINK,
+    REJECT_GENTOOL_LINK,
+    REQUEST_RESCAN,
 }

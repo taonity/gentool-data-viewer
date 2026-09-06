@@ -14,24 +14,25 @@ spring:
   profiles:
     group:
       local: plain-log,active-properties-logging
-      stage: postgres-container,prod-google
-      prod: postgres-container,prod-google
+      stage: postgres-container,prod-discord
+      prod: postgres-container,prod-discord
   security:
     oauth2:
       client:
         registration:
-          google-gentool-data-viewer:
-            provider: google
-            client-id: test-google-client-id
-            client-secret: test-google-client-secret
-            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/google-gentool-data-viewer
+          discord-gentool-data-viewer:
+            provider: discord
+            client-id: test-discord-client-id
+            client-secret: test-discord-client-secret
+            redirect-uri: http://127.0.0.1:8080/login/oauth2/code/discord-gentool-data-viewer
             authorization-grant-type: authorization_code
-            scope: openid,profile,email
+            scope: identify,email
         provider:
-          google:
+          discord:
             authorization-uri: http://127.0.0.1:9561/oauth2/authorize
-            token-uri: http://127.0.0.1:9561/oauth2/token
-            user-info-uri: http://127.0.0.1:9561/oauth2/v3/userinfo
+            token-uri: http://127.0.0.1:9561/api/oauth2/token
+            user-info-uri: http://127.0.0.1:9561/api/users/@me
+            user-name-attribute: id
 
 app:
   minimised-http-servlet-logging: false
@@ -58,6 +59,14 @@ app:
     schedule-enabled: false
     schedule-cron: "0 15 2 * * *"
     schedule-zone: UTC
+  replay-rescan:
+    lookback-days: 7
+    other-daily-limit: 20
+    target-cooldown: 5m
+    privileged-other-daily-limit: 100
+    privileged-target-cooldown: 1m
+  discord:
+    cdn-base-url: https://cdn.discordapp.com
   cpu-benchmark:
     base-url: https://www.cpubenchmark.net/single-thread/
     max-pages: 8

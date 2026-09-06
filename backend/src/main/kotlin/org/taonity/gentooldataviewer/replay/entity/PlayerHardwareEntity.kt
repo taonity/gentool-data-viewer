@@ -42,6 +42,8 @@ class PlayerHardwareEntity(
     var systemInfo: String? = null,
     @Column(name = "observed_at", nullable = false)
     var observedAt: Instant,
+    @Column(name = "gentool_refreshed_at")
+    var gentoolRefreshedAt: Instant? = null,
     @Column(name = "source_replay_id", nullable = false)
     var sourceReplayId: String,
 )

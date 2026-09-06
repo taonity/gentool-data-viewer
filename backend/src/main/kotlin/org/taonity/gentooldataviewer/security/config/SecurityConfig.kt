@@ -17,13 +17,11 @@ import org.taonity.gentooldataviewer.security.handler.OAuth2AuthenticationFailur
 import org.taonity.gentooldataviewer.security.handler.SpaCsrfTokenRequestHandler
 import org.taonity.gentooldataviewer.security.filter.UserMdcFilter
 import org.taonity.gentooldataviewer.security.service.OAuth2UserPersistenceService
-import org.taonity.gentooldataviewer.security.service.OidcUserPersistenceService
 
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
     private val oAuth2UserPersistenceService: OAuth2UserPersistenceService,
-    private val oidcUserPersistenceService: OidcUserPersistenceService,
     private val oAuth2AuthenticationFailureHandler: OAuth2AuthenticationFailureHandler,
     private val spaCsrfTokenRequestHandler: SpaCsrfTokenRequestHandler,
     private val appProperties: AppProperties,
@@ -70,7 +68,6 @@ class SecurityConfig(
             .oauth2Login { o ->
                 o.userInfoEndpoint { u ->
                     u.userService(oAuth2UserPersistenceService)
-                    u.oidcUserService(oidcUserPersistenceService)
                 }
                     .defaultSuccessUrl(appProperties.defaultSuccessUrl, true)
                     .failureHandler(oAuth2AuthenticationFailureHandler)

@@ -112,14 +112,7 @@
             <version>2.0.0</version>
         </dependency>
 
-        <!-- Google API Client -->
-        <dependency>
-            <groupId>com.google.apis</groupId>
-            <artifactId>google-api-services-oauth2</artifactId>
-            <version>v2-rev20200213-2.0.0</version>
-        </dependency>
-
-        <!-- WireMock stubs (Google OAuth2) -->
+        <!-- WireMock stubs (Discord OAuth2) -->
         <dependency>
             <groupId>org.wiremock</groupId>
             <artifactId>wiremock-standalone</artifactId>
@@ -127,7 +120,7 @@
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>google-stubs</artifactId>
+            <artifactId>discord-stubs</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -384,7 +377,7 @@
                                         </excludes>
                                     </path>
                                     <path>
-                                        <from>${project.basedir}/../google-stubs/src/main/resources</from>
+                                        <from>${project.basedir}/../discord-stubs/src/main/resources</from>
                                         <into>/app/resources</into>
                                     </path>
                                 </paths>

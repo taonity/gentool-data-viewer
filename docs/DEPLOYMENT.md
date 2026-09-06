@@ -6,6 +6,7 @@ Run the image build from the repository root. Images are published under the fix
 
 ```bash
 mvn -pl backend -am -P build-docker-image package -DskipTests; docker build -t generaltao725/gentool-data-viewer-frontend:latest frontend
+
 ```
 
 ## Docker Compose
@@ -14,6 +15,7 @@ Run the local stack from the repository root with the tracked test environment a
 
 ```bash
 docker compose --env-file templates/docker/.env.test -f templates/docker/docker-compose.yml -f templates/docker/docker-compose.ports-local.yml up
+
 ```
 
 For production, create an environment file with deployment-specific values:
@@ -25,10 +27,11 @@ POSTGRES_USER=dbadmin
 POSTGRES_PASSWORD=strong-password
 POSTGRES_APP_USER=app
 POSTGRES_APP_PASSWORD=app-password
-GOOGLE_CLIENT_ID=your-real-client-id
-GOOGLE_CLIENT_SECRET=your-real-secret
+DISCORD_CLIENT_ID=your-real-client-id
+DISCORD_CLIENT_SECRET=your-real-secret
 SPRING_PROFILES_ACTIVE=prod
 FRONTEND_PROFILE=prod
+
 ```
 
 The environment file contains Compose bootstrap selectors, credentials, and the backend/frontend profiles. Use `COMPOSE_PROJECT_NAME=gentool-data-viewer-stage`, `SPRING_PROFILES_ACTIVE=stage`, and `FRONTEND_PROFILE=stage` for staging. Public URLs, cookie names, database topology, and internal service addresses remain committed in application profiles and Compose configuration.
@@ -41,6 +44,7 @@ Start production Compose from the repository root:
 
 ```bash
 docker compose --env-file templates/docker/.env -f templates/docker/docker-compose.yml -f templates/docker/docker-compose.prodenv.yml up -d
+
 ```
 
 ## Health endpoints
