@@ -33,7 +33,14 @@ class ReplayCollectionCoordinator(
     fun startScheduledYesterday() {
         val yesterday = LocalDate.now(clock).minusDays(1)
         try {
-            start(CollectionTrigger.SCHEDULED, yesterday, yesterday, "scheduler", null, null)
+            start(
+                CollectionTrigger.SCHEDULED,
+                yesterday,
+                yesterday,
+                "scheduler",
+                properties.scheduleUserLimit,
+                null,
+            )
         } catch (error: Exception) {
             LOGGER.error(error) { "Could not queue scheduled replay collection" }
         }

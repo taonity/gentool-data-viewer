@@ -9,3 +9,6 @@ app:
   default-success-url: https://gentool-data-viewer-stage.taonity.org
   login-url: https://gentool-data-viewer-stage.taonity.org
   csrf-cookie-name: XSRF-TOKEN-GENTOOL-DATA-VIEWER-STAGE
+  replay-collector:
+    schedule-cron: "0 15 6 * * *"
+    schedule-user-limit: 20

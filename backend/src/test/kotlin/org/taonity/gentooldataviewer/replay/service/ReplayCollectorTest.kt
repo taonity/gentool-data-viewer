@@ -72,5 +72,6 @@ class ReplayCollectorTest {
         scheduleEnabled = false,
         scheduleCron = "0 15 2 * * *",
         scheduleZone = "UTC",
+        scheduleUserLimit = null,
     )
 }

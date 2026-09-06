@@ -14,6 +14,8 @@ class EnvironmentProfileConfigurationTest {
             frontendUrl = "https://gentool-data-viewer-stage.taonity.org",
             sessionCookieName = "JSESSIONID-GENTOOL-DATA-VIEWER-STAGE",
             csrfCookieName = "XSRF-TOKEN-GENTOOL-DATA-VIEWER-STAGE",
+            scheduledCron = "0 15 6 * * *",
+            scheduledUserLimit = "20",
         )
     }
 
@@ -24,6 +26,8 @@ class EnvironmentProfileConfigurationTest {
             frontendUrl = "https://gentool-data-viewer.taonity.org",
             sessionCookieName = "JSESSIONID-GENTOOL-DATA-VIEWER-PROD",
             csrfCookieName = "XSRF-TOKEN-GENTOOL-DATA-VIEWER-PROD",
+            scheduledCron = "0 15 2 * * *",
+            scheduledUserLimit = null,
         )
     }
 
@@ -32,6 +36,8 @@ class EnvironmentProfileConfigurationTest {
         frontendUrl: String,
         sessionCookieName: String,
         csrfCookieName: String,
+        scheduledCron: String,
+        scheduledUserLimit: String?,
     ) {
         ApplicationContextRunner()
             .withInitializer(ConfigDataApplicationContextInitializer())
@@ -46,6 +52,10 @@ class EnvironmentProfileConfigurationTest {
                 assertThat(environment.getProperty("server.servlet.session.cookie.name"))
                     .isEqualTo(sessionCookieName)
                 assertThat(environment.getProperty("app.csrf-cookie-name")).isEqualTo(csrfCookieName)
+                assertThat(environment.getProperty("app.replay-collector.schedule-cron"))
+                    .isEqualTo(scheduledCron)
+                assertThat(environment.getProperty("app.replay-collector.schedule-user-limit"))
+                    .isEqualTo(scheduledUserLimit)
                 assertThat(environment.getProperty("spring.datasource.url"))
                     .isEqualTo("jdbc:postgresql://db:5432/gentool_data_viewer_db")
                 assertThat(environment.getProperty("spring.security.oauth2.client.provider.discord.authorization-uri"))

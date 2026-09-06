@@ -17,4 +17,5 @@ data class ReplayCollectorProperties(
     val scheduleEnabled: Boolean,
     val scheduleCron: String,
     val scheduleZone: String,
+    val scheduleUserLimit: Int? = null,
 )
