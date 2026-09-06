@@ -12,7 +12,7 @@ import DataConsole from '@/features/console/DataConsole'
 import { isDevLoadingEnabled, useDevLoading } from '@/features/console/devLoading'
 
 interface AuthenticatedUser {
-  email: string
+  displayName: string
 }
 
 export default function Home() {
@@ -99,7 +99,7 @@ export default function Home() {
               <Skeleton className="h-4 w-40" />
             ) : (
               user && (
-                <span className="truncate text-sm text-muted-foreground">{user.email}</span>
+                <span className="truncate text-sm text-muted-foreground">{user.displayName}</span>
               )
             )}
           </div>

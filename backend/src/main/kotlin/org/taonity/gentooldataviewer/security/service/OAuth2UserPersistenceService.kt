@@ -43,13 +43,16 @@ class OAuth2UserPersistenceService(
         val email = attributes["email"] as? String ?: invalidUserInfo("Discord user email is missing")
         if (attributes["verified"] != true) invalidUserInfo("Discord user email is not verified")
         val avatarHash = attributes["avatar"] as? String
+        val username = (attributes["username"] as? String)
+            ?.takeIf(String::isNotBlank)
+            ?: invalidUserInfo("Discord username is missing")
         return AuthenticatedUserInfo(
             provider = "discord",
             id = id,
             email = email,
             displayName = (attributes["global_name"] as? String)
-                ?: (attributes["username"] as? String)
-                ?: email,
+                ?.takeIf(String::isNotBlank)
+                ?: username,
             pictureUrl = avatarHash?.let {
                 "${discordProperties.cdnBaseUrl.trimEnd('/')}/avatars/$id/$it.png"
             },
