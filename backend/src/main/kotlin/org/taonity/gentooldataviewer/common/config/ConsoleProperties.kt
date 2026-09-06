@@ -4,12 +4,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "app.console")
 data class ConsoleProperties(
-    val ownerUserIds: List<String> = emptyList(),
-    val adminUserIds: List<String> = emptyList(),
+    val ownerDiscordIds: List<String> = emptyList(),
+    val adminDiscordIds: List<String> = emptyList(),
 ) {
-    fun isOwner(userId: String): Boolean =
-        ownerUserIds.any { it.trim() == userId }
+    fun isOwner(discordUserId: String): Boolean =
+        ownerDiscordIds.any { it.trim() == discordUserId }
 
-    fun isAdmin(userId: String): Boolean =
-        adminUserIds.any { it.trim() == userId }
+    fun isAdmin(discordUserId: String): Boolean =
+        adminDiscordIds.any { it.trim() == discordUserId }
 }

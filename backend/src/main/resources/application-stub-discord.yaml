@@ -45,7 +45,7 @@ app:
   default-success-url: http://127.0.0.1:3000
   login-url: http://127.0.0.1:3000
   console:
-    owner-user-ids: discord:100000000000000000
+    owner-discord-ids: 100000000000000000
   dev:
     stub-logins:
       - registration-id: discord-gentool-data-viewer

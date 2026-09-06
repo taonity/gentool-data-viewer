@@ -26,7 +26,7 @@ class UserMdcFilter : OncePerRequestFilter() {
             if (authentication != null && authentication.isAuthenticated) {
                 val principal = authentication.principal
                 if (principal is GoogleUserPrincipal) {
-                    MDC.put(MDC_USER_ID, principal.getGoogleId())
+                    MDC.put(MDC_USER_ID, principal.getUserId())
                 }
             }
             filterChain.doFilter(request, response)

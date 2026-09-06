@@ -13,8 +13,8 @@ class EnvironmentProfileConfigurationTest {
             .withInitializer(ConfigDataApplicationContextInitializer())
             .withSystemProperties("spring.profiles.active=stub-discord")
             .run { context ->
-                assertThat(context.environment.getProperty("app.console.owner-user-ids"))
-                    .isEqualTo("discord:100000000000000000")
+                assertThat(context.environment.getProperty("app.console.owner-discord-ids"))
+                    .isEqualTo("100000000000000000")
             }
     }
 

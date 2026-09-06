@@ -29,9 +29,7 @@ class AuthenticatedUserPrincipal(
 
     fun getUserId(): String = "${userInfo.provider}:${userInfo.id}"
 
-    fun getProviderUserId(): String = userInfo.id
-
-    fun getGoogleId(): String = getUserId()
+    fun getDiscordUserId(): String = userInfo.id
 
     override fun getEmail(): String = userInfo.email
 

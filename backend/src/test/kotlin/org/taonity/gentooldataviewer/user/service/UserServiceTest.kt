@@ -17,28 +17,30 @@ import java.util.Optional
 class UserServiceTest {
     @Test
     fun `configured user IDs bootstrap owner and admin roles`() {
-        assertThat(createdUserRole("discord:owner", ownerUserIds = listOf("discord:owner")))
-            .isEqualTo(ConsoleRole.OWNER)
-        assertThat(createdUserRole("discord:admin", adminUserIds = listOf("discord:admin")))
-            .isEqualTo(ConsoleRole.ADMIN)
+        val owner = createdUser("100000000000000001", ownerUserIds = listOf("100000000000000001"))
+        val admin = createdUser("100000000000000002", adminUserIds = listOf("100000000000000002"))
+
+        assertThat(owner.googleId).isEqualTo("discord:100000000000000001")
+        assertThat(owner.role).isEqualTo(ConsoleRole.OWNER)
+        assertThat(admin.googleId).isEqualTo("discord:100000000000000002")
+        assertThat(admin.role).isEqualTo(ConsoleRole.ADMIN)
     }
 
     @Test
     fun `email alone does not bootstrap privileged access`() {
-        assertThat(createdUserRole("discord:viewer", email = "former-owner@example.com"))
+        assertThat(createdUser("100000000000000003", email = "former-owner@example.com").role)
             .isEqualTo(ConsoleRole.VIEWER)
     }
 
-    private fun createdUserRole(
-        userId: String,
+    private fun createdUser(
+        providerUserId: String,
         email: String = "user@example.com",
         ownerUserIds: List<String> = emptyList(),
         adminUserIds: List<String> = emptyList(),
-    ): ConsoleRole {
+    ): UserEntity {
         val repository = mock(UserRepository::class.java)
-        `when`(repository.findById(userId)).thenReturn(Optional.empty())
+        `when`(repository.findById("discord:$providerUserId")).thenReturn(Optional.empty())
         val service = UserService(repository, ConsoleProperties(ownerUserIds, adminUserIds))
-        val providerUserId = userId.substringAfter(':')
         val principal = AuthenticatedUserPrincipal(
             authorities = emptyList(),
             attributes = mapOf("id" to providerUserId),
@@ -49,6 +51,6 @@ class UserServiceTest {
 
         val captor = ArgumentCaptor.forClass(UserEntity::class.java)
         verify(repository).save(captor.capture())
-        return captor.value.role
+        return captor.value
     }
 }

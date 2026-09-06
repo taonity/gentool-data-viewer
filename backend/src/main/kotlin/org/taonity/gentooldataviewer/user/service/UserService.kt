@@ -21,8 +21,9 @@ class UserService(
     @Transactional
     fun createOrUpdateUser(principal: GoogleUserPrincipal) {
         val userId = principal.getUserId()
-        val isOwner = consoleProperties.isOwner(userId)
-        val isAdmin = consoleProperties.isAdmin(userId)
+        val discordUserId = principal.getDiscordUserId()
+        val isOwner = consoleProperties.isOwner(discordUserId)
+        val isAdmin = consoleProperties.isAdmin(discordUserId)
         val existing = userRepository.findById(userId).orElse(null)
         if (existing != null) {
             existing.updateDetails(principal.getDisplayName(), principal.getEmail(), principal.getPictureUrl())
@@ -38,7 +39,7 @@ class UserService(
             val legacyUser = userRepository.findFirstByEmailIgnoreCase(principal.getEmail())
                 ?.takeIf { it.authProvider == "google" }
             val newUser = UserEntity(
-                googleId = principal.getUserId(),
+                googleId = userId,
                 authProvider = principal.userInfo.provider,
                 email = principal.getEmail(),
                 displayName = principal.getDisplayName(),

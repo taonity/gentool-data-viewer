@@ -11,7 +11,7 @@ class AccessGuard(
     private val userRepository: UserRepository,
 ) {
     fun currentUser(principal: GoogleUserPrincipal): UserEntity =
-        userRepository.findById(principal.getGoogleId())
+        userRepository.findById(principal.getUserId())
             .orElseThrow { ConsoleForbiddenException("Unknown user") }
 
     fun requireView(principal: GoogleUserPrincipal): UserEntity {
