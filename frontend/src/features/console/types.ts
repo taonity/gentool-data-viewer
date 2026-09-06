@@ -212,6 +212,7 @@ export interface CpuPlayerSummary {
   playersWithoutCpu: number
   catalogEntries: number
   catalogFetchedAt: string | null
+  dataSince: string | null
 }
 
 export interface CpuBenchmarkSync {

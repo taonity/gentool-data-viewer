@@ -22,6 +22,9 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
 
     fun findByReporterId(reporterId: String): List<ReplayEntity>
 
+    @Query("SELECT MIN(r.collectedAt) FROM ReplayEntity r")
+    fun findEarliestCollectedAt(): Instant?
+
     @Query(
         """
         SELECT DISTINCT r FROM ReplayEntity r

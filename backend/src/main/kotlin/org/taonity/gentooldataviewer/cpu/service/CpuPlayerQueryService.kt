@@ -6,6 +6,7 @@ import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerDto
 import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerSummaryDto
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -15,6 +16,7 @@ import tools.jackson.databind.ObjectMapper
 @Service
 class CpuPlayerQueryService(
     private val hardwareRepository: PlayerHardwareRepository,
+    private val replayRepository: ReplayRepository,
     private val benchmarkRepository: CpuBenchmarkRepository,
     private val benchmarkSyncService: CpuBenchmarkSyncService,
     private val settings: AppSettings,
@@ -55,6 +57,7 @@ class CpuPlayerQueryService(
             playersWithoutCpu = hardwareRepository.countByCpuMatchStatus(CpuMatchStatus.NO_CPU),
             catalogEntries = benchmarkRepository.count(),
             catalogFetchedAt = benchmarkSyncService.latestFetchedAt(),
+            dataSince = replayRepository.findEarliestCollectedAt(),
         )
     }
 

@@ -13,6 +13,7 @@ import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.cpu.service.CpuMatchStatus
 import org.taonity.gentooldataviewer.cpu.service.CPU_PLAYER_SORT_PROPERTIES
+import org.taonity.gentooldataviewer.cpu.service.CpuPlayerQueryService
 import org.taonity.gentooldataviewer.replay.service.REPLAY_SORT_PROPERTIES
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -48,6 +49,9 @@ class DemoDataProfileTest {
     @Autowired
     private lateinit var cpuBenchmarkRepository: CpuBenchmarkRepository
 
+    @Autowired
+    private lateinit var cpuPlayerQueryService: CpuPlayerQueryService
+
     @Test
     fun `demo profile seeds feature data idempotently`() {
         val pending = userRepository.findByAccessStatusOrderByEmailAsc(AccessRequestStatus.PENDING)
@@ -62,6 +66,8 @@ class DemoDataProfileTest {
         assertThat(replayPlayerRepository.count()).isEqualTo(166)
         assertThat(replayAssociatedFileRepository.count()).isEqualTo(100)
         assertThat(cpuBenchmarkRepository.count()).isEqualTo(15)
+        assertThat(cpuPlayerQueryService.summary().dataSince)
+            .isEqualTo(replayRepository.findAll().minOf { it.collectedAt })
         assertThat(replayRepository.findAll()).allMatch {
             it.reporterId.matches(Regex("D3A[0-9A-F]{9}")) && it.sourceUrl.startsWith("https://replays.demo.invalid/")
         }

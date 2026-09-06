@@ -40,6 +40,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     sortKey: 'mainName',
     value: (player) => player.mainName,
     cellClassName: 'truncate font-medium',
+    defaultWidth: 219,
     searchKey: 'player',
   },
   {
@@ -49,6 +50,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.playerId,
     render: (player) => <span className="font-mono text-xs">{player.playerId}</span>,
     cellClassName: 'truncate',
+    defaultWidth: 125,
   },
   {
     key: 'aliases',
@@ -57,6 +59,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.aliases.join(', '),
     render: (player) => player.aliases.length ? player.aliases.join(', ') : '—',
     cellClassName: 'truncate text-muted-foreground',
+    defaultWidth: 119,
   },
   {
     key: 'replayCount',
@@ -66,7 +69,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.replayCount.toString(),
     render: (player) => player.replayCount.toLocaleString(),
     cellClassName: 'font-mono tabular-nums',
-    headClassName: 'w-[80px]',
+    defaultWidth: 84,
   },
   {
     key: 'reportedCpu',
@@ -75,6 +78,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.reportedCpu ?? '',
     render: (player) => player.reportedCpu ?? 'Not reported',
     cellClassName: 'truncate',
+    defaultWidth: 306,
     searchKey: 'cpu',
   },
   {
@@ -85,7 +89,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.singleThreadScore?.toString() ?? '',
     render: (player) => player.singleThreadScore?.toLocaleString() ?? '—',
     cellClassName: 'font-mono font-medium tabular-nums',
-    headClassName: 'w-[120px]',
+    defaultWidth: 118,
   },
   {
     key: 'latestName',
@@ -136,7 +140,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
       </span>
     ) : 'Never',
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
-    headClassName: 'w-[170px]',
+    defaultWidth: 227,
   },
   {
     key: 'scoreUpdatedAt',
@@ -398,6 +402,7 @@ function Summary({
         <Stat label="Ambiguous" value={summary.ambiguousPlayers.toLocaleString()} />
         <Stat label="No CPU" value={summary.playersWithoutCpu.toLocaleString()} />
         <Stat label="Catalog" value={summary.catalogEntries ? `${summary.catalogEntries.toLocaleString()} · ${summary.catalogFetchedAt ? formatTime(summary.catalogFetchedAt) : ''}` : 'Not loaded'} />
+        <Stat label="Data since" value={summary.dataSince ? formatTime(summary.dataSince) : 'No data yet'} />
       </dl>
     )
   }

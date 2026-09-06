@@ -51,6 +51,7 @@ data class CpuPlayerSummaryDto(
     val playersWithoutCpu: Long,
     val catalogEntries: Long,
     val catalogFetchedAt: Instant?,
+    val dataSince: Instant?,
 )
 
 data class CpuBenchmarkSyncDto(

@@ -45,6 +45,7 @@ export type Column<T> = {
   render?: (row: T) => React.ReactNode
   cellClassName?: string
   headClassName?: string
+  defaultWidth?: number
   skeleton?: string
   /** Backend field id this column maps to; when set, the column is offered as a search scope. */
   searchKey?: string
@@ -98,6 +99,13 @@ const KEYBOARD_RESIZE_STEP = 16
 type OverflowPreviewPayload = {
   getText: () => string
   isOverflowing: () => boolean
+}
+
+function hasOverflow(element: HTMLElement): boolean {
+  if (element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight) return true
+  const range = document.createRange()
+  range.selectNodeContents(element)
+  return [...range.getClientRects()].some((rect) => rect.width > element.clientWidth)
 }
 
 const SKELETON_BAR_WIDTHS = [
@@ -684,7 +692,7 @@ export function DataTab<T>({
                   key={c.key}
                   data-column-key={c.key}
                   className={cn('relative', c.headClassName)}
-                  style={columnWidths[c.key] ? { width: columnWidths[c.key] } : undefined}
+                  style={{ width: columnWidths[c.key] ?? c.defaultWidth }}
                   aria-sort={sortKey === c.sortKey ? (direction === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
                   {c.sortKey ? (
@@ -957,9 +965,9 @@ function OverflowPreviewTrigger({
     isOverflowing: () => {
       const trigger = triggerRef.current
       if (!trigger) return false
-      if (trigger.scrollWidth > trigger.clientWidth + 1) return true
-      return [...trigger.querySelectorAll<HTMLElement>('*')]
-        .some((element) => element.scrollWidth > element.clientWidth + 1)
+      const cell = trigger.closest<HTMLElement>('[data-slot="table-cell"]')
+      if (hasOverflow(trigger) || (cell && hasOverflow(cell))) return true
+      return [...trigger.querySelectorAll<HTMLElement>('*')].some(hasOverflow)
     },
   }
 

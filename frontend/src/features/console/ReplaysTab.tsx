@@ -35,7 +35,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: (replay) => replay.matchAt,
     render: (replay) => formatTime(replay.matchAt),
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
-    headClassName: 'w-[170px]',
+    defaultWidth: 187,
   },
   {
     key: 'reporter',
@@ -49,6 +49,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
       </div>
     ),
     cellClassName: 'truncate',
+    defaultWidth: 153,
     searchKey: 'reporterName',
   },
   {
@@ -57,6 +58,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     sortKey: 'players',
     value: playerNames,
     cellClassName: 'truncate',
+    defaultWidth: 363,
     searchKey: 'player',
   },
   {
@@ -66,6 +68,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: (replay) => replay.mapName ?? '',
     render: (replay) => replay.mapName ?? '—',
     cellClassName: 'truncate',
+    defaultWidth: 275,
     searchKey: 'mapName',
   },
   {
