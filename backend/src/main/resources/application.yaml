@@ -11,8 +11,8 @@ app:
     secure: true
     same-site: Lax
   console:
-    owner-emails: ${CONSOLE_OWNER_EMAILS:artiom.diulgher@gmail.com}
-    admin-emails: ${CONSOLE_ADMIN_EMAILS:}
+    owner-user-ids: ${CONSOLE_OWNER_USER_IDS:}
+    admin-user-ids: ${CONSOLE_ADMIN_USER_IDS:}
     max-page-size: 100
   retention:
     audit:

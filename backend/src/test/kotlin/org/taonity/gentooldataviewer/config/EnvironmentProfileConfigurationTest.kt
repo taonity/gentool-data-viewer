@@ -8,6 +8,17 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner
 class EnvironmentProfileConfigurationTest {
 
     @Test
+    fun `stub Discord profile bootstraps owner by user ID`() {
+        ApplicationContextRunner()
+            .withInitializer(ConfigDataApplicationContextInitializer())
+            .withSystemProperties("spring.profiles.active=stub-discord")
+            .run { context ->
+                assertThat(context.environment.getProperty("app.console.owner-user-ids"))
+                    .isEqualTo("discord:100000000000000000")
+            }
+    }
+
+    @Test
     fun `stage profile loads its public deployment configuration`() {
         assertEnvironmentProfile(
             profile = "stage",

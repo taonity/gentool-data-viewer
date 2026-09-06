@@ -14,7 +14,7 @@ class DiscordOAuthLoginTest : ControllerTestsBaseClass() {
     lateinit var userRepository: UserRepository
 
     @Test
-    fun `discord login persists namespaced identity and default viewer access`() {
+    fun `discord login bootstraps owner from namespaced user ID`() {
         authorizeOAuth2()
 
         val user = userRepository.findById("discord:100000000000000000").orElseThrow()

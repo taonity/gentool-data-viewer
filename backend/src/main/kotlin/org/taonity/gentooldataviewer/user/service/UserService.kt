@@ -20,9 +20,10 @@ class UserService(
 
     @Transactional
     fun createOrUpdateUser(principal: GoogleUserPrincipal) {
-        val isOwner = consoleProperties.isOwnerEmail(principal.getEmail())
-        val isAdmin = consoleProperties.isAdminEmail(principal.getEmail())
-        val existing = userRepository.findById(principal.getGoogleId()).orElse(null)
+        val userId = principal.getUserId()
+        val isOwner = consoleProperties.isOwner(userId)
+        val isAdmin = consoleProperties.isAdmin(userId)
+        val existing = userRepository.findById(userId).orElse(null)
         if (existing != null) {
             existing.updateDetails(principal.getDisplayName(), principal.getEmail(), principal.getPictureUrl())
             if (isOwner && existing.role != ConsoleRole.OWNER) {
