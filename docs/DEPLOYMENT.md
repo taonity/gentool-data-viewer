@@ -9,6 +9,11 @@ mvn -pl backend -am -P build-docker-image package -DskipTests; docker build -t g
 
 ```
 
+Register both backend callback URLs in the Discord application under **OAuth2 > Redirects**:
+
+- `https://gentool-data-viewer-api-stage.taonity.org/login/oauth2/code/discord-gentool-data-viewer`
+- `https://gentool-data-viewer-api.taonity.org/login/oauth2/code/discord-gentool-data-viewer`
+
 ## Docker Compose
 
 Run the local stack from the repository root with the tracked test environment and published ports:

@@ -63,6 +63,11 @@ class EnvironmentProfileConfigurationTest {
                 assertThat(environment.getProperty("server.servlet.session.cookie.name"))
                     .isEqualTo(sessionCookieName)
                 assertThat(environment.getProperty("app.csrf-cookie-name")).isEqualTo(csrfCookieName)
+                assertThat(
+                    environment.getProperty(
+                        "spring.security.oauth2.client.registration.discord-gentool-data-viewer.redirect-uri"
+                    )
+                ).isEqualTo("{baseUrl}/login/oauth2/code/{registrationId}")
                 assertThat(environment.getProperty("app.replay-collector.schedule-cron"))
                     .isEqualTo(scheduledCron)
                 assertThat(environment.getProperty("app.replay-collector.schedule-user-limit"))
