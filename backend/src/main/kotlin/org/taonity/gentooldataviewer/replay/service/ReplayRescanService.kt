@@ -53,12 +53,14 @@ class ReplayRescanService(
             targetCooldownSeconds = limits.targetCooldown.seconds,
             lookbackDays = properties.lookbackDays,
             history = requestRepository.findTop10ByRequestedByUserIdOrderByRequestedAtDesc(user.userId).map { request ->
+                val job = jobRepository.findById(request.jobId).orElseThrow()
                 ReplayRescanHistoryDto(
                     id = requireNotNull(request.id),
                     targetPlayerId = request.targetPlayerId,
                     ownTarget = request.ownTarget,
                     jobId = request.jobId,
-                    status = jobRepository.findById(request.jobId).orElseThrow().status,
+                    status = job.status,
+                    errorMessage = job.errorMessage,
                     requestedAt = request.requestedAt,
                 )
             },

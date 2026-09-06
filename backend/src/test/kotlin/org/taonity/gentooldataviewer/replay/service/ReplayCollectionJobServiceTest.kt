@@ -3,6 +3,7 @@ package org.taonity.gentooldataviewer.replay.service
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.taonity.gentooldataviewer.replay.entity.CollectionStatus
 import org.taonity.gentooldataviewer.replay.entity.CollectionTrigger
@@ -44,6 +45,33 @@ class ReplayCollectionJobServiceTest {
         assertThat(job.status).isEqualTo(CollectionStatus.FAILED)
         assertThat(player.gentoolRefreshedAt).isNull()
     }
+
+    @Test
+    fun `startup recovery fails queued and running jobs`() {
+        val queued = manualJob()
+        val running = userRescanJob().apply { status = CollectionStatus.RUNNING }
+        val interrupted = listOf(queued, running)
+        `when`(
+            jobRepository.findAllByStatusIn(setOf(CollectionStatus.QUEUED, CollectionStatus.RUNNING))
+        ).thenReturn(interrupted)
+
+        val recovered = service.recoverInterruptedJobs()
+
+        assertThat(recovered).isEqualTo(2)
+        assertThat(interrupted).allSatisfy { job ->
+            assertThat(job.status).isEqualTo(CollectionStatus.FAILED)
+            assertThat(job.finishedAt).isNotNull()
+            assertThat(job.errorMessage).isEqualTo("Interrupted by application restart")
+        }
+        verify(jobRepository).saveAll(interrupted)
+    }
+
+    private fun manualJob() = ReplayCollectionJobEntity(
+        triggerType = CollectionTrigger.MANUAL,
+        startDate = LocalDate.now(),
+        endDate = LocalDate.now(),
+        requestedBy = "admin@example.com",
+    )
 
     private fun userRescanJob() = ReplayCollectionJobEntity(
         triggerType = CollectionTrigger.USER_RESCAN,

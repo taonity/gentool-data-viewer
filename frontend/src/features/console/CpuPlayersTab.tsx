@@ -432,7 +432,7 @@ function PlayerRescanStatus({ dashboard }: { dashboard: ReplayRescanDashboard })
         {dashboard.link && <span className="ml-1 font-mono">{dashboard.link.playerId}</span>}
       </span>
       <span>{remaining} of {dashboard.otherDailyLimit} other-player refreshes left</span>
-      {latest && <Badge variant="outline">Latest: {latest.status}</Badge>}
+      {latest && <Badge variant="outline" title={latest.errorMessage ?? undefined}>Latest: {latest.status}</Badge>}
     </div>
   )
 }

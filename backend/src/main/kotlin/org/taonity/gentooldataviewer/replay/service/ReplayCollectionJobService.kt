@@ -80,6 +80,20 @@ class ReplayCollectionJobService(
         job.errorMessage = (error.message ?: error.javaClass.simpleName).take(2000)
     }
 
+    @Transactional
+    fun recoverInterruptedJobs(): Int {
+        val jobs = repository.findAllByStatusIn(setOf(CollectionStatus.QUEUED, CollectionStatus.RUNNING))
+        if (jobs.isEmpty()) return 0
+        val finishedAt = Instant.now()
+        jobs.forEach { job ->
+            job.status = CollectionStatus.FAILED
+            job.finishedAt = finishedAt
+            job.errorMessage = "Interrupted by application restart"
+        }
+        repository.saveAll(jobs)
+        return jobs.size
+    }
+
     @Transactional(readOnly = true)
     fun latest(): List<ReplayCollectionJobDto> =
         repository.findTop20ByOrderByCreatedAtDesc().map(ReplayCollectionJobDto::from)

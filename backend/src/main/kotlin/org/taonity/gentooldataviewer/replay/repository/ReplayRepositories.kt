@@ -4,6 +4,7 @@ import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayRescanRequestEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
+import org.taonity.gentooldataviewer.replay.entity.CollectionStatus
 import org.taonity.gentooldataviewer.replay.entity.ReplayAssociatedFileEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayPlayerEntity
@@ -80,6 +81,8 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
 @Repository
 interface ReplayCollectionJobRepository : JpaRepository<ReplayCollectionJobEntity, String> {
     fun findTop20ByOrderByCreatedAtDesc(): List<ReplayCollectionJobEntity>
+
+    fun findAllByStatusIn(statuses: Collection<CollectionStatus>): List<ReplayCollectionJobEntity>
 }
 
 @Repository

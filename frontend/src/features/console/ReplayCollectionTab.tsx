@@ -189,7 +189,11 @@ export function ReplayCollectionTab({
             ))}
             {!showLoading && jobs.map((job) => (
               <TableRow key={job.id}>
-                <TableCell><Badge variant={STATUS_VARIANT[job.status]}>{job.status}</Badge></TableCell>
+                <TableCell>
+                  <Badge variant={STATUS_VARIANT[job.status]} title={job.errorMessage ?? undefined}>
+                    {job.status}
+                  </Badge>
+                </TableCell>
                 <TableCell className="font-mono text-xs">
                   {job.startDate === job.endDate ? job.startDate : `${job.startDate} to ${job.endDate}`}
                 </TableCell>

@@ -126,6 +126,7 @@ export interface ReplayRescanHistory {
   ownTarget: boolean
   jobId: string
   status: ReplayCollectionStatus
+  errorMessage: string | null
   requestedAt: string
 }
 

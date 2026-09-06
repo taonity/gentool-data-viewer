@@ -21,6 +21,7 @@ data class ReplayRescanHistoryDto(
     val ownTarget: Boolean,
     val jobId: String,
     val status: CollectionStatus,
+    val errorMessage: String?,
     val requestedAt: Instant,
 )
 
