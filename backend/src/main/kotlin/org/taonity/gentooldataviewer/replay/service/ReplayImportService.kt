@@ -13,6 +13,7 @@ import org.taonity.gentooldataviewer.cpu.service.CpuRatingService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.ObjectMapper
+import java.time.Instant
 import java.time.LocalDate
 
 @Service
@@ -25,6 +26,13 @@ class ReplayImportService(
     private val objectMapper: ObjectMapper,
 ) {
     fun exists(sourceUrl: String): Boolean = replayRepository.existsBySourceUrl(sourceUrl)
+
+    @Transactional
+    fun markGentoolUpdated(playerId: String) {
+        playerHardwareRepository.findById(playerId).ifPresent { player ->
+            player.gentoolUpdatedAt = Instant.now()
+        }
+    }
 
     @Transactional
     fun import(sourceUrl: String, sourceDate: LocalDate, parsed: ParsedReplay): Boolean {
@@ -85,6 +93,7 @@ class ReplayImportService(
     }
 
     private fun updateHardware(replayId: String, parsed: ParsedReplay) {
+        val updatedAt = Instant.now()
         val current = playerHardwareRepository.findById(parsed.reporterId).orElse(null)
         if (current == null) {
             val hardware = PlayerHardwareEntity(
@@ -93,12 +102,14 @@ class ReplayImportService(
                     cpu = parsed.cpu,
                     systemInfo = parsed.system,
                     observedAt = parsed.matchDate,
+                    gentoolUpdatedAt = updatedAt,
                     sourceReplayId = replayId,
                 )
             val managed = playerHardwareRepository.save(hardware)
             updateIdentitySummary(managed)
             cpuRatingService.rate(managed)
         } else if (parsed.matchDate >= current.observedAt) {
+            current.gentoolUpdatedAt = updatedAt
             current.latestName = parsed.reporterName
             current.cpu = parsed.cpu
             current.systemInfo = parsed.system
@@ -107,6 +118,7 @@ class ReplayImportService(
             updateIdentitySummary(current)
             cpuRatingService.rate(current)
         } else {
+            current.gentoolUpdatedAt = updatedAt
             updateIdentitySummary(current)
         }
     }

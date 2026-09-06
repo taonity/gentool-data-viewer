@@ -79,6 +79,7 @@ class ReplayImportServiceTest {
         assertThat(hardware.latestName).isEqualTo("tao")
         assertThat(hardware.cpu).isEqualTo("13th Gen Intel Core i7-13700K")
         assertThat(hardware.cpuScore).isNull()
+        assertThat(hardware.gentoolUpdatedAt).isNotNull()
     }
 
     @Test

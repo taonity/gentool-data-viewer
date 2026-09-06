@@ -125,14 +125,14 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     defaultVisible: false,
   },
   {
-    key: 'gentoolRefreshedAt',
-    label: 'Refreshed',
-    sortKey: 'gentoolRefreshedAt',
+    key: 'gentoolUpdatedAt',
+    label: 'GenTool update',
+    sortKey: 'gentoolUpdatedAt',
     initialSortDirection: 'desc',
-    value: (player) => player.gentoolRefreshedAt ?? '',
-    render: (player) => player.gentoolRefreshedAt ? (
-      <span title={formatTime(player.gentoolRefreshedAt)}>
-        {formatRelativeAge(player.gentoolRefreshedAt) ?? formatTime(player.gentoolRefreshedAt)}
+    value: (player) => player.gentoolUpdatedAt ?? '',
+    render: (player) => player.gentoolUpdatedAt ? (
+      <span title={formatTime(player.gentoolUpdatedAt)}>
+        {formatRelativeAge(player.gentoolUpdatedAt) ?? formatTime(player.gentoolUpdatedAt)}
       </span>
     ) : 'Never',
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',

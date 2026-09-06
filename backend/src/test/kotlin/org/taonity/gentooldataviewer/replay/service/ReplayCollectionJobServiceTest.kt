@@ -30,7 +30,7 @@ class ReplayCollectionJobServiceTest {
         service.complete("job-1", CollectionProgress())
 
         assertThat(job.status).isEqualTo(CollectionStatus.COMPLETED)
-        assertThat(player.gentoolRefreshedAt).isEqualTo(job.finishedAt)
+        assertThat(player.gentoolUpdatedAt).isEqualTo(job.finishedAt)
     }
 
     @Test
@@ -43,7 +43,7 @@ class ReplayCollectionJobServiceTest {
         service.fail("job-1", CollectionProgress(), IllegalStateException("failed"))
 
         assertThat(job.status).isEqualTo(CollectionStatus.FAILED)
-        assertThat(player.gentoolRefreshedAt).isNull()
+        assertThat(player.gentoolUpdatedAt).isNull()
     }
 
     @Test

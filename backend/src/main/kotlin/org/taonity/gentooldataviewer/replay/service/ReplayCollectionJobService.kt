@@ -66,7 +66,7 @@ class ReplayCollectionJobService(
         val targetPlayerId = job.targetPlayerId
         if (job.triggerType == CollectionTrigger.USER_RESCAN && targetPlayerId != null) {
             playerHardwareRepository.findById(targetPlayerId).ifPresent { player ->
-                player.gentoolRefreshedAt = finishedAt
+                player.gentoolUpdatedAt = finishedAt
             }
         }
     }

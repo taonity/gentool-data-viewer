@@ -58,6 +58,7 @@ class ReplayCollectorTest {
         assertThat(progress.directoriesScanned).isEqualTo(1)
         verify(sourceClient).list(target.uri)
         verify(sourceClient, never()).list(other.uri)
+        verify(importService).markGentoolUpdated("ABCDEF123456")
     }
 
     private fun properties() = ReplayCollectorProperties(

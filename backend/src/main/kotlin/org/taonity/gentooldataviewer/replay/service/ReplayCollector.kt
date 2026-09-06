@@ -69,11 +69,16 @@ class ReplayCollector(
 
         val remaining = userLimit?.minus(progress.directoriesScanned.toInt())
         selectedDirectories.take(remaining ?: selectedDirectories.size).forEach { directory ->
+            val failuresBefore = progress.failures
             try {
                 val textFiles = sourceClient.list(directory.uri)
                     .filter { !it.directory && it.name.endsWith(".txt", ignoreCase = true) }
                 progress.filesDiscovered += textFiles.size
                 textFiles.forEach { file -> collectFile(date, file.uri, progress) }
+                val playerId = directory.name.substringAfterLast('_').uppercase()
+                if (progress.failures == failuresBefore && PLAYER_ID.matches(playerId)) {
+                    importService.markGentoolUpdated(playerId)
+                }
             } catch (error: Exception) {
                 progress.failures++
                 LOGGER.warn(error) { "Could not collect replay directory ${directory.uri}" }
@@ -111,6 +116,7 @@ class ReplayCollector(
         private val LOGGER = KotlinLogging.logger {}
         private val MONTH_FOLDER = DateTimeFormatter.ofPattern("yyyy_MM_MMMM", Locale.ENGLISH)
         private val DAY_FOLDER = DateTimeFormatter.ofPattern("dd_EEEE", Locale.ENGLISH)
+        private val PLAYER_ID = Regex("[0-9A-F]{12}")
         private const val PROGRESS_UPDATE_INTERVAL = 25L
     }
 }

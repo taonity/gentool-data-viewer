@@ -200,7 +200,7 @@ export interface CpuPlayer {
   benchmarkUrl: string | null
   matchStatus: CpuMatchStatus
   observedAt: string
-  gentoolRefreshedAt: string | null
+  gentoolUpdatedAt: string | null
   scoreUpdatedAt: string | null
 }
 

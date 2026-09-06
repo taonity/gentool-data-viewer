@@ -71,7 +71,7 @@ internal val CPU_PLAYER_SORT_PROPERTIES = mapOf(
     "benchmark" to "cpuBenchmarkName",
     "status" to "cpuMatchStatus",
     "observedAt" to "observedAt",
-    "gentoolRefreshedAt" to "gentoolRefreshedAt",
+    "gentoolUpdatedAt" to "gentoolUpdatedAt",
     "scoreUpdatedAt" to "cpuScoreUpdatedAt",
 )
 
