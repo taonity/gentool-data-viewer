@@ -80,6 +80,171 @@ See [Deployment](docs/DEPLOYMENT.md) for production configuration and Compose re
 ## Database Schema
 
 <!-- mermerd-start -->
+```mermaid
+erDiagram
+    app_user {
+        character_varying access_status "{NOT_NULL}"
+        character_varying auth_provider "{NOT_NULL}"
+        character_varying display_name "{NOT_NULL}"
+        character_varying picture_url 
+        character_varying requested_role 
+        character_varying role "{NOT_NULL}"
+        character_varying user_id PK "{NOT_NULL}"
+    }
+
+    audit_log {
+        character_varying action "{NOT_NULL}"
+        character_varying actor_user_id "{NOT_NULL}"
+        character_varying id PK "{NOT_NULL}"
+        timestamp_without_time_zone occurred_at "{NOT_NULL}"
+        character_varying target_id 
+        character_varying target_type "{NOT_NULL}"
+    }
+
+    config_override {
+        character_varying config_key PK "{NOT_NULL}"
+        timestamp_without_time_zone updated_at "{NOT_NULL}"
+        character_varying updated_by "{NOT_NULL}"
+        character_varying value_json "{NOT_NULL}"
+    }
+
+    cpu_benchmark {
+        timestamp_without_time_zone fetched_at "{NOT_NULL}"
+        character_varying model_name "{NOT_NULL}"
+        character_varying normalized_model "{NOT_NULL}"
+        character_varying normalized_name "{NOT_NULL}"
+        integer single_thread_score "{NOT_NULL}"
+        character_varying source_id PK "{NOT_NULL}"
+        character_varying source_url "{NOT_NULL}"
+    }
+
+    gentool_user_link {
+        timestamp_without_time_zone decided_at 
+        character_varying decided_by_user_id FK 
+        character_varying player_id UK "{NOT_NULL}"
+        timestamp_without_time_zone requested_at "{NOT_NULL}"
+        character_varying status "{NOT_NULL}"
+        character_varying user_id PK,FK "{NOT_NULL}"
+    }
+
+    player_hardware {
+        character_varying aliases_json "{NOT_NULL}"
+        character_varying cpu 
+        character_varying cpu_benchmark_id 
+        character_varying cpu_benchmark_name 
+        character_varying cpu_benchmark_url 
+        character_varying cpu_match_status "{NOT_NULL}"
+        integer cpu_score 
+        timestamp_without_time_zone cpu_score_updated_at 
+        timestamp_without_time_zone gentool_updated_at 
+        character_varying latest_name "{NOT_NULL}"
+        character_varying main_name "{NOT_NULL}"
+        timestamp_without_time_zone observed_at "{NOT_NULL}"
+        character_varying player_id PK "{NOT_NULL}"
+        bigint replay_count "{NOT_NULL}"
+        character_varying source_replay_id FK "{NOT_NULL}"
+        character_varying system_info 
+    }
+
+    replay {
+        timestamp_without_time_zone collected_at "{NOT_NULL}"
+        character_varying cpu 
+        character_varying fields_json "{NOT_NULL}"
+        character_varying game_version 
+        character_varying gentool_version 
+        character_varying id PK "{NOT_NULL}"
+        character_varying install_type 
+        character_varying map_name 
+        timestamp_without_time_zone match_at "{NOT_NULL}"
+        bigint match_length_seconds 
+        character_varying match_mode 
+        character_varying match_type 
+        character_varying player_names "{NOT_NULL}"
+        character_varying raw_text "{NOT_NULL}"
+        character_varying rep_info_in_use 
+        character_varying replay_file_name 
+        bigint replay_size_bytes 
+        character_varying reporter_id "{NOT_NULL}"
+        character_varying reporter_name "{NOT_NULL}"
+        date source_date "{NOT_NULL}"
+        character_varying source_url UK "{NOT_NULL}"
+        integer start_cash 
+        character_varying system_info 
+        character_varying windows_compat 
+    }
+
+    replay_associated_file {
+        character_varying file_name "{NOT_NULL}"
+        character_varying id PK "{NOT_NULL}"
+        character_varying replay_id FK "{NOT_NULL}"
+        bigint size_bytes "{NOT_NULL}"
+    }
+
+    replay_collection_job {
+        timestamp_without_time_zone created_at "{NOT_NULL}"
+        bigint directories_discovered "{NOT_NULL}"
+        bigint directories_scanned "{NOT_NULL}"
+        date end_date "{NOT_NULL}"
+        character_varying error_message 
+        bigint failures "{NOT_NULL}"
+        bigint files_discovered "{NOT_NULL}"
+        bigint files_imported "{NOT_NULL}"
+        bigint files_skipped "{NOT_NULL}"
+        timestamp_without_time_zone finished_at 
+        character_varying id PK "{NOT_NULL}"
+        character_varying requested_by "{NOT_NULL}"
+        date start_date "{NOT_NULL}"
+        timestamp_without_time_zone started_at 
+        character_varying status "{NOT_NULL}"
+        character_varying target_player_id 
+        character_varying trigger_type "{NOT_NULL}"
+        integer user_limit 
+    }
+
+    replay_player {
+        character_varying address "{NOT_NULL}"
+        character_varying army 
+        character_varying id PK "{NOT_NULL}"
+        character_varying name "{NOT_NULL}"
+        character_varying replay_id FK "{NOT_NULL}"
+        integer slot_number "{NOT_NULL}"
+        integer team_number "{NOT_NULL}"
+    }
+
+    replay_rescan_request {
+        character_varying id PK "{NOT_NULL}"
+        character_varying job_id FK "{NOT_NULL}"
+        boolean own_target "{NOT_NULL}"
+        timestamp_without_time_zone requested_at "{NOT_NULL}"
+        character_varying requested_by_user_id FK "{NOT_NULL}"
+        character_varying target_player_id "{NOT_NULL}"
+    }
+
+    spring_session {
+        bigint creation_time "{NOT_NULL}"
+        bigint expiry_time "{NOT_NULL}"
+        bigint last_access_time "{NOT_NULL}"
+        integer max_inactive_interval "{NOT_NULL}"
+        character primary_id PK "{NOT_NULL}"
+        character_varying principal_name 
+        character session_id "{NOT_NULL}"
+    }
+
+    spring_session_attributes {
+        bytea attribute_bytes "{NOT_NULL}"
+        character_varying attribute_name PK "{NOT_NULL}"
+        character session_primary_id PK,FK "{NOT_NULL}"
+    }
+
+    gentool_user_link |o--|| app_user : "user_id"
+    gentool_user_link }o--|| app_user : "decided_by_user_id"
+    replay_rescan_request }o--|| app_user : "requested_by_user_id"
+    player_hardware }o--|| replay : "source_replay_id"
+    replay_associated_file }o--|| replay : "replay_id"
+    replay_player }o--|| replay : "replay_id"
+    replay_rescan_request }o--|| replay_collection_job : "job_id"
+    spring_session_attributes }o--|| spring_session : "session_primary_id"
+```
 <!-- mermerd-end -->
 
 ## Guides
