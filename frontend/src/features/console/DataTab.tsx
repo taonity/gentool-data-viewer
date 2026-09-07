@@ -497,7 +497,7 @@ export function DataTab<T>({
   const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (hasActions ? 1 : 0)
   const firstRow = rows[0]
   const roomName = roomAccessor && firstRow ? roomAccessor(firstRow) : null
-  const searchableColumns = visibleColumns.filter((column) => column.searchKey)
+  const searchableColumns = columns.filter((column) => column.searchKey)
   const hasSortableColumns = columns.some((column) => column.sortKey)
 
   const toggleExpanded = (id: string) => {
@@ -510,13 +510,6 @@ export function DataTab<T>({
   }
 
   const toggleColumn = (key: string) => {
-    const column = columns.find((candidate) => candidate.key === key)
-    if (visibleColumnKeys.has(key) && column?.searchKey === field) {
-      setField('all')
-      if (activeQuery.trim()) {
-        void reload(0, size, activeQuery, 'all', sortKey, direction, { silent: true })
-      }
-    }
     setVisibleColumnKeys((previous) => {
       const next = new Set(previous)
       if (next.has(key)) {

@@ -73,13 +73,51 @@ class ReplayImportServiceTest {
             .containsExactlyInAnyOrder("tao", "vit")
         assertThat(replayAssociatedFileRepository.findAll()).extracting<String> { it.fileName }
             .containsExactly("sample.rep")
-        assertThat(replayRepository.findAll().single().rawText).isEqualTo("GenTool Replay Information")
-        assertThat(replayRepository.search("vit", "player", PageRequest.of(0, 10)).totalElements).isEqualTo(1)
+        val importedReplay = replayRepository.findAll().single()
+        assertThat(importedReplay.rawText).isEqualTo("GenTool Replay Information")
+        mapOf(
+            "matchAt" to "2026-09-02",
+            "reporter" to "8313DCDFD572",
+            "players" to "vit",
+            "mapName" to "snow",
+            "matchType" to "1v1",
+            "duration" to "600",
+            "cpu" to "13700K",
+            "matchMode" to "LAN",
+            "startCash" to "10000",
+            "gentoolVersion" to "8.9",
+            "gameVersion" to "Zero Hour",
+            "windowsCompat" to "19045",
+            "repInfoInUse" to "no",
+            "replaySize" to "1000",
+            "sourceDate" to "2026-09-02",
+            "collectedAt" to importedReplay.collectedAt.toString().take(4),
+            "all" to "LAN",
+        ).forEach { (field, query) ->
+            assertThat(replayRepository.search(query, field, PageRequest.of(0, 10)).totalElements)
+                .describedAs("Replay search field %s", field)
+                .isEqualTo(1)
+        }
         val hardware = hardwareRepository.findById("8313DCDFD572").orElseThrow()
         assertThat(hardware.latestName).isEqualTo("tao")
         assertThat(hardware.cpu).isEqualTo("13th Gen Intel Core i7-13700K")
         assertThat(hardware.cpuScore).isNull()
         assertThat(hardware.gentoolUpdatedAt).isNotNull()
+        mapOf(
+            "mainName" to "tao",
+            "playerId" to "8313DCDFD572",
+            "aliases" to "[]",
+            "replayCount" to "1",
+            "reportedCpu" to "13700K",
+            "latestName" to "tao",
+            "status" to "UNMATCHED",
+            "gentoolUpdatedAt" to requireNotNull(hardware.gentoolUpdatedAt).toString().take(4),
+            "all" to "13700K",
+        ).forEach { (field, query) ->
+            assertThat(hardwareRepository.search(query, field, PageRequest.of(0, 10)).totalElements)
+                .describedAs("Player search field %s", field)
+                .isEqualTo(1)
+        }
     }
 
     @Test
@@ -113,6 +151,15 @@ class ReplayImportServiceTest {
         assertThat(rated.cpuScore).isEqualTo(4326)
         assertThat(rated.cpuBenchmarkName).isEqualTo(benchmarkName)
         assertThat(rated.cpuMatchStatus).isEqualTo(CpuMatchStatus.EXACT)
+        mapOf(
+            "score" to "4326",
+            "benchmark" to "i7-13700K",
+            "scoreUpdatedAt" to requireNotNull(rated.cpuScoreUpdatedAt).toString().take(4),
+        ).forEach { (field, query) ->
+            assertThat(hardwareRepository.search(query, field, PageRequest.of(0, 10)).totalElements)
+                .describedAs("Player search field %s", field)
+                .isEqualTo(1)
+        }
         val sortedPlayerIds = hardwareRepository.search(
             "",
             "all",

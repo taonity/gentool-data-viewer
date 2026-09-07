@@ -77,6 +77,11 @@ docker compose --env-file templates/docker/.env.test -f templates/docker/docker-
 
 See [Deployment](docs/DEPLOYMENT.md) for production configuration and Compose requirements. See [Database](docs/DATABASE.md) for schema and migration management.
 
+## Database Schema
+
+<!-- mermerd-start -->
+<!-- mermerd-end -->
+
 ## Guides
 
 - [Add a feature](docs/ADD_FEATURE.md)
@@ -86,8 +91,6 @@ See [Deployment](docs/DEPLOYMENT.md) for production configuration and Compose re
 - [Testing](docs/TESTING.md)
 - [Deployment](docs/DEPLOYMENT.md)
 
-replace google with discrod auth
-make it possible to force update with tokens available
-figure out what to do with unrated cpus
-all of the columns shoud be searchable
-strange delays during tab switch
+## TODO
+
+- [ ] Decide how to handle unrated CPUs

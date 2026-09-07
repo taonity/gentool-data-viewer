@@ -36,6 +36,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     render: (replay) => formatTime(replay.matchAt),
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
     defaultWidth: 187,
+    searchKey: 'matchAt',
   },
   {
     key: 'reporter',
@@ -50,7 +51,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     ),
     cellClassName: 'truncate',
     defaultWidth: 153,
-    searchKey: 'reporterName',
+    searchKey: 'reporter',
   },
   {
     key: 'players',
@@ -59,7 +60,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: playerNames,
     cellClassName: 'truncate',
     defaultWidth: 363,
-    searchKey: 'player',
+    searchKey: 'players',
   },
   {
     key: 'mapName',
@@ -88,6 +89,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: (replay) => formatDuration(replay.matchLengthSeconds),
     cellClassName: 'font-mono text-xs tabular-nums',
     headClassName: 'w-[90px]',
+    searchKey: 'duration',
   },
   {
     key: 'cpu',
@@ -105,6 +107,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     sortKey: 'matchMode',
     value: (replay) => replay.matchMode ?? '',
     defaultVisible: false,
+    searchKey: 'matchMode',
   },
   {
     key: 'startCash',
@@ -113,6 +116,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     initialSortDirection: 'desc',
     value: (replay) => replay.startCash?.toLocaleString() ?? '',
     defaultVisible: false,
+    searchKey: 'startCash',
   },
   {
     key: 'gentoolVersion',
@@ -120,6 +124,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     sortKey: 'gentoolVersion',
     value: (replay) => replay.gentoolVersion ?? '',
     defaultVisible: false,
+    searchKey: 'gentoolVersion',
   },
   {
     key: 'gameVersion',
@@ -128,6 +133,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: (replay) => replay.gameVersion ?? '',
     cellClassName: 'truncate',
     defaultVisible: false,
+    searchKey: 'gameVersion',
   },
   {
     key: 'windowsCompat',
@@ -135,6 +141,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     sortKey: 'windowsCompat',
     value: (replay) => replay.windowsCompat ?? '',
     defaultVisible: false,
+    searchKey: 'windowsCompat',
   },
   {
     key: 'repInfoInUse',
@@ -142,6 +149,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     sortKey: 'repInfoInUse',
     value: (replay) => replay.repInfoInUse ?? '',
     defaultVisible: false,
+    searchKey: 'repInfoInUse',
   },
   {
     key: 'replaySize',
@@ -150,6 +158,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     initialSortDirection: 'desc',
     value: (replay) => formatBytes(replay.replaySizeBytes),
     defaultVisible: false,
+    searchKey: 'replaySize',
   },
   {
     key: 'sourceDate',
@@ -158,6 +167,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     initialSortDirection: 'desc',
     value: (replay) => replay.sourceDate,
     defaultVisible: false,
+    searchKey: 'sourceDate',
   },
   {
     key: 'collectedAt',
@@ -167,6 +177,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: (replay) => replay.collectedAt,
     render: (replay) => formatTime(replay.collectedAt),
     defaultVisible: false,
+    searchKey: 'collectedAt',
   },
 ]
 

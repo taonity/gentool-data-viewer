@@ -41,7 +41,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.mainName,
     cellClassName: 'truncate font-medium',
     defaultWidth: 219,
-    searchKey: 'player',
+    searchKey: 'mainName',
   },
   {
     key: 'playerId',
@@ -51,6 +51,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     render: (player) => <span className="font-mono text-xs">{player.playerId}</span>,
     cellClassName: 'truncate',
     defaultWidth: 125,
+    searchKey: 'playerId',
   },
   {
     key: 'aliases',
@@ -60,6 +61,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     render: (player) => player.aliases.length ? player.aliases.join(', ') : '—',
     cellClassName: 'truncate text-muted-foreground',
     defaultWidth: 119,
+    searchKey: 'aliases',
   },
   {
     key: 'replayCount',
@@ -70,6 +72,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     render: (player) => player.replayCount.toLocaleString(),
     cellClassName: 'font-mono tabular-nums',
     defaultWidth: 84,
+    searchKey: 'replayCount',
   },
   {
     key: 'reportedCpu',
@@ -79,7 +82,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     render: (player) => player.reportedCpu ?? 'Not reported',
     cellClassName: 'truncate',
     defaultWidth: 306,
-    searchKey: 'cpu',
+    searchKey: 'reportedCpu',
   },
   {
     key: 'score',
@@ -90,6 +93,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     render: (player) => player.singleThreadScore?.toLocaleString() ?? '—',
     cellClassName: 'font-mono font-medium tabular-nums',
     defaultWidth: 118,
+    searchKey: 'score',
   },
   {
     key: 'latestName',
@@ -98,6 +102,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.latestName,
     cellClassName: 'truncate',
     defaultVisible: false,
+    searchKey: 'latestName',
   },
   {
     key: 'benchmark',
@@ -141,6 +146,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     ) : 'Never',
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
     defaultWidth: 227,
+    searchKey: 'gentoolUpdatedAt',
   },
   {
     key: 'scoreUpdatedAt',
@@ -152,6 +158,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
     headClassName: 'w-[170px]',
     defaultVisible: false,
+    searchKey: 'scoreUpdatedAt',
   },
 ]
 
