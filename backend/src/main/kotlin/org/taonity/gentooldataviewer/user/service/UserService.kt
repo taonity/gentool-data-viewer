@@ -26,7 +26,7 @@ class UserService(
         val isAdmin = consoleProperties.isAdmin(discordUserId)
         val existing = userRepository.findById(userId).orElse(null)
         if (existing != null) {
-            existing.updateDetails(principal.getDisplayName(), principal.getEmail(), principal.getPictureUrl())
+            existing.updateDetails(principal.getDisplayName(), principal.getPictureUrl())
             if (isOwner && existing.role != ConsoleRole.OWNER) {
                 existing.grantOwner()
                 LOGGER.info { "Granted owner console access to bootstrapped user: ${existing.googleId}" }
@@ -36,18 +36,13 @@ class UserService(
             }
             LOGGER.debug { "Updated user: ${existing.googleId}" }
         } else {
-            val legacyUser = userRepository.findFirstByEmailIgnoreCase(principal.getEmail())
-                ?.takeIf { it.authProvider == "google" }
             val newUser = UserEntity(
                 googleId = userId,
                 authProvider = principal.userInfo.provider,
-                email = principal.getEmail(),
                 displayName = principal.getDisplayName(),
                 pictureUrl = principal.getPictureUrl(),
-                role = legacyUser?.role ?: ConsoleRole.VIEWER,
-                accessStatus = legacyUser?.accessStatus
-                    ?: org.taonity.gentooldataviewer.user.entity.AccessRequestStatus.APPROVED,
-                requestedRole = legacyUser?.requestedRole,
+                role = ConsoleRole.VIEWER,
+                accessStatus = org.taonity.gentooldataviewer.user.entity.AccessRequestStatus.APPROVED,
             )
             if (isOwner) {
                 newUser.grantOwner()
@@ -57,10 +52,6 @@ class UserService(
                 LOGGER.info { "Bootstrapped admin console user: ${newUser.googleId}" }
             }
             userRepository.save(newUser)
-            if (legacyUser != null) {
-                userRepository.delete(legacyUser)
-                LOGGER.info { "Migrated legacy Google access to Discord user: ${newUser.googleId}" }
-            }
             LOGGER.info { "Created new user: ${newUser.googleId}" }
         }
     }

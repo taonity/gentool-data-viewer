@@ -60,7 +60,7 @@ const AUDIT_COLUMNS: Column<AuditLog>[] = [
     headClassName: 'w-[28%]',
     searchKey: 'targetId',
   },
-  { key: 'actorEmail', label: 'Actor', value: (a) => a.actorEmail, cellClassName: 'truncate', searchKey: 'actorEmail' },
+  { key: 'actorUserId', label: 'Actor', value: (a) => a.actorUserId, cellClassName: 'truncate', searchKey: 'actorUserId' },
 ]
 
 export function AdminPanel({
@@ -142,7 +142,7 @@ export function AdminPanel({
               <TableHeader>
                 <TableRow className="bg-muted/40">
                   <TableHead>User</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Discord user ID</TableHead>
                   <TableHead>Requested</TableHead>
                   <TableHead>Grant</TableHead>
                   <TableHead className="text-right">Decision</TableHead>
@@ -169,7 +169,7 @@ export function AdminPanel({
                 {visibleRequests?.map((r) => (
                     <TableRow key={r.googleId} className="h-12">
                       <TableCell className="truncate font-medium">{r.displayName}</TableCell>
-                      <TableCell className="truncate text-muted-foreground">{r.email}</TableCell>
+                      <TableCell className="truncate font-mono text-xs text-muted-foreground">{r.discordUserId}</TableCell>
                       <TableCell>{r.requestedRole ?? '—'}</TableCell>
                       <TableCell>
                         <Select
@@ -333,7 +333,7 @@ function UsersCard({
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Discord user ID</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[180px]">Role</TableHead>
               </TableRow>
@@ -356,14 +356,14 @@ function UsersCard({
                 </TableRow>
               )}
               {visibleUsers?.map((u) => {
-                  const isSelf = u.email === access.email
+                  const isSelf = u.googleId === access.userId
                   // Only the owner may change an existing admin/owner.
                   const targetIsAdmin = u.role === 'ADMIN' || u.role === 'OWNER'
                   const locked = isSelf || (targetIsAdmin && !access.isOwner)
                   return (
                     <TableRow key={u.googleId} className="h-12">
                       <TableCell className="truncate font-medium">{u.displayName}</TableCell>
-                      <TableCell className="truncate text-muted-foreground">{u.email}</TableCell>
+                      <TableCell className="truncate font-mono text-xs text-muted-foreground">{u.discordUserId}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="font-normal">
                           {u.accessStatus}

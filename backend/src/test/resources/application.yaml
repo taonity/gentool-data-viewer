@@ -26,7 +26,7 @@ spring:
             client-secret: test-discord-client-secret
             redirect-uri: http://127.0.0.1:8080/login/oauth2/code/discord-gentool-data-viewer
             authorization-grant-type: authorization_code
-            scope: identify,email
+            scope: identify
         provider:
           discord:
             authorization-uri: http://127.0.0.1:9561/oauth2/authorize

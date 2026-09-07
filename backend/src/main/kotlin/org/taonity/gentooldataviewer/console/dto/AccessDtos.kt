@@ -4,7 +4,7 @@ import org.taonity.gentooldataviewer.user.entity.AccessRequestStatus
 import org.taonity.gentooldataviewer.user.entity.ConsoleRole
 
 data class AccessInfoResponse(
-    val email: String,
+    val userId: String,
     val displayName: String,
     val role: ConsoleRole,
     val accessStatus: AccessRequestStatus,
@@ -25,14 +25,14 @@ data class ApproveAccessBody(
 
 data class PendingRequestDto(
     val googleId: String,
-    val email: String,
+    val discordUserId: String,
     val displayName: String,
     val requestedRole: ConsoleRole?,
 )
 
 data class UserSummaryDto(
     val googleId: String,
-    val email: String,
+    val discordUserId: String,
     val displayName: String,
     val role: ConsoleRole,
     val accessStatus: AccessRequestStatus,

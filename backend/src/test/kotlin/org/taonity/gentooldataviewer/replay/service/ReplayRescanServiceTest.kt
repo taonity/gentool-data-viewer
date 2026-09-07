@@ -64,7 +64,6 @@ class ReplayRescanServiceTest {
             UserEntity(
                 googleId = userId,
                 authProvider = "discord",
-                email = "viewer@example.com",
                 displayName = "Viewer",
                 role = ConsoleRole.VIEWER,
                 accessStatus = AccessRequestStatus.APPROVED,
@@ -163,7 +162,7 @@ class ReplayRescanServiceTest {
                 triggerType = CollectionTrigger.USER_RESCAN,
                 startDate = LocalDate.now(),
                 endDate = LocalDate.now(),
-                requestedBy = "viewer@example.com",
+                requestedBy = userId,
                 targetPlayerId = targetPlayerId,
             )
         ).id
@@ -174,7 +173,7 @@ class ReplayRescanServiceTest {
         Mockito.doReturn(jobId).`when`(coordinator).startUserRescan(
             endDate.minusDays(6),
             endDate,
-            "viewer@example.com",
+            userId,
             targetPlayerId,
         )
     }
@@ -187,7 +186,7 @@ class ReplayRescanServiceTest {
             "id",
         )
         return AuthenticatedUserPrincipal.of(
-            AuthenticatedUserInfo("discord", "900000000000000001", "viewer@example.com", "Viewer", null),
+            AuthenticatedUserInfo("discord", "900000000000000001", "Viewer", null),
             oauthUser,
         )
     }

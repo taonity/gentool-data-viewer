@@ -24,9 +24,7 @@ class AuditLogEntity(
     @Column(name = "target_id")
     val targetId: String? = null,
     @Column(name = "actor_user_id", nullable = false)
-    val actorGoogleId: String,
-    @Column(name = "actor_email", nullable = false)
-    val actorEmail: String,
+    val actorUserId: String,
     @Column(name = "occurred_at", nullable = false)
     val occurredAt: Instant = Instant.now(),
 )

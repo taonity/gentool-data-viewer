@@ -9,21 +9,21 @@ spring:
             client-secret: stub-discord-client-secret
             redirect-uri: http://127.0.0.1:8080/login/oauth2/code/discord-gentool-data-viewer
             authorization-grant-type: authorization_code
-            scope: identify,email
+            scope: identify
           stub-alice:
             provider: discord-stub-alice
             client-id: stub-discord-client-id
             client-secret: stub-discord-client-secret
             redirect-uri: http://127.0.0.1:8080/login/oauth2/code/stub-alice
             authorization-grant-type: authorization_code
-            scope: identify,email
+            scope: identify
           stub-bob:
             provider: discord-stub-bob
             client-id: stub-discord-client-id
             client-secret: stub-discord-client-secret
             redirect-uri: http://127.0.0.1:8080/login/oauth2/code/stub-bob
             authorization-grant-type: authorization_code
-            scope: identify,email
+            scope: identify
         provider:
           discord:
             authorization-uri: http://127.0.0.1:9561/oauth2/authorize
@@ -47,7 +47,7 @@ app:
   dev:
     stub-logins:
       - registration-id: discord-gentool-data-viewer
-        label: Owner (test@example.com)
+        label: Owner
       - registration-id: stub-alice
         label: Alice (Viewer)
       - registration-id: stub-bob

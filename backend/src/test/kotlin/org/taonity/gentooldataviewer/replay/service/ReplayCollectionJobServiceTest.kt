@@ -70,14 +70,14 @@ class ReplayCollectionJobServiceTest {
         triggerType = CollectionTrigger.MANUAL,
         startDate = LocalDate.now(),
         endDate = LocalDate.now(),
-        requestedBy = "admin@example.com",
+        requestedBy = "discord:900000000000000001",
     )
 
     private fun userRescanJob() = ReplayCollectionJobEntity(
         triggerType = CollectionTrigger.USER_RESCAN,
         startDate = LocalDate.now(),
         endDate = LocalDate.now(),
-        requestedBy = "viewer@example.com",
+        requestedBy = "discord:900000000000000002",
         targetPlayerId = PLAYER_ID,
     )
 

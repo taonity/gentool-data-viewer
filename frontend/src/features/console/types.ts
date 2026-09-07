@@ -2,7 +2,7 @@ export type ConsoleRole = 'NONE' | 'VIEWER' | 'EDITOR' | 'ADMIN' | 'OWNER'
 export type AccessStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface AccessInfo {
-  email: string
+  userId: string
   displayName: string
   role: ConsoleRole
   accessStatus: AccessStatus
@@ -15,7 +15,7 @@ export interface AccessInfo {
 
 export interface UserSummary {
   googleId: string
-  email: string
+  discordUserId: string
   displayName: string
   role: ConsoleRole
   accessStatus: AccessStatus
@@ -30,7 +30,7 @@ export interface StubLogin {
 
 export interface PendingRequest {
   googleId: string
-  email: string
+  discordUserId: string
   displayName: string
   requestedRole: ConsoleRole | null
 }
@@ -53,7 +53,7 @@ export interface AuditLog {
   action: string
   targetType: string
   targetId: string | null
-  actorEmail: string
+  actorUserId: string
   occurredAt: string
 }
 
@@ -111,7 +111,7 @@ export type GentoolLinkStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface GentoolLink {
   userId: string
-  email: string
+  discordUserId: string
   displayName: string
   playerId: string
   playerName: string | null

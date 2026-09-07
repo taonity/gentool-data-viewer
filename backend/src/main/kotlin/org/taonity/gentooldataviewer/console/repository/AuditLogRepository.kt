@@ -11,7 +11,7 @@ import java.time.Instant
 
 @Repository
 interface AuditLogRepository : JpaRepository<AuditLogEntity, String> {
-    fun existsByActorGoogleId(actorGoogleId: String): Boolean
+    fun existsByActorUserId(actorUserId: String): Boolean
 
     fun findAllByOrderByOccurredAtDesc(pageable: Pageable): Page<AuditLogEntity>
 
@@ -21,7 +21,7 @@ interface AuditLogRepository : JpaRepository<AuditLogEntity, String> {
         WHERE ((:field = 'all' OR :field = 'action') AND LOWER(string(a.action)) LIKE LOWER(CONCAT('%', :q, '%')))
            OR ((:field = 'all' OR :field = 'targetType') AND LOWER(a.targetType) LIKE LOWER(CONCAT('%', :q, '%')))
            OR ((:field = 'all' OR :field = 'targetId') AND LOWER(COALESCE(a.targetId, '')) LIKE LOWER(CONCAT('%', :q, '%')))
-           OR ((:field = 'all' OR :field = 'actorEmail') AND LOWER(a.actorEmail) LIKE LOWER(CONCAT('%', :q, '%')))
+           OR ((:field = 'all' OR :field = 'actorUserId') AND LOWER(a.actorUserId) LIKE LOWER(CONCAT('%', :q, '%')))
         ORDER BY a.occurredAt DESC
         """,
     )

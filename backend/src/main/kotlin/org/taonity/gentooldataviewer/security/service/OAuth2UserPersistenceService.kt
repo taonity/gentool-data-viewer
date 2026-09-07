@@ -40,8 +40,6 @@ class OAuth2UserPersistenceService(
 
     private fun toUserInfo(attributes: Map<String, Any>): AuthenticatedUserInfo {
         val id = attributes["id"] as? String ?: invalidUserInfo("Discord user ID is missing")
-        val email = attributes["email"] as? String ?: invalidUserInfo("Discord user email is missing")
-        if (attributes["verified"] != true) invalidUserInfo("Discord user email is not verified")
         val avatarHash = attributes["avatar"] as? String
         val username = (attributes["username"] as? String)
             ?.takeIf(String::isNotBlank)
@@ -49,7 +47,6 @@ class OAuth2UserPersistenceService(
         return AuthenticatedUserInfo(
             provider = "discord",
             id = id,
-            email = email,
             displayName = (attributes["global_name"] as? String)
                 ?.takeIf(String::isNotBlank)
                 ?: username,

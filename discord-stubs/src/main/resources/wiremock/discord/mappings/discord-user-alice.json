@@ -10,8 +10,6 @@
       "id": "100000000000000001",
       "username": "alice",
       "global_name": "Alice Tester",
-      "email": "alice@example.com",
-      "verified": true,
       "avatar": "alice-avatar"
     }
   }

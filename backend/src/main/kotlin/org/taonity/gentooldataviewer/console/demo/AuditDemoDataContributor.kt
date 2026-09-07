@@ -21,7 +21,7 @@ class AuditDemoDataContributor(
 
     @Transactional
     override fun seed(): Int {
-        if (auditLogRepository.existsByActorGoogleId(DEMO_ACTOR_ID)) return 0
+        if (auditLogRepository.existsByActorUserId(DEMO_ACTOR_ID)) return 0
         val records = fixtures()
         auditLogRepository.saveAll(records)
         return records.size
@@ -47,8 +47,7 @@ class AuditDemoDataContributor(
         action = action,
         targetType = targetType,
         targetId = targetId,
-        actorGoogleId = DEMO_ACTOR_ID,
-        actorEmail = "owner.demo@example.com",
+        actorUserId = DEMO_ACTOR_ID,
         occurredAt = occurredAt,
     )
 

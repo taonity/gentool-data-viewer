@@ -27,14 +27,13 @@ class UserServiceTest {
     }
 
     @Test
-    fun `email alone does not bootstrap privileged access`() {
-        assertThat(createdUser("100000000000000003", email = "former-owner@example.com").role)
+    fun `unconfigured user ID does not bootstrap privileged access`() {
+        assertThat(createdUser("100000000000000003").role)
             .isEqualTo(ConsoleRole.VIEWER)
     }
 
     private fun createdUser(
         providerUserId: String,
-        email: String = "user@example.com",
         ownerUserIds: List<String> = emptyList(),
         adminUserIds: List<String> = emptyList(),
     ): UserEntity {
@@ -44,7 +43,7 @@ class UserServiceTest {
         val principal = AuthenticatedUserPrincipal(
             authorities = emptyList(),
             attributes = mapOf("id" to providerUserId),
-            userInfo = AuthenticatedUserInfo("discord", providerUserId, email, "User", null),
+            userInfo = AuthenticatedUserInfo("discord", providerUserId, "User", null),
         )
 
         service.createOrUpdateUser(principal)

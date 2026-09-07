@@ -32,7 +32,7 @@ const ROLE_BADGE: Record<ConsoleRole, 'default' | 'secondary' | 'outline'> = {
 }
 
 const LOADING_ADMIN_ACCESS: AccessInfo = {
-  email: '',
+  userId: '',
   displayName: '',
   role: 'OWNER',
   accessStatus: 'APPROVED',

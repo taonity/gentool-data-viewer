@@ -15,7 +15,6 @@ class UserEntity(
     val googleId: String,
     @Column(name = "auth_provider", nullable = false)
     val authProvider: String,
-    var email: String,
     var displayName: String,
     var pictureUrl: String? = null,
     @Enumerated(EnumType.STRING)
@@ -31,9 +30,8 @@ class UserEntity(
     val userId: String
         get() = googleId
 
-    fun updateDetails(displayName: String, email: String, pictureUrl: String?): UserEntity {
+    fun updateDetails(displayName: String, pictureUrl: String?): UserEntity {
         this.displayName = displayName
-        this.email = email
         this.pictureUrl = pictureUrl
         return this
     }
@@ -62,6 +60,6 @@ class UserEntity(
     }
 
     override fun toString(): String {
-        return "UserEntity(googleId='$googleId', email='$email', displayName='$displayName', role=$role)"
+        return "UserEntity(googleId='$googleId', displayName='$displayName', role=$role)"
     }
 }

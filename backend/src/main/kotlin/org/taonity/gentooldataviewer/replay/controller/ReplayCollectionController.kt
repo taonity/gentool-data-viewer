@@ -36,7 +36,7 @@ class ReplayCollectionController(
     ): Map<String, String> {
         val user = accessGuard.requireAdmin(principal)
         return mapOf(
-            "jobId" to coordinator.startManual(request.startDate, request.endDate, user.email, request.userLimit),
+            "jobId" to coordinator.startManual(request.startDate, request.endDate, user.userId, request.userLimit),
         )
     }
 }

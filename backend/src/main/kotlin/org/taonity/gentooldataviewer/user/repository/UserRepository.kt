@@ -7,9 +7,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface UserRepository : JpaRepository<UserEntity, String> {
-    fun findFirstByEmailIgnoreCase(email: String): UserEntity?
+    fun findByAccessStatusOrderByDisplayNameAsc(accessStatus: AccessRequestStatus): List<UserEntity>
 
-    fun findByAccessStatusOrderByEmailAsc(accessStatus: AccessRequestStatus): List<UserEntity>
-
-    fun findAllByOrderByEmailAsc(): List<UserEntity>
+    fun findAllByOrderByDisplayNameAsc(): List<UserEntity>
 }

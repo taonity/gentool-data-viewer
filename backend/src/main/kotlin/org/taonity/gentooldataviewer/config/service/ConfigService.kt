@@ -52,11 +52,11 @@ class ConfigService(
             if (existing != null) {
                 existing.valueJson = json
                 existing.updatedAt = now
-                existing.updatedBy = actor.email
+                existing.updatedBy = actor.userId
                 overrideRepository.save(existing)
             } else {
                 overrideRepository.save(
-                    ConfigOverrideEntity(configKey = key, valueJson = json, updatedAt = now, updatedBy = actor.email),
+                    ConfigOverrideEntity(configKey = key, valueJson = json, updatedAt = now, updatedBy = actor.userId),
                 )
             }
             auditService.record(AuditAction.EDIT_CONFIG, "config_override", key, actor)

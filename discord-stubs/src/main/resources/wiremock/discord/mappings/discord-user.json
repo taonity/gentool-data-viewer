@@ -10,8 +10,6 @@
       "id": "100000000000000000",
       "username": "owner",
       "global_name": "Test Owner",
-      "email": "test@example.com",
-      "verified": true,
       "avatar": "owner-avatar"
     }
   }

@@ -23,8 +23,7 @@ class AuditService(
                 action = action,
                 targetType = targetType,
                 targetId = targetId,
-                actorGoogleId = actor.googleId,
-                actorEmail = actor.email,
+                actorUserId = actor.userId,
             )
         )
         LOGGER.info { "Audit: action=$action targetType=$targetType targetId=$targetId actor=${actor.googleId}" }

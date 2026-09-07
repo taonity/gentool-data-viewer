@@ -28,25 +28,15 @@ class DiscordOAuthLoginTest : ControllerTestsBaseClass() {
     }
 
     @Test
-    fun `discord login preserves approved legacy access with the same verified email`() {
+    fun `discord login creates viewer from identity attributes`() {
         userRepository.deleteById("discord:100000000000000001")
-        userRepository.save(
-            UserEntity(
-                googleId = "google:legacy-alice",
-                authProvider = "google",
-                email = "alice@example.com",
-                displayName = "Legacy Alice",
-                role = ConsoleRole.EDITOR,
-                accessStatus = AccessRequestStatus.APPROVED,
-            )
-        )
 
         authorizeOAuth2("stub-alice")
 
-        assertThat(userRepository.existsById("google:legacy-alice")).isFalse()
         val user = userRepository.findById("discord:100000000000000001").orElseThrow()
         assertThat(user.authProvider).isEqualTo("discord")
-        assertThat(user.role).isEqualTo(ConsoleRole.EDITOR)
+        assertThat(user.displayName).isEqualTo("Alice Tester")
+        assertThat(user.role).isEqualTo(ConsoleRole.VIEWER)
         assertThat(user.accessStatus).isEqualTo(AccessRequestStatus.APPROVED)
     }
 }

@@ -54,12 +54,12 @@ class DemoDataProfileTest {
 
     @Test
     fun `demo profile seeds feature data idempotently`() {
-        val pending = userRepository.findByAccessStatusOrderByEmailAsc(AccessRequestStatus.PENDING)
+        val pending = userRepository.findByAccessStatusOrderByDisplayNameAsc(AccessRequestStatus.PENDING)
         assertThat(pending).hasSize(2)
         assertThat(pending.map { it.requestedRole }).containsExactly(ConsoleRole.VIEWER, ConsoleRole.EDITOR)
 
         assertThat(auditLogRepository.count()).isEqualTo(5)
-        assertThat(auditLogRepository.existsByActorGoogleId("demo-data-owner")).isTrue()
+        assertThat(auditLogRepository.existsByActorUserId("demo-data-owner")).isTrue()
 
         assertThat(replayRepository.count()).isEqualTo(50)
         assertThat(playerHardwareRepository.count()).isEqualTo(15)

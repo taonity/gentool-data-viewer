@@ -31,8 +31,6 @@ class AuthenticatedUserPrincipal(
 
     fun getDiscordUserId(): String = userInfo.id
 
-    override fun getEmail(): String = userInfo.email
-
     fun getDisplayName(): String = userInfo.displayName
 
     fun getPictureUrl(): String? = userInfo.pictureUrl

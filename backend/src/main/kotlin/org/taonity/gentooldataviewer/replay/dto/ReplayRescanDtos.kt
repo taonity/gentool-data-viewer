@@ -6,7 +6,7 @@ import java.time.Instant
 
 data class GentoolLinkDto(
     val userId: String,
-    val email: String,
+    val discordUserId: String,
     val displayName: String,
     val playerId: String,
     val playerName: String?,

@@ -20,7 +20,7 @@ afterEach(() => {
 describe('auth api', () => {
   it('returns authenticated status when the access endpoint succeeds', async () => {
     fetchWithTimeoutMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ email: 'user@example.com' }), { status: 200 }),
+      new Response(JSON.stringify({ userId: 'discord:100000000000000000' }), { status: 200 }),
     )
 
     const result = await fetchAuthenticatedUserStatus()

@@ -8,7 +8,7 @@ data class AuditLogDto(
     val action: String,
     val targetType: String,
     val targetId: String?,
-    val actorEmail: String,
+    val actorUserId: String,
     val occurredAt: Instant,
 ) {
     companion object {
@@ -17,7 +17,7 @@ data class AuditLogDto(
             action = e.action.name,
             targetType = e.targetType,
             targetId = e.targetId,
-            actorEmail = e.actorEmail,
+            actorUserId = e.actorUserId,
             occurredAt = e.occurredAt,
         )
     }

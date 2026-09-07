@@ -27,7 +27,7 @@ class AccessService(
     fun describe(principal: GoogleUserPrincipal): AccessInfoResponse {
         val user = accessGuard.currentUser(principal)
         return AccessInfoResponse(
-            email = user.email,
+            userId = user.userId,
             displayName = user.displayName,
             role = user.role,
             accessStatus = user.accessStatus,
@@ -60,8 +60,8 @@ class AccessService(
 
     fun listPendingRequests(principal: GoogleUserPrincipal): List<PendingRequestDto> {
         accessGuard.requireAdmin(principal)
-        return userRepository.findByAccessStatusOrderByEmailAsc(AccessRequestStatus.PENDING)
-            .map { PendingRequestDto(it.googleId, it.email, it.displayName, it.requestedRole) }
+        return userRepository.findByAccessStatusOrderByDisplayNameAsc(AccessRequestStatus.PENDING)
+            .map { PendingRequestDto(it.googleId, it.userId.substringAfter("discord:"), it.displayName, it.requestedRole) }
     }
 
     @Transactional
@@ -93,8 +93,15 @@ class AccessService(
 
     fun listUsers(principal: GoogleUserPrincipal): List<UserSummaryDto> {
         accessGuard.requireAdmin(principal)
-        return userRepository.findAllByOrderByEmailAsc().map {
-            UserSummaryDto(it.googleId, it.email, it.displayName, it.role, it.accessStatus, it.requestedRole)
+        return userRepository.findAllByOrderByDisplayNameAsc().map {
+            UserSummaryDto(
+                it.googleId,
+                it.userId.substringAfter("discord:"),
+                it.displayName,
+                it.role,
+                it.accessStatus,
+                it.requestedRole,
+            )
         }
     }
 
@@ -124,7 +131,7 @@ class AccessService(
         LOGGER.info { "User ${actor.googleId} set role of ${target.googleId} to $newRole" }
         return UserSummaryDto(
             target.googleId,
-            target.email,
+            target.userId.substringAfter("discord:"),
             target.displayName,
             target.role,
             target.accessStatus,

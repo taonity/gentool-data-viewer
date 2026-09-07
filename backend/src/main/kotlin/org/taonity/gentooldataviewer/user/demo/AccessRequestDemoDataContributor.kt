@@ -29,7 +29,6 @@ class AccessRequestDemoDataContributor(
         UserEntity(
             googleId = "discord:200000000000000001",
             authProvider = "discord",
-            email = "alice@example.com",
             displayName = "Alice Tester",
             role = ConsoleRole.NONE,
             accessStatus = AccessRequestStatus.PENDING,
@@ -38,7 +37,6 @@ class AccessRequestDemoDataContributor(
         UserEntity(
             googleId = "discord:200000000000000002",
             authProvider = "discord",
-            email = "bob@example.com",
             displayName = "Bob Tester",
             role = ConsoleRole.NONE,
             accessStatus = AccessRequestStatus.PENDING,

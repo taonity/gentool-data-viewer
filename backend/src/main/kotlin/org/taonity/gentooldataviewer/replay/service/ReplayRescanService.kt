@@ -129,7 +129,7 @@ class ReplayRescanService(
         }
         val endDate = LocalDate.now(clock)
         val startDate = endDate.minusDays(properties.lookbackDays - 1)
-        val jobId = coordinator.startUserRescan(startDate, endDate, user.email, playerId)
+        val jobId = coordinator.startUserRescan(startDate, endDate, user.userId, playerId)
         requestRepository.save(
             ReplayRescanRequestEntity(
                 requestedByUserId = user.userId,
@@ -160,7 +160,7 @@ class ReplayRescanService(
 
     private fun toDto(link: GentoolUserLinkEntity, user: UserEntity) = GentoolLinkDto(
         userId = link.userId,
-        email = user.email,
+        discordUserId = user.userId.substringAfter("discord:"),
         displayName = user.displayName,
         playerId = link.playerId,
         playerName = hardwareRepository.findById(link.playerId).orElse(null)?.mainName,
