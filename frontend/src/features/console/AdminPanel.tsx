@@ -1,9 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
+import { Link2, Loader2, Search, Unlink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -23,7 +26,15 @@ import {
 import { consoleApi } from './api'
 import { DataTab, type Column } from './DataTab'
 import { formatTime } from './format'
-import type { AccessInfo, AuditLog, ConsoleRole, PendingRequest, UserSummary } from './types'
+import type {
+  AccessInfo,
+  AdminDiscordUserOption,
+  AdminGentoolPlayerOption,
+  AuditLog,
+  ConsoleRole,
+  PendingRequest,
+  UserSummary,
+} from './types'
 
 const AUDIT_COLUMNS: Column<AuditLog>[] = [
   {
@@ -97,13 +108,13 @@ export function AdminPanel({
   }, [onError, onPendingCountChange])
 
   useEffect(() => {
-    if (forceLoading || !active) {
+    if (forceLoading || !active || !access.accessRequestsEnabled) {
       wasActive.current = false
       return
     }
     if (!wasActive.current) void loadRequests()
     wasActive.current = true
-  }, [active, forceLoading, loadRequests])
+  }, [access.accessRequestsEnabled, active, forceLoading, loadRequests])
 
   const visibleRequests = forceLoading ? null : requests
 
@@ -125,7 +136,7 @@ export function AdminPanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
+      {access.accessRequestsEnabled && <Card>
         <CardHeader>
           <CardTitle className="text-base">Pending access requests</CardTitle>
         </CardHeader>
@@ -216,7 +227,9 @@ export function AdminPanel({
             </Table>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
+
+      <PlayerLinksCard active={active} forceLoading={forceLoading} onError={onError} />
 
       <UsersCard active={active} access={access} forceLoading={forceLoading} onError={onError} />
 
@@ -242,6 +255,290 @@ export function AdminPanel({
       </Card>
     </div>
   )
+}
+
+function ProfileAvatar({ name, pictureUrl }: { name: string; pictureUrl: string | null }) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted bg-cover bg-center text-[10px] font-semibold text-muted-foreground ring-1 ring-border"
+      style={pictureUrl ? { backgroundImage: `url(${JSON.stringify(pictureUrl)})` } : undefined}
+    >
+      {initials}
+    </span>
+  )
+}
+
+function PlayerLinksCard({
+  active,
+  forceLoading,
+  onError,
+}: {
+  active: boolean
+  forceLoading: boolean
+  onError: (message: string) => void
+}) {
+  const [userQuery, setUserQuery] = useState('')
+  const [playerQuery, setPlayerQuery] = useState('')
+  const deferredUserQuery = useDeferredValue(userQuery)
+  const deferredPlayerQuery = useDeferredValue(playerQuery)
+  const [users, setUsers] = useState<AdminDiscordUserOption[] | null>(null)
+  const [players, setPlayers] = useState<AdminGentoolPlayerOption[] | null>(null)
+  const [selectedUser, setSelectedUser] = useState<AdminDiscordUserOption | null>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<AdminGentoolPlayerOption | null>(null)
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [resolvingUser, setResolvingUser] = useState(false)
+  const [playersLoading, setPlayersLoading] = useState(false)
+  const [busy, setBusy] = useState<'link' | 'unlink' | null>(null)
+  const [resultMessage, setResultMessage] = useState<string | null>(null)
+  const userRequest = useRef(0)
+  const playerRequest = useRef(0)
+
+  const loadUsers = useCallback(async (query: string) => {
+    const request = ++userRequest.current
+    setUsersLoading(true)
+    try {
+      const result = await consoleApi.searchDiscordUsersForLink(query)
+      if (request === userRequest.current) setUsers(result)
+    } catch {
+      if (request === userRequest.current) onError('Failed to search Discord users.')
+    } finally {
+      if (request === userRequest.current) setUsersLoading(false)
+    }
+  }, [onError])
+
+  const loadPlayers = useCallback(async (query: string) => {
+    const request = ++playerRequest.current
+    setPlayersLoading(true)
+    try {
+      const result = await consoleApi.searchGentoolPlayersForLink(query)
+      if (request === playerRequest.current) setPlayers(result)
+    } catch {
+      if (request === playerRequest.current) onError('Failed to search GenTool players.')
+    } finally {
+      if (request === playerRequest.current) setPlayersLoading(false)
+    }
+  }, [onError])
+
+  useEffect(() => {
+    if (!active || forceLoading) return
+    void loadUsers(deferredUserQuery)
+  }, [active, deferredUserQuery, forceLoading, loadUsers])
+
+  useEffect(() => {
+    if (!active || forceLoading) return
+    void loadPlayers(deferredPlayerQuery)
+  }, [active, deferredPlayerQuery, forceLoading, loadPlayers])
+
+  const userWillMove = Boolean(
+    selectedUser?.linkedPlayerId && selectedUser.linkedPlayerId !== selectedPlayer?.playerId,
+  )
+  const playerWillMove = Boolean(
+    selectedPlayer?.linkedUserId && selectedPlayer.linkedUserId !== selectedUser?.userId,
+  )
+  const canResolveUser = /^[0-9]{17,20}$/.test(userQuery.trim())
+
+  const resolveUser = async (discordUserId = userQuery.trim()) => {
+    if (!/^[0-9]{17,20}$/.test(discordUserId)) return
+    setResolvingUser(true)
+    setResultMessage(null)
+    try {
+      const resolved = await consoleApi.resolveDiscordUserForLink(discordUserId)
+      if (!resolved) return
+      setUsers((current) => [resolved, ...(current ?? []).filter((user) => user.userId !== resolved.userId)])
+      setSelectedUser(resolved)
+      setResultMessage(`Verified ${resolved.displayName} with Discord.`)
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Failed to fetch Discord user.')
+    } finally {
+      setResolvingUser(false)
+    }
+  }
+
+  const assign = async () => {
+    if (!selectedUser || !selectedPlayer) return
+    if ((userWillMove || playerWillMove) && !confirm('Replace the existing profile link?')) return
+    setBusy('link')
+    setResultMessage(null)
+    try {
+      const result = await consoleApi.assignGentoolLink(selectedUser.userId, selectedPlayer.playerId)
+      if (!result) return
+      setSelectedUser(result.user)
+      setSelectedPlayer(result.player)
+      setResultMessage(`Linked ${result.user.displayName} to ${result.player.mainName}.`)
+      await Promise.all([loadUsers(deferredUserQuery), loadPlayers(deferredPlayerQuery)])
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Failed to link profiles.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const unlinkUser = async () => {
+    if (!selectedUser?.linkedPlayerId) return
+    if (!confirm(`Remove ${selectedUser.displayName}'s GenTool link?`)) return
+    setBusy('unlink')
+    setResultMessage(null)
+    try {
+      await consoleApi.unlinkGentoolUser(selectedUser.userId)
+      const playerName = selectedUser.linkedPlayerName ?? selectedUser.linkedPlayerId
+      setSelectedUser({ ...selectedUser, linkedPlayerId: null, linkedPlayerName: null, linkStatus: null })
+      if (selectedPlayer?.linkedUserId === selectedUser.userId) {
+        setSelectedPlayer({
+          ...selectedPlayer,
+          linkedUserId: null,
+          linkedDiscordUserId: null,
+          linkedDisplayName: null,
+          linkStatus: null,
+        })
+      }
+      setResultMessage(`Removed the link to ${playerName}.`)
+      await Promise.all([loadUsers(deferredUserQuery), loadPlayers(deferredPlayerQuery)])
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Failed to remove profile link.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Player links</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_32px_minmax(0,1fr)] lg:items-start">
+          <div className="min-w-0 space-y-2">
+            <Label htmlFor="discord-user-search">Discord account</Label>
+            <div className="flex gap-2">
+              <Input
+                id="discord-user-search"
+                value={userQuery}
+                onChange={(event) => setUserQuery(event.target.value)}
+                placeholder="Display name or Discord user ID"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!canResolveUser || resolvingUser}
+                title="Fetch this user ID from Discord"
+                onClick={() => void resolveUser()}
+              >
+                {resolvingUser ? <Loader2 className="animate-spin" /> : <Search />}
+                Fetch
+              </Button>
+            </div>
+            <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={usersLoading}>
+              {users === null && usersLoading && <LinkSearchSkeleton />}
+              {users === null && !usersLoading && <EmptySearchResult label="No Discord users found." />}
+              {users?.length === 0 && <EmptySearchResult label="No Discord users found." />}
+              {users?.map((user) => (
+                <button
+                  type="button"
+                  key={user.userId}
+                  className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedUser?.userId === user.userId ? 'bg-muted' : ''}`}
+                  onClick={() => { setSelectedUser(user); setResultMessage(null) }}
+                >
+                  <ProfileAvatar name={user.displayName} pictureUrl={user.pictureUrl} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{user.displayName}</span>
+                    <span className="block truncate font-mono text-xs text-muted-foreground">{user.discordUserId}</span>
+                  </span>
+                  {user.linkedPlayerId && (
+                    <Badge variant="secondary" className="max-w-32 shrink-0 truncate font-normal">
+                      {user.linkedPlayerName ?? user.linkedPlayerId}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="hidden h-8 items-center justify-center text-muted-foreground lg:flex lg:pt-7">
+            <Link2 className="size-4" />
+          </div>
+
+          <div className="min-w-0 space-y-2">
+            <Label htmlFor="gentool-player-search">GenTool player</Label>
+            <Input
+              id="gentool-player-search"
+              value={playerQuery}
+              onChange={(event) => setPlayerQuery(event.target.value)}
+              placeholder="Player name or GenTool ID"
+            />
+            <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
+              {players === null && playersLoading && <LinkSearchSkeleton />}
+              {players === null && !playersLoading && <EmptySearchResult label="No GenTool players found." />}
+              {players?.length === 0 && <EmptySearchResult label="No GenTool players found." />}
+              {players?.map((player) => (
+                <button
+                  type="button"
+                  key={player.playerId}
+                  className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedPlayer?.playerId === player.playerId ? 'bg-muted' : ''}`}
+                  onClick={() => { setSelectedPlayer(player); setResultMessage(null) }}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{player.mainName}</span>
+                    <span className="block truncate font-mono text-xs text-muted-foreground">{player.playerId}</span>
+                  </span>
+                  {player.linkedUserId && (
+                    <Badge variant="secondary" className="max-w-36 shrink-0 truncate font-normal">
+                      {player.linkedDisplayName ?? player.linkedDiscordUserId}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {(userWillMove || playerWillMove) && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+            Existing profile {userWillMove && playerWillMove ? 'links' : 'link'} will be replaced.
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+          <Button disabled={!selectedUser || !selectedPlayer || busy !== null} onClick={() => void assign()}>
+            {busy === 'link' ? <Loader2 className="animate-spin" /> : <Link2 />}
+            Link profiles
+          </Button>
+          {selectedUser?.linkedPlayerId && (
+            <Button variant="outline" disabled={busy !== null} onClick={() => void unlinkUser()}>
+              {busy === 'unlink' ? <Loader2 className="animate-spin" /> : <Unlink />}
+              Remove link
+            </Button>
+          )}
+          <span className="min-w-0 text-sm text-muted-foreground" aria-live="polite">
+            {resultMessage ?? (
+              selectedUser && selectedPlayer
+                ? `${selectedUser.displayName} → ${selectedPlayer.mainName}`
+                : 'Select one Discord account and one GenTool player.'
+            )}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function LinkSearchSkeleton() {
+  return (
+    <div className="space-y-3 p-3">
+      {Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-10 w-full" />)}
+    </div>
+  )
+}
+
+function EmptySearchResult({ label }: { label: string }) {
+  return <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">{label}</div>
 }
 
 const ROLE_LABELS: Record<ConsoleRole, string> = {

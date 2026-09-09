@@ -42,6 +42,9 @@ spring:
             user-name-attribute: id
 
 app:
+  discord:
+    bot-api-base-url: http://127.0.0.1:9561/api/v10/
+    bot-token: stub-discord-bot-token
   console:
     owner-discord-ids: "100000000000000000"
   dev:

@@ -34,6 +34,7 @@ POSTGRES_APP_USER=app
 POSTGRES_APP_PASSWORD=app-password
 DISCORD_CLIENT_ID=your-real-client-id
 DISCORD_CLIENT_SECRET=your-real-secret
+DISCORD_BOT_TOKEN=your-discord-bot-token
 CONSOLE_OWNER_DISCORD_IDS=your-numeric-discord-user-id
 CONSOLE_ADMIN_DISCORD_IDS=
 SPRING_PROFILES_ACTIVE=prod
@@ -41,7 +42,7 @@ FRONTEND_PROFILE=prod
 
 ```
 
-The environment file contains Compose bootstrap selectors, credentials, and the backend/frontend profiles. Use `COMPOSE_PROJECT_NAME=gentool-data-viewer-stage`, `SPRING_PROFILES_ACTIVE=stage`, and `FRONTEND_PROFILE=stage` for staging. Public URLs, cookie names, database topology, and internal service addresses remain committed in application profiles and Compose configuration.
+The environment file contains Compose bootstrap selectors, credentials, and the backend/frontend profiles. `DISCORD_BOT_TOKEN` enables admins to resolve users who have not logged in; create it for a Discord bot application and keep it server-side. Use `COMPOSE_PROJECT_NAME=gentool-data-viewer-stage`, `SPRING_PROFILES_ACTIVE=stage`, and `FRONTEND_PROFILE=stage` for staging. Public URLs, cookie names, database topology, and internal service addresses remain committed in application profiles and Compose configuration.
 
 The file is passed with Compose's `--env-file` option for interpolation. Services receive only their explicitly listed variables, so database and OAuth credentials are not injected into the frontend container.
 

@@ -11,6 +11,7 @@ export interface AccessInfo {
   canEdit: boolean
   isAdmin: boolean
   isOwner: boolean
+  accessRequestsEnabled: boolean
 }
 
 export interface UserSummary {
@@ -20,6 +21,30 @@ export interface UserSummary {
   role: ConsoleRole
   accessStatus: AccessStatus
   requestedRole: ConsoleRole | null
+}
+
+export interface AdminDiscordUserOption {
+  userId: string
+  discordUserId: string
+  displayName: string
+  pictureUrl: string | null
+  linkedPlayerId: string | null
+  linkedPlayerName: string | null
+  linkStatus: GentoolLinkStatus | null
+}
+
+export interface AdminGentoolPlayerOption {
+  playerId: string
+  mainName: string
+  linkedUserId: string | null
+  linkedDiscordUserId: string | null
+  linkedDisplayName: string | null
+  linkStatus: GentoolLinkStatus | null
+}
+
+export interface AdminGentoolLink {
+  user: AdminDiscordUserOption
+  player: AdminGentoolPlayerOption
 }
 
 /** A dev-only stub login shortcut returned by /api/dev/stub-users. */
@@ -188,9 +213,15 @@ export interface Replay {
 
 export type CpuMatchStatus = 'EXACT' | 'MODEL' | 'AMBIGUOUS' | 'UNMATCHED' | 'NO_CPU'
 
+export interface DiscordUser {
+  displayName: string
+  pictureUrl: string | null
+}
+
 export interface CpuPlayer {
   playerId: string
   mainName: string
+  discordUser: DiscordUser | null
   latestName: string
   aliases: string[]
   replayCount: number

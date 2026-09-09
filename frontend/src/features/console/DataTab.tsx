@@ -95,6 +95,9 @@ const SKELETON_ROWS = 10
 const MIN_COLUMN_WIDTH = 64
 const MAX_COLUMN_WIDTH = 640
 const KEYBOARD_RESIZE_STEP = 16
+const EXPAND_COLUMN_WIDTH = 40
+const LOCATE_COLUMN_WIDTH = 48
+const ACTIONS_COLUMN_WIDTH = 79
 
 type OverflowPreviewPayload = {
   getText: () => string
@@ -176,7 +179,8 @@ export function DataTab<T>({
   } | null>(null)
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const columnWidthsStorageKey = `data-console.column-widths.v2.${columnWidthsKey ?? columns.map((column) => column.key).join('.')}`
+  const columnLayoutKey = columnWidthsKey ?? columns.map((column) => column.key).join('.')
+  const columnWidthsStorageKey = `data-console.column-widths.v2.${columnLayoutKey}`
 
   const persistColumnWidths = useCallback((widths: Record<string, number>) => {
     try {
@@ -272,7 +276,8 @@ export function DataTab<T>({
     headers.forEach((header) => {
       const key = header.dataset.columnKey
       if (!key) return
-      const measuredWidth = header.getBoundingClientRect().width
+      const configuredWidth = columns.find((column) => column.key === key)?.defaultWidth
+      const measuredWidth = configuredWidth ?? header.getBoundingClientRect().width
       if (defaultColumnWidthsRef.current[key] === undefined) {
         defaultColumnWidthsRef.current[key] = measuredWidth
       }
@@ -495,6 +500,17 @@ export function DataTab<T>({
   const visibleColumns = columns.filter((column) => visibleColumnKeys.has(column.key))
   const hasActions = Boolean(rowActions) || canEdit
   const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (hasActions ? 1 : 0)
+  const visibleColumnWidths = visibleColumns.map((column) => columnWidths[column.key] ?? column.defaultWidth)
+  const fixedTableWidth = visibleColumnWidths.every((width): width is number => width !== undefined)
+    ? visibleColumnWidths.reduce((total, width) => total + width, 0)
+      + (expand ? EXPAND_COLUMN_WIDTH : 0)
+      + (locate ? LOCATE_COLUMN_WIDTH : 0)
+    : null
+  const tableWidthStyle = fixedTableWidth === null
+    ? undefined
+    : hasActions
+      ? { width: `max(calc(100% - ${ACTIONS_COLUMN_WIDTH}px), ${fixedTableWidth}px)` }
+      : { width: `max(100%, ${fixedTableWidth}px)` }
   const firstRow = rows[0]
   const roomName = roomAccessor && firstRow ? roomAccessor(firstRow) : null
   const searchableColumns = columns.filter((column) => column.searchKey)
@@ -673,17 +689,21 @@ export function DataTab<T>({
       <div className="overflow-hidden rounded-lg border">
         <Table
           ref={tableRef}
+          data-column-layout-key={columnLayoutKey}
+          data-column-widths-storage-key={columnWidthsStorageKey}
+          style={tableWidthStyle}
           className="min-w-[720px] table-fixed [&_td]:py-1.5 [&_th]:h-9 [&_tr]:border-border/50"
         >
           <TableHeader>
             <TableRow className="bg-muted/40">
-              {expand && <TableHead className="w-[40px]" />}
+              {expand && <TableHead style={{ width: EXPAND_COLUMN_WIDTH }} />}
               {visibleColumns.map((c, index) => {
                 const nextColumn = visibleColumns[index + 1]
                 return (
                 <TableHead
                   key={c.key}
                   data-column-key={c.key}
+                  data-column-label={c.label}
                   className={cn('relative', c.headClassName)}
                   style={{ width: columnWidths[c.key] ?? c.defaultWidth }}
                   aria-sort={sortKey === c.sortKey ? (direction === 'asc' ? 'ascending' : 'descending') : undefined}
@@ -733,9 +753,12 @@ export function DataTab<T>({
                 </TableHead>
                 )
               })}
-              {locate && <TableHead className="w-[48px]" />}
+              {locate && <TableHead style={{ width: LOCATE_COLUMN_WIDTH }} />}
               {hasActions && (
-                <TableHead className="sticky right-0 z-20 w-[88px] border-l bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))] pr-3 text-right shadow-[-4px_0_8px_-8px_rgba(0,0,0,0.5)]">
+                <TableHead
+                  style={{ width: ACTIONS_COLUMN_WIDTH }}
+                  className="sticky right-0 z-20 border-l bg-[color-mix(in_oklab,var(--muted)_40%,var(--background))] pr-3 text-right shadow-[-4px_0_8px_-8px_rgba(0,0,0,0.5)]"
+                >
                   Actions
                 </TableHead>
               )}

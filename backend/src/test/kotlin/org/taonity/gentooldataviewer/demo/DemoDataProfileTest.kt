@@ -7,6 +7,7 @@ import org.taonity.gentooldataviewer.user.entity.AccessRequestStatus
 import org.taonity.gentooldataviewer.user.entity.ConsoleRole
 import org.taonity.gentooldataviewer.user.repository.UserRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
+import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayAssociatedFileRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
@@ -47,6 +48,9 @@ class DemoDataProfileTest {
     private lateinit var playerHardwareRepository: PlayerHardwareRepository
 
     @Autowired
+    private lateinit var gentoolUserLinkRepository: GentoolUserLinkRepository
+
+    @Autowired
     private lateinit var cpuBenchmarkRepository: CpuBenchmarkRepository
 
     @Autowired
@@ -79,6 +83,10 @@ class DemoDataProfileTest {
         assertThat(playerHardwareRepository.findAll()).anyMatch { it.aliasesJson == "[]" }
         assertThat(playerHardwareRepository.findAll()).anyMatch { it.aliasesJson != "[]" }
         assertThat(playerHardwareRepository.findAll().sumOf { it.replayCount }).isEqualTo(50)
+        assertThat(gentoolUserLinkRepository.count()).isEqualTo(5)
+        assertThat(cpuPlayerQueryService.list(null, null, 0, 50, null, null).content)
+            .filteredOn { it.discordUser != null }
+            .hasSize(5)
         val atlas = playerHardwareRepository.findById("D3A000000001").orElseThrow()
         assertThat(atlas.mainName).isEqualTo("Atlas")
         assertThat(atlas.aliasesJson).contains("Atlas_GT", "Atlas2v2")
@@ -93,9 +101,17 @@ class DemoDataProfileTest {
             "sourceDate", "collectedAt",
         )
         assertThat(CPU_PLAYER_SORT_PROPERTIES.keys).containsExactlyInAnyOrder(
-            "mainName", "playerId", "aliases", "replayCount", "reportedCpu", "score", "latestName",
+            "mainName", "discordUser", "playerId", "aliases", "replayCount", "reportedCpu", "score", "latestName",
             "benchmark", "status", "observedAt", "gentoolUpdatedAt", "scoreUpdatedAt",
         )
+        val playersByDiscord = cpuPlayerQueryService.list(null, null, 0, 50, "discordUser", "asc").content
+        assertThat(playersByDiscord.take(5).map { it.discordUser?.displayName }).isSorted
+        assertThat(playersByDiscord.drop(5)).allMatch { it.discordUser == null }
+        val playersByDiscordDescending =
+            cpuPlayerQueryService.list(null, null, 0, 50, "discordUser", "desc").content
+        assertThat(playersByDiscordDescending.take(5).mapNotNull { it.discordUser?.displayName })
+            .isSortedAccordingTo(reverseOrder())
+        assertThat(playersByDiscordDescending.drop(5)).allMatch { it.discordUser == null }
         val maps = replayRepository.findAll(PageRequest.of(0, 50, Sort.by("mapName"))).content.mapNotNull { it.mapName }
         assertThat(maps).isSorted
         val names = playerHardwareRepository.search(
@@ -106,9 +122,10 @@ class DemoDataProfileTest {
         assertThat(names).isSorted
 
         assertThat(contributors.sumOf { it.seed() }).isZero()
-        assertThat(userRepository.count()).isEqualTo(2)
+        assertThat(userRepository.count()).isEqualTo(7)
         assertThat(auditLogRepository.count()).isEqualTo(5)
         assertThat(replayRepository.count()).isEqualTo(50)
         assertThat(playerHardwareRepository.count()).isEqualTo(15)
+        assertThat(gentoolUserLinkRepository.count()).isEqualTo(5)
     }
 }

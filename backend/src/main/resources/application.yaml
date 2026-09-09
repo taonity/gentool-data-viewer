@@ -14,6 +14,7 @@ app:
     owner-discord-ids: ${CONSOLE_OWNER_DISCORD_IDS:383277523561086979}
     admin-discord-ids: ${CONSOLE_ADMIN_DISCORD_IDS:}
     max-page-size: 100
+    access-requests-enabled: false
   retention:
     audit:
       retention-days: 14
@@ -37,6 +38,10 @@ app:
     privileged-target-cooldown: 1m
   discord:
     cdn-base-url: https://cdn.discordapp.com
+    bot-api-base-url: https://discord.com/api/v10/
+    bot-token: ${DISCORD_BOT_TOKEN:}
+    bot-request-timeout: 10s
+    bot-user-agent: gentool-data-viewer/1.0
   cpu-benchmark:
     base-url: https://www.cpubenchmark.net/single-thread/
     max-pages: 8

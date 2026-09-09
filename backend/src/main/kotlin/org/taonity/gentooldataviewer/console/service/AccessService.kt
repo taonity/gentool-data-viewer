@@ -1,6 +1,7 @@
 package org.taonity.gentooldataviewer.console.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.taonity.gentooldataviewer.config.AppSettings
 import org.taonity.gentooldataviewer.console.dto.AccessInfoResponse
 import org.taonity.gentooldataviewer.console.dto.PendingRequestDto
 import org.taonity.gentooldataviewer.console.dto.UserSummaryDto
@@ -19,6 +20,7 @@ class AccessService(
     private val userRepository: UserRepository,
     private val accessGuard: AccessGuard,
     private val auditService: AuditService,
+    private val settings: AppSettings,
 ) {
     companion object {
         private val LOGGER = KotlinLogging.logger {}
@@ -36,11 +38,15 @@ class AccessService(
             canEdit = user.role.canEdit(),
             isAdmin = user.role.isAdmin(),
             isOwner = user.role.isOwner(),
+            accessRequestsEnabled = settings.console().accessRequestsEnabled,
         )
     }
 
     @Transactional
     fun requestAccess(principal: GoogleUserPrincipal, requestedRole: ConsoleRole): AccessInfoResponse {
+        if (!settings.console().accessRequestsEnabled) {
+            throw ConsoleForbiddenException("Access requests are disabled")
+        }
         if (requestedRole != ConsoleRole.VIEWER && requestedRole != ConsoleRole.EDITOR) {
             throw ConsoleForbiddenException("Only VIEWER or EDITOR access can be requested")
         }

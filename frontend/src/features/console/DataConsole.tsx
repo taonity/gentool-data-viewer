@@ -41,6 +41,7 @@ const LOADING_ADMIN_ACCESS: AccessInfo = {
   canEdit: true,
   isAdmin: true,
   isOwner: true,
+  accessRequestsEnabled: false,
 }
 
 type TabKey = 'players' | 'replays' | 'collection' | 'config' | 'admin' | 'about'
@@ -121,7 +122,10 @@ export default function DataConsole({
   // Load the pending-request count independently of the Admin tab so the tab badge is accurate
   // even before an admin opens the tab (the tab is mounted lazily).
   useEffect(() => {
-    if (forceLoading || !authenticated || !access?.isAdmin) return
+    if (forceLoading || !authenticated || !access?.isAdmin || !access.accessRequestsEnabled) {
+      setPendingCount(null)
+      return
+    }
     let active = true
     consoleApi
       .listPendingRequests()
@@ -134,7 +138,7 @@ export default function DataConsole({
     return () => {
       active = false
     }
-  }, [access?.isAdmin, authenticated, forceLoading])
+  }, [access?.accessRequestsEnabled, access?.isAdmin, authenticated, forceLoading])
 
   const canView = access?.canView === true
   const accessLoading = authenticated && loading
@@ -339,6 +343,19 @@ function AccessGate({
     }
   }
 
+  if (!access.accessRequestsEnabled) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Access restricted</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Access requests are currently disabled. Contact an administrator if you need console access.
+        </CardContent>
+      </Card>
+    )
+  }
+
   if (access.accessStatus === 'PENDING') {
     return (
       <Card>
@@ -404,7 +421,7 @@ function UpgradeAccessControl({
   const [confirming, setConfirming] = useState(false)
 
   // Only viewers (can view, cannot edit, not admin) may request an upgrade.
-  if (!access.canView || access.canEdit || access.isAdmin) return null
+  if (!access.accessRequestsEnabled || !access.canView || access.canEdit || access.isAdmin) return null
 
   if (access.accessStatus === 'PENDING') {
     return <span className="text-xs text-muted-foreground">Editor request pending</span>

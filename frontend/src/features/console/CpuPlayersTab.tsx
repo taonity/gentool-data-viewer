@@ -9,7 +9,7 @@ import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
 import { formatTime } from './format'
 import { formatRelativeAge } from '@/lib/appInfo'
-import type { CpuMatchStatus, CpuPlayer, CpuPlayerSummary, ReplayRescanDashboard } from './types'
+import type { CpuMatchStatus, CpuPlayer, CpuPlayerSummary, DiscordUser, ReplayRescanDashboard } from './types'
 
 const STATUS_VARIANT: Record<CpuMatchStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   EXACT: 'default',
@@ -33,6 +33,29 @@ function cooldownTitle(remainingMs: number): string {
   return `Available again in ${minutes} minute${minutes === 1 ? '' : 's'}`
 }
 
+function DiscordIdentity({ user }: { user: DiscordUser }) {
+  const initials = user.displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+
+  return (
+    <span className="flex min-w-0 items-center gap-2" title={`Discord: ${user.displayName}`}>
+      <span
+        aria-hidden="true"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted bg-cover bg-center text-[9px] font-semibold text-muted-foreground ring-1 ring-border"
+        style={user.pictureUrl ? { backgroundImage: `url(${JSON.stringify(user.pictureUrl)})` } : undefined}
+      >
+        {initials}
+      </span>
+      <span className="truncate">{user.displayName}</span>
+    </span>
+  )
+}
+
 const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
   {
     key: 'mainName',
@@ -40,8 +63,19 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     sortKey: 'mainName',
     value: (player) => player.mainName,
     cellClassName: 'truncate font-medium',
-    defaultWidth: 219,
+    defaultWidth: 122,
     searchKey: 'mainName',
+  },
+  {
+    key: 'discordUser',
+    label: 'Discord',
+    sortKey: 'discordUser',
+    value: (player) => player.discordUser?.displayName ?? '',
+    render: (player) => player.discordUser
+      ? <DiscordIdentity user={player.discordUser} />
+      : <span className="text-muted-foreground">—</span>,
+    cellClassName: 'truncate',
+    defaultWidth: 147,
   },
   {
     key: 'playerId',
@@ -50,7 +84,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.playerId,
     render: (player) => <span className="font-mono text-xs">{player.playerId}</span>,
     cellClassName: 'truncate',
-    defaultWidth: 125,
+    defaultWidth: 110,
     searchKey: 'playerId',
   },
   {
@@ -60,7 +94,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.aliases.join(', '),
     render: (player) => player.aliases.length ? player.aliases.join(', ') : '—',
     cellClassName: 'truncate text-muted-foreground',
-    defaultWidth: 119,
+    defaultWidth: 155,
     searchKey: 'aliases',
   },
   {
@@ -71,7 +105,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.replayCount.toString(),
     render: (player) => player.replayCount.toLocaleString(),
     cellClassName: 'font-mono tabular-nums',
-    defaultWidth: 84,
+    defaultWidth: 81,
     searchKey: 'replayCount',
   },
   {
@@ -81,7 +115,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.reportedCpu ?? '',
     render: (player) => player.reportedCpu ?? 'Not reported',
     cellClassName: 'truncate',
-    defaultWidth: 306,
+    defaultWidth: 256,
     searchKey: 'reportedCpu',
   },
   {
@@ -92,7 +126,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     value: (player) => player.singleThreadScore?.toString() ?? '',
     render: (player) => player.singleThreadScore?.toLocaleString() ?? '—',
     cellClassName: 'font-mono font-medium tabular-nums',
-    defaultWidth: 118,
+    defaultWidth: 119,
     searchKey: 'score',
   },
   {
@@ -145,7 +179,7 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
       </span>
     ) : 'Never',
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
-    defaultWidth: 227,
+    defaultWidth: 129,
     searchKey: 'gentoolUpdatedAt',
   },
   {
@@ -256,6 +290,7 @@ export function CpuPlayersTab({
     try {
       await consoleApi.claimGentoolPlayer(player.playerId)
       await loadRescanDashboard()
+      setTableRefreshToken((value) => value + 1)
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to claim player.')
     } finally {

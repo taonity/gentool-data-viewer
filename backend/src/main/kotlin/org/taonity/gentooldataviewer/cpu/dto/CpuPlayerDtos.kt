@@ -10,6 +10,7 @@ import java.time.Instant
 data class CpuPlayerDto(
     val playerId: String,
     val mainName: String,
+    val discordUser: DiscordUserDto?,
     val latestName: String,
     val aliases: List<String>,
     val replayCount: Long,
@@ -25,9 +26,14 @@ data class CpuPlayerDto(
     companion object {
         private val ALIASES_TYPE = object : TypeReference<List<String>>() {}
 
-        fun from(entity: PlayerHardwareEntity, objectMapper: ObjectMapper) = CpuPlayerDto(
+        fun from(
+            entity: PlayerHardwareEntity,
+            objectMapper: ObjectMapper,
+            discordUser: DiscordUserDto? = null,
+        ) = CpuPlayerDto(
             playerId = entity.playerId,
             mainName = entity.mainName,
+            discordUser = discordUser,
             latestName = entity.latestName,
             aliases = objectMapper.readValue(entity.aliasesJson, ALIASES_TYPE),
             replayCount = entity.replayCount,
@@ -42,6 +48,11 @@ data class CpuPlayerDto(
         )
     }
 }
+
+data class DiscordUserDto(
+    val displayName: String,
+    val pictureUrl: String?,
+)
 
 data class CpuPlayerSummaryDto(
     val totalPlayers: Long,

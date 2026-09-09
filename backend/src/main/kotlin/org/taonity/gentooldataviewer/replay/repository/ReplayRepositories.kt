@@ -2,6 +2,7 @@ package org.taonity.gentooldataviewer.replay.repository
 
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
+import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.ReplayRescanRequestEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
 import org.taonity.gentooldataviewer.replay.entity.CollectionStatus
@@ -115,6 +116,51 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
      )
      fun search(q: String, field: String, pageable: Pageable): Page<PlayerHardwareEntity>
 
+     @Query(
+         """
+                SELECT h FROM PlayerHardwareEntity h
+                LEFT JOIN GentoolUserLinkEntity l ON l.playerId = h.playerId AND l.status = :linkStatus
+                LEFT JOIN UserEntity u ON u.googleId = l.userId
+                WHERE (:field = 'all' AND (
+                             LOWER(h.mainName) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(h.playerId) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(h.aliasesJson) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(cast(h.replayCount as String)) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(COALESCE(h.cpu, '')) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(COALESCE(cast(h.cpuScore as String), '')) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(h.latestName) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(COALESCE(h.cpuBenchmarkName, '')) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(string(h.cpuMatchStatus)) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(COALESCE(cast(h.gentoolUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%'))
+                         OR LOWER(COALESCE(cast(h.cpuScoreUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%'))
+                     ))
+                    OR (:field = 'mainName' AND LOWER(h.mainName) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'playerId' AND LOWER(h.playerId) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'aliases' AND LOWER(h.aliasesJson) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'replayCount' AND LOWER(cast(h.replayCount as String)) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'reportedCpu' AND LOWER(COALESCE(h.cpu, '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'score' AND LOWER(COALESCE(cast(h.cpuScore as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'latestName' AND LOWER(h.latestName) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'benchmark' AND LOWER(COALESCE(h.cpuBenchmarkName, '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'status' AND LOWER(string(h.cpuMatchStatus)) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'gentoolUpdatedAt' AND LOWER(COALESCE(cast(h.gentoolUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'scoreUpdatedAt' AND LOWER(COALESCE(cast(h.cpuScoreUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                ORDER BY
+                    CASE WHEN u.displayName IS NULL THEN 1 ELSE 0 END,
+                    CASE WHEN :ascending = true THEN LOWER(u.displayName) END ASC,
+                    CASE WHEN :ascending = false THEN LOWER(u.displayName) END DESC,
+                    LOWER(h.mainName) ASC,
+                    h.playerId ASC
+          """,
+     )
+     fun searchSortedByDiscord(
+         q: String,
+         field: String,
+         linkStatus: GentoolLinkStatus,
+         ascending: Boolean,
+         pageable: Pageable,
+     ): Page<PlayerHardwareEntity>
+
      fun countByCpuScoreIsNotNull(): Long
 
      fun countByCpuMatchStatus(status: CpuMatchStatus): Long
@@ -130,6 +176,13 @@ interface ReplayCollectionJobRepository : JpaRepository<ReplayCollectionJobEntit
 @Repository
 interface GentoolUserLinkRepository : JpaRepository<GentoolUserLinkEntity, String> {
     fun findByPlayerId(playerId: String): GentoolUserLinkEntity?
+
+    fun findByPlayerIdIn(playerIds: Collection<String>): List<GentoolUserLinkEntity>
+
+    fun findByPlayerIdInAndStatus(
+        playerIds: Collection<String>,
+        status: GentoolLinkStatus,
+    ): List<GentoolUserLinkEntity>
 }
 
 @Repository

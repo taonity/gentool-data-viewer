@@ -44,6 +44,7 @@ app:
     same-site: Lax
   console:
     max-page-size: 100
+    access-requests-enabled: false
   retention:
     audit:
       retention-days: 14
@@ -67,6 +68,10 @@ app:
     privileged-target-cooldown: 1m
   discord:
     cdn-base-url: https://cdn.discordapp.com
+    bot-api-base-url: https://discord.com/api/v10/
+    bot-token: ""
+    bot-request-timeout: 1s
+    bot-user-agent: gentool-data-viewer-test/1.0
   cpu-benchmark:
     base-url: https://www.cpubenchmark.net/single-thread/
     max-pages: 8

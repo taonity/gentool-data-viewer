@@ -3,6 +3,9 @@ import { getRuntimeConfig } from '@/lib/runtimeConfig'
 import { getCookie } from '@/lib/cookies'
 import type {
   AccessInfo,
+  AdminDiscordUserOption,
+  AdminGentoolLink,
+  AdminGentoolPlayerOption,
   AuditLog,
   ConfigSchema,
   ConsoleRole,
@@ -97,6 +100,21 @@ export const consoleApi = {
 
   changeUserRole: (googleId: string, role: ConsoleRole) =>
     mutate<UserSummary>(`/users/${encodeURIComponent(googleId)}/role`, 'PUT', { role }),
+
+  searchDiscordUsersForLink: (q: string) =>
+    get<AdminDiscordUserOption[]>(`/player-links/users?${new URLSearchParams({ q }).toString()}`),
+
+  resolveDiscordUserForLink: (discordUserId: string) =>
+    mutate<AdminDiscordUserOption>('/player-links/users/resolve', 'POST', { discordUserId }),
+
+  searchGentoolPlayersForLink: (q: string) =>
+    get<AdminGentoolPlayerOption[]>(`/player-links/players?${new URLSearchParams({ q }).toString()}`),
+
+  assignGentoolLink: (userId: string, playerId: string) =>
+    mutate<AdminGentoolLink>('/player-links', 'PUT', { userId, playerId }),
+
+  unlinkGentoolUser: (userId: string) =>
+    mutate<void>(`/player-links/${encodeURIComponent(userId)}`, 'DELETE'),
 
   listAuditLogs: (page: number, size: number, q?: string, field?: string) =>
     get<PageResponse<AuditLog>>(buildListQuery('/audit-logs', page, size, q, field)),

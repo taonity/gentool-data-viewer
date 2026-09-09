@@ -13,6 +13,7 @@ data class AccessInfoResponse(
     val canEdit: Boolean,
     val isAdmin: Boolean,
     val isOwner: Boolean,
+    val accessRequestsEnabled: Boolean,
 )
 
 data class AccessRequestBody(

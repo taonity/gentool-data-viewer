@@ -85,6 +85,11 @@ class ConfigRegistry(
             read = { it.console.maxPageSize },
             apply = { c, v -> c.copy(console = c.console.copy(maxPageSize = v as Int)) },
         )
+        fields += ConfigField(
+            key = "app.console.access-requests-enabled", group = "Console", type = ConfigType.BOOL,
+            read = { it.console.accessRequestsEnabled },
+            apply = { c, v -> c.copy(console = c.console.copy(accessRequestsEnabled = v as Boolean)) },
+        )
 
         return fields
     }

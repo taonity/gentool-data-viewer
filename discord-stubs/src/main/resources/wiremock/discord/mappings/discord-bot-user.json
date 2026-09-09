@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/api/v10/users/400000000000000001",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bot stub-discord-bot-token"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "id": "400000000000000001",
+      "username": "remote_player",
+      "global_name": "Remote Player",
+      "avatar": "remote-player-avatar",
+      "bot": false
+    }
+  }
+}
