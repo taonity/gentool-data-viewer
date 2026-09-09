@@ -130,7 +130,7 @@ erDiagram
     gentool_user_link {
         timestamp_without_time_zone decided_at 
         character_varying decided_by_user_id FK 
-        character_varying player_id UK "{NOT_NULL}"
+        character_varying player_id PK,UK "{NOT_NULL}"
         timestamp_without_time_zone requested_at "{NOT_NULL}"
         character_varying status "{NOT_NULL}"
         character_varying user_id PK,FK "{NOT_NULL}"
@@ -245,7 +245,7 @@ erDiagram
         character session_primary_id PK,FK "{NOT_NULL}"
     }
 
-    gentool_user_link |o--|| app_user : "user_id"
+    gentool_user_link }o--|| app_user : "user_id"
     gentool_user_link }o--|| app_user : "decided_by_user_id"
     replay_rescan_request }o--|| app_user : "requested_by_user_id"
     player_hardware }o--|| replay : "source_replay_id"
