@@ -7,9 +7,14 @@ data class AdminDiscordUserOptionDto(
     val discordUserId: String,
     val displayName: String,
     val pictureUrl: String?,
-    val linkedPlayerId: String?,
-    val linkedPlayerName: String?,
-    val linkStatus: GentoolLinkStatus?,
+    val linkedPlayers: List<AdminLinkedPlayerDto>,
+    val maxLinkedPlayers: Int,
+)
+
+data class AdminLinkedPlayerDto(
+    val playerId: String,
+    val playerName: String?,
+    val linkStatus: GentoolLinkStatus,
 )
 
 data class AdminGentoolPlayerOptionDto(

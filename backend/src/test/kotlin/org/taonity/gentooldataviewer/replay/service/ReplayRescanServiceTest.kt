@@ -3,9 +3,13 @@ package org.taonity.gentooldataviewer.replay.service
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.taonity.gentooldataviewer.console.entity.AuditAction
+import org.taonity.gentooldataviewer.config.AppSettings
+import org.taonity.gentooldataviewer.config.entity.ConfigOverrideEntity
+import org.taonity.gentooldataviewer.config.repository.ConfigOverrideRepository
 import org.taonity.gentooldataviewer.console.repository.AuditLogRepository
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
@@ -45,14 +49,20 @@ class ReplayRescanServiceTest {
     @Autowired lateinit var jobRepository: ReplayCollectionJobRepository
     @Autowired lateinit var replayRepository: ReplayRepository
     @Autowired lateinit var auditRepository: AuditLogRepository
+    @Autowired lateinit var configOverrideRepository: ConfigOverrideRepository
+    @Autowired lateinit var appSettings: AppSettings
     @MockitoBean lateinit var coordinator: ReplayCollectionCoordinator
 
     private val userId = "discord:900000000000000001"
     private val playerId = "ABCDEF123456"
     private val otherPlayerId = "123456ABCDEF"
+    private val thirdPlayerId = "A1B2C3D4E5F6"
+    private val fourthPlayerId = "FEDCBA654321"
 
     @BeforeEach
     fun prepare() {
+        configOverrideRepository.deleteAll()
+        appSettings.reload()
         requestRepository.deleteAll()
         jobRepository.deleteAll()
         linkRepository.deleteAll()
@@ -69,7 +79,7 @@ class ReplayRescanServiceTest {
                 accessStatus = AccessRequestStatus.APPROVED,
             )
         )
-        listOf(playerId, otherPlayerId).forEachIndexed { index, id ->
+        listOf(playerId, otherPlayerId, thirdPlayerId, fourthPlayerId).forEachIndexed { index, id ->
             val replay = replayRepository.save(
                 ReplayEntity(
                     sourceUrl = "https://example.invalid/replay-$index.txt",
@@ -95,6 +105,12 @@ class ReplayRescanServiceTest {
         Mockito.reset(coordinator)
     }
 
+    @AfterEach
+    fun resetConfig() {
+        configOverrideRepository.deleteAll()
+        appSettings.reload()
+    }
+
     @Test
     fun `claim is immediately approved and matching rescan is own`() {
         val principal = principal()
@@ -107,7 +123,8 @@ class ReplayRescanServiceTest {
 
         val dashboard = service.dashboard(principal)
         assertThat(accepted.ownTarget).isTrue()
-        assertThat(dashboard.link?.status).isEqualTo(GentoolLinkStatus.APPROVED)
+        assertThat(dashboard.links.single().status).isEqualTo(GentoolLinkStatus.APPROVED)
+        assertThat(dashboard.maxLinkedPlayers).isEqualTo(3)
         assertThat(dashboard.history.single().ownTarget).isTrue()
         assertThat(dashboard.otherUsedToday).isZero()
         assertThat(auditRepository.findAll().map { it.action })
@@ -115,17 +132,55 @@ class ReplayRescanServiceTest {
     }
 
     @Test
-    fun `claiming another player immediately replaces own link`() {
+    fun `user can link two players and both rescan targets are own`() {
         val principal = principal()
         service.requestLink(principal, playerId)
 
-        val reclaimed = service.requestLink(principal, otherPlayerId)
+        val second = service.requestLink(principal, otherPlayerId)
+        val jobId = queuedJob(otherPlayerId)
+        stubCoordinator(otherPlayerId, jobId)
+        val accepted = service.requestRescan(principal, otherPlayerId)
 
-        assertThat(reclaimed.status).isEqualTo(GentoolLinkStatus.APPROVED)
-        assertThat(reclaimed.playerId).isEqualTo(otherPlayerId)
-        assertThat(linkRepository.findById(userId).orElseThrow().playerId).isEqualTo(otherPlayerId)
+        assertThat(second.status).isEqualTo(GentoolLinkStatus.APPROVED)
+        assertThat(linkRepository.findByUserId(userId)).extracting<String> { it.playerId }
+            .containsExactlyInAnyOrder(playerId, otherPlayerId)
+        assertThat(accepted.ownTarget).isTrue()
         assertThat(auditRepository.findAll().map { it.action })
-            .contains(AuditAction.CLAIM_GENTOOL_LINK, AuditAction.RECLAIM_GENTOOL_LINK)
+            .contains(AuditAction.CLAIM_GENTOOL_LINK, AuditAction.REQUEST_RESCAN)
+    }
+
+    @Test
+    fun `three links are allowed and fourth is rejected at configured capacity`() {
+        val principal = principal()
+        service.requestLink(principal, playerId)
+        service.requestLink(principal, otherPlayerId)
+        service.requestLink(principal, thirdPlayerId)
+
+        assertThatThrownBy { service.requestLink(principal, fourthPlayerId) }
+            .isInstanceOf(ResponseStatusException::class.java)
+            .hasMessageContaining("at most 3")
+        assertThat(linkRepository.findByUserId(userId)).hasSize(3)
+    }
+
+    @Test
+    fun `runtime configuration can lower link capacity`() {
+        configOverrideRepository.save(
+            ConfigOverrideEntity(
+                configKey = "app.replay-rescan.max-linked-players",
+                valueJson = "2",
+                updatedBy = userId,
+            ),
+        )
+        appSettings.reload()
+
+        service.requestLink(principal(), playerId)
+        service.requestLink(principal(), otherPlayerId)
+
+        assertThatThrownBy { service.requestLink(principal(), thirdPlayerId) }
+            .isInstanceOf(ResponseStatusException::class.java)
+            .hasMessageContaining("at most 2")
+        assertThat(service.dashboard(principal()).maxLinkedPlayers).isEqualTo(2)
+        assertThat(linkRepository.findByUserId(userId)).hasSize(2)
     }
 
     @Test
@@ -137,11 +192,11 @@ class ReplayRescanServiceTest {
 
         val claimed = service.requestLink(principal(), playerId)
         assertThat(claimed.playerId).isEqualTo(playerId)
-        assertThat(service.dashboard(principal()).link?.playerId).isEqualTo(playerId)
+        assertThat(service.dashboard(principal()).links.single().playerId).isEqualTo(playerId)
 
-        service.unlink(principal())
+        service.unlink(principal(), playerId)
 
-        assertThat(service.dashboard(principal()).link).isNull()
+        assertThat(service.dashboard(principal()).links).isEmpty()
         assertThat(auditRepository.findAll().map { it.action })
             .contains(AuditAction.CLAIM_GENTOOL_LINK, AuditAction.UNLINK_GENTOOL_LINK)
     }

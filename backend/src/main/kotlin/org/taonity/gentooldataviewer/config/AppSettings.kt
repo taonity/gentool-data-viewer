@@ -3,6 +3,7 @@ package org.taonity.gentooldataviewer.config
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.taonity.gentooldataviewer.config.repository.ConfigOverrideRepository
 import org.taonity.gentooldataviewer.console.config.ConsolePagingProperties
+import org.taonity.gentooldataviewer.replay.config.ReplayRescanProperties
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
@@ -12,6 +13,7 @@ import java.util.concurrent.atomic.AtomicReference
 class AppSettings(
     private val retentionDefaults: RetentionProperties,
     private val consoleDefaults: ConsolePagingProperties,
+    private val replayRescanDefaults: ReplayRescanProperties,
     private val registry: ConfigRegistry,
     private val overrideRepository: ConfigOverrideRepository,
 ) {
@@ -19,13 +21,15 @@ class AppSettings(
         private val LOGGER = KotlinLogging.logger {}
     }
 
-    private val yamlDefaults = EffectiveConfig(retentionDefaults, consoleDefaults)
+    private val yamlDefaults = EffectiveConfig(retentionDefaults, consoleDefaults, replayRescanDefaults)
 
     private val snapshot = AtomicReference(yamlDefaults)
 
     fun retention(): RetentionProperties = snapshot.get().retention
 
     fun console(): ConsolePagingProperties = snapshot.get().console
+
+    fun replayRescan(): ReplayRescanProperties = snapshot.get().replayRescan
 
     /** The reset target: yaml defaults. */
     fun defaults(): EffectiveConfig = yamlDefaults

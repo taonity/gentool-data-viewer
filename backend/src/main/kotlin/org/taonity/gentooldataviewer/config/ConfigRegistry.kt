@@ -91,6 +91,14 @@ class ConfigRegistry(
             apply = { c, v -> c.copy(console = c.console.copy(accessRequestsEnabled = v as Boolean)) },
         )
 
+        // ---- Replay rescan ----
+        fields += ConfigField(
+            key = "app.replay-rescan.max-linked-players", group = "Replay rescan", type = ConfigType.INT,
+            min = 1.0, max = 10.0,
+            read = { it.replayRescan.maxLinkedPlayers },
+            apply = { c, v -> c.copy(replayRescan = c.replayRescan.copy(maxLinkedPlayers = v as Int)) },
+        )
+
         return fields
     }
 

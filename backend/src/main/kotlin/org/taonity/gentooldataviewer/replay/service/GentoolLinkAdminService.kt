@@ -8,6 +8,7 @@ import org.taonity.gentooldataviewer.console.service.AuditService
 import org.taonity.gentooldataviewer.replay.dto.AdminDiscordUserOptionDto
 import org.taonity.gentooldataviewer.replay.dto.AdminGentoolLinkDto
 import org.taonity.gentooldataviewer.replay.dto.AdminGentoolPlayerOptionDto
+import org.taonity.gentooldataviewer.replay.dto.AdminLinkedPlayerDto
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
@@ -44,9 +45,10 @@ class GentoolLinkAdminService(
             query?.trim().orEmpty(),
             PageRequest.of(0, size.coerceIn(1, settings.console().maxPageSize)),
         )
-        val links = linkRepository.findAllById(users.map { it.userId }).associateBy { it.userId }
-        val players = playerRepository.findAllById(links.values.map { it.playerId }).associateBy { it.playerId }
-        return users.map { user -> userOption(user, links[user.userId], players) }
+        val links = linkRepository.findByUserIdIn(users.map { it.userId })
+        val linksByUserId = links.groupBy { it.userId }
+        val players = playerRepository.findAllById(links.map { it.playerId }).associateBy { it.playerId }
+        return users.map { user -> userOption(user, linksByUserId[user.userId].orEmpty(), players) }
     }
 
     @Transactional(readOnly = true)
@@ -90,11 +92,9 @@ class GentoolLinkAdminService(
             role = existing?.role ?: ConsoleRole.VIEWER,
             accessStatus = existing?.accessStatus ?: AccessRequestStatus.APPROVED,
         )
-        val link = linkRepository.findById(userId).orElse(null)
-        val players = link?.let { playerRepository.findById(it.playerId).orElse(null) }
-            ?.let { mapOf(it.playerId to it) }
-            .orEmpty()
-        return userOption(preview, link, players)
+        val links = linkRepository.findByUserId(userId)
+        val players = playerRepository.findAllById(links.map { it.playerId }).associateBy { it.playerId }
+        return userOption(preview, links, players)
     }
 
     @Transactional
@@ -116,16 +116,23 @@ class GentoolLinkAdminService(
             userRepository.save(user)
             auditService.record(AuditAction.ADMIN_IMPORT_DISCORD_USER, "user", user.userId, actor)
         }
-        val userLink = linkRepository.findById(user.userId).orElse(null)
+        val userLinks = linkRepository.findByUserId(user.userId)
+        val existingLink = linkRepository.findByUserIdAndPlayerId(user.userId, player.playerId)
         val playerLink = linkRepository.findByPlayerId(player.playerId)
         val now = Instant.now()
+
+        if (existingLink == null && userLinks.size >= settings.replayRescan().maxLinkedPlayers) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "A Discord account can link at most ${settings.replayRescan().maxLinkedPlayers} GenTool players",
+            )
+        }
 
         if (playerLink != null && playerLink.userId != user.userId) {
             linkRepository.delete(playerLink)
             linkRepository.flush()
         }
-        val assigned = userLink?.apply {
-            this.playerId = player.playerId
+        val assigned = existingLink?.apply {
             status = GentoolLinkStatus.APPROVED
             requestedAt = now
             decidedAt = now
@@ -140,33 +147,39 @@ class GentoolLinkAdminService(
         )
         linkRepository.save(assigned)
         auditService.record(AuditAction.ADMIN_LINK_GENTOOL_USER, "gentool_player", player.playerId, actor)
+        val updatedLinks = userLinks.filterNot { it.playerId == assigned.playerId } + assigned
         return AdminGentoolLinkDto(
-            userOption(user, assigned, mapOf(player.playerId to player)),
+            userOption(
+                user,
+                updatedLinks,
+                playerRepository.findAllById(updatedLinks.map { it.playerId }).associateBy { it.playerId },
+            ),
             playerOption(player, assigned, mapOf(user.userId to user)),
         )
     }
 
     @Transactional
-    fun unlink(principal: GoogleUserPrincipal, userId: String) {
+    fun unlink(principal: GoogleUserPrincipal, userId: String, playerId: String) {
         val actor = accessGuard.requireAdmin(principal)
-        val link = linkRepository.findById(userId)
-            .orElseThrow { ConsoleNotFoundException("GenTool link not found") }
+        val link = linkRepository.findByUserIdAndPlayerId(userId, playerId)
+            ?: throw ConsoleNotFoundException("GenTool link not found")
         linkRepository.delete(link)
         auditService.record(AuditAction.ADMIN_UNLINK_GENTOOL_USER, "gentool_player", link.playerId, actor)
     }
 
     private fun userOption(
         user: UserEntity,
-        link: GentoolUserLinkEntity?,
+        links: List<GentoolUserLinkEntity>,
         players: Map<String, PlayerHardwareEntity>,
     ) = AdminDiscordUserOptionDto(
         userId = user.userId,
         discordUserId = user.userId.substringAfter("discord:"),
         displayName = user.displayName,
         pictureUrl = user.pictureUrl,
-        linkedPlayerId = link?.playerId,
-        linkedPlayerName = link?.let { players[it.playerId]?.mainName },
-        linkStatus = link?.status,
+        linkedPlayers = links.map { link ->
+            AdminLinkedPlayerDto(link.playerId, players[link.playerId]?.mainName, link.status)
+        }.sortedBy { it.playerName ?: it.playerId },
+        maxLinkedPlayers = settings.replayRescan().maxLinkedPlayers,
     )
 
     private fun playerOption(

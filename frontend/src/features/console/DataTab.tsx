@@ -73,6 +73,7 @@ type DataTabProps<T> = {
   /** Reads the room name off a row so it can be shown once instead of as a per-row column. */
   roomAccessor?: (row: T) => string
   rowActions?: (row: T) => React.ReactNode
+  rowActionsAlign?: 'end' | 'center'
   canEdit?: boolean
   onDelete?: (row: T) => Promise<unknown>
   emptyLabel: string
@@ -132,6 +133,7 @@ export function DataTab<T>({
   expand,
   roomAccessor,
   rowActions,
+  rowActionsAlign = 'end',
   canEdit = false,
   onDelete,
   emptyLabel,
@@ -869,13 +871,14 @@ export function DataTab<T>({
                       {hasActions && (
                         <TableCell
                           className={cn(
-                            'sticky right-0 z-10 border-l pr-3 text-right transition-colors',
+                            'sticky right-0 z-10 border-l transition-colors',
+                            rowActionsAlign === 'center' ? 'text-center' : 'pr-3 text-right',
                             highlightId === id
                               ? 'bg-primary/10'
                               : 'bg-background group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-has-aria-expanded:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]',
                           )}
                         >
-                          <div className="flex justify-end gap-0.5">
+                          <div className={cn('flex gap-0.5', rowActionsAlign === 'center' ? 'justify-center' : 'justify-end')}>
                             {rowActions?.(row)}
                             {canEdit && (
                               <Button

@@ -28,9 +28,14 @@ export interface AdminDiscordUserOption {
   discordUserId: string
   displayName: string
   pictureUrl: string | null
-  linkedPlayerId: string | null
-  linkedPlayerName: string | null
-  linkStatus: GentoolLinkStatus | null
+  linkedPlayers: AdminLinkedPlayer[]
+  maxLinkedPlayers: number
+}
+
+export interface AdminLinkedPlayer {
+  playerId: string
+  playerName: string | null
+  linkStatus: GentoolLinkStatus
 }
 
 export interface AdminGentoolPlayerOption {
@@ -156,7 +161,8 @@ export interface ReplayRescanHistory {
 }
 
 export interface ReplayRescanDashboard {
-  link: GentoolLink | null
+  links: GentoolLink[]
+  maxLinkedPlayers: number
   otherUsedToday: number
   otherDailyLimit: number
   quotaResetsAt: string

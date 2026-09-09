@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Clapperboard, DatabaseZap, ExternalLink, Loader2, RefreshCw, RotateCw, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,10 +48,20 @@ function DiscordIdentity({ user }: { user: DiscordUser }) {
     <span className="flex min-w-0 items-center gap-2" title={`Discord: ${user.displayName}`}>
       <span
         aria-hidden="true"
-        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted bg-cover bg-center text-[9px] font-semibold text-muted-foreground ring-1 ring-border"
-        style={user.pictureUrl ? { backgroundImage: `url(${JSON.stringify(user.pictureUrl)})` } : undefined}
+        className="relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-[9px] font-semibold text-muted-foreground ring-1 ring-border"
       >
         {initials}
+        {user.pictureUrl && (
+          <Image
+            src={user.pictureUrl}
+            alt=""
+            width={24}
+            height={24}
+            unoptimized
+            className="absolute inset-0 size-full object-cover"
+            onError={(event) => { event.currentTarget.hidden = true }}
+          />
+        )}
       </span>
       <span className="truncate">{user.displayName}</span>
     </span>
@@ -390,9 +401,10 @@ export function CpuPlayersTab({
         defaultSortDirection="desc"
         columnSelection
         rowKey={(player) => player.playerId}
+        rowActionsAlign={canManage ? 'end' : 'center'}
         rowActions={(player) => {
           const busyAction = busyActions[player.playerId]
-          const linked = rescanDashboard?.link?.playerId === player.playerId
+          const linked = rescanDashboard?.links?.some((link) => link.playerId === player.playerId) === true
           const refreshInProgress = rescanDashboard?.history.some(
             (item) => item.targetPlayerId === player.playerId
               && (item.status === 'QUEUED' || item.status === 'RUNNING'),

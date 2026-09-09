@@ -112,10 +112,14 @@ class ReplayImportServiceTest {
                 .isEqualTo(1)
         }
         assertThat(
-            replayRepository.search("", "all", PageRequest.of(0, 10), reporterId = "8313DCDFD572").totalElements,
+            replayRepository.search(
+                "", "all", PageRequest.of(0, 10), reporterIds = listOf("8313DCDFD572"), filterReporterIds = true,
+            ).totalElements,
         ).isEqualTo(1)
         assertThat(
-            replayRepository.search("", "all", PageRequest.of(0, 10), reporterId = "OTHER_PLAYER").totalElements,
+            replayRepository.search(
+                "", "all", PageRequest.of(0, 10), reporterIds = listOf("OTHER_PLAYER"), filterReporterIds = true,
+            ).totalElements,
         ).isZero()
         assertThat(
             replayRepository.search("", "all", PageRequest.of(0, 10), replayId = requireNotNull(importedReplay.id)).totalElements,

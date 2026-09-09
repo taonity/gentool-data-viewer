@@ -46,7 +46,7 @@ class GentoolLinkDemoDataContributor(
             }
             if (
                 playerRepository.existsById(fixture.playerId) &&
-                !linkRepository.existsById(fixture.userId) &&
+                linkRepository.findByUserIdAndPlayerId(fixture.userId, fixture.playerId) == null &&
                 linkRepository.findByPlayerId(fixture.playerId) == null
             ) {
                 linkRepository.save(
@@ -83,6 +83,9 @@ class GentoolLinkDemoDataContributor(
             LinkFixture("discord:300000000000000003", "Delta One", "D3A000000004", 2),
             LinkFixture("discord:300000000000000004", "EmberFox", "D3A000000005", 3),
             LinkFixture("discord:300000000000000005", "FluxCap", "D3A000000006", 4),
+            LinkFixture("discord:300000000000000001", "BirchLeaf", "D3A000000007", 0),
+            LinkFixture("discord:300000000000000002", "Cobalt", "D3A000000008", 1),
+            LinkFixture("discord:300000000000000002", "Cobalt", "D3A000000009", 1),
         )
     }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Link2, Loader2, Search, Unlink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -268,10 +269,20 @@ function ProfileAvatar({ name, pictureUrl }: { name: string; pictureUrl: string 
   return (
     <span
       aria-hidden="true"
-      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted bg-cover bg-center text-[10px] font-semibold text-muted-foreground ring-1 ring-border"
-      style={pictureUrl ? { backgroundImage: `url(${JSON.stringify(pictureUrl)})` } : undefined}
+      className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-[10px] font-semibold text-muted-foreground ring-1 ring-border"
     >
       {initials}
+      {pictureUrl && (
+        <Image
+          src={pictureUrl}
+          alt=""
+          width={32}
+          height={32}
+          unoptimized
+          className="absolute inset-0 size-full object-cover"
+          onError={(event) => { event.currentTarget.hidden = true }}
+        />
+      )}
     </span>
   )
 }
@@ -337,11 +348,14 @@ function PlayerLinksCard({
     void loadPlayers(deferredPlayerQuery)
   }, [active, deferredPlayerQuery, forceLoading, loadPlayers])
 
-  const userWillMove = Boolean(
-    selectedUser?.linkedPlayerId && selectedUser.linkedPlayerId !== selectedPlayer?.playerId,
-  )
   const playerWillMove = Boolean(
     selectedPlayer?.linkedUserId && selectedPlayer.linkedUserId !== selectedUser?.userId,
+  )
+  const selectedLink = selectedUser?.linkedPlayers.find((link) => link.playerId === selectedPlayer?.playerId)
+  const userAtCapacity = Boolean(
+    selectedUser
+      && selectedUser.linkedPlayers.length >= selectedUser.maxLinkedPlayers
+      && !selectedLink,
   )
   const canResolveUser = /^[0-9]{17,20}$/.test(userQuery.trim())
 
@@ -364,7 +378,7 @@ function PlayerLinksCard({
 
   const assign = async () => {
     if (!selectedUser || !selectedPlayer) return
-    if ((userWillMove || playerWillMove) && !confirm('Replace the existing profile link?')) return
+    if (playerWillMove && !confirm('Move this player from its existing Discord account?')) return
     setBusy('link')
     setResultMessage(null)
     try {
@@ -382,14 +396,17 @@ function PlayerLinksCard({
   }
 
   const unlinkUser = async () => {
-    if (!selectedUser?.linkedPlayerId) return
-    if (!confirm(`Remove ${selectedUser.displayName}'s GenTool link?`)) return
+    if (!selectedUser || !selectedLink) return
+    if (!confirm(`Remove ${selectedUser.displayName}'s link to ${selectedLink.playerName ?? selectedLink.playerId}?`)) return
     setBusy('unlink')
     setResultMessage(null)
     try {
-      await consoleApi.unlinkGentoolUser(selectedUser.userId)
-      const playerName = selectedUser.linkedPlayerName ?? selectedUser.linkedPlayerId
-      setSelectedUser({ ...selectedUser, linkedPlayerId: null, linkedPlayerName: null, linkStatus: null })
+      await consoleApi.unlinkGentoolUser(selectedUser.userId, selectedLink.playerId)
+      const playerName = selectedLink.playerName ?? selectedLink.playerId
+      setSelectedUser({
+        ...selectedUser,
+        linkedPlayers: selectedUser.linkedPlayers.filter((link) => link.playerId !== selectedLink.playerId),
+      })
       if (selectedPlayer?.linkedUserId === selectedUser.userId) {
         setSelectedPlayer({
           ...selectedPlayer,
@@ -444,21 +461,44 @@ function PlayerLinksCard({
                   type="button"
                   key={user.userId}
                   className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedUser?.userId === user.userId ? 'bg-muted' : ''}`}
-                  onClick={() => { setSelectedUser(user); setResultMessage(null) }}
+                  onClick={() => { setSelectedUser(user); setSelectedPlayer(null); setResultMessage(null) }}
                 >
                   <ProfileAvatar name={user.displayName} pictureUrl={user.pictureUrl} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{user.displayName}</span>
                     <span className="block truncate font-mono text-xs text-muted-foreground">{user.discordUserId}</span>
                   </span>
-                  {user.linkedPlayerId && (
+                  {user.linkedPlayers.length > 0 && (
                     <Badge variant="secondary" className="max-w-32 shrink-0 truncate font-normal">
-                      {user.linkedPlayerName ?? user.linkedPlayerId}
+                      {user.linkedPlayers.length} linked
                     </Badge>
                   )}
                 </button>
               ))}
             </div>
+            {selectedUser && (
+              <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span>Linked ({selectedUser.linkedPlayers.length}/{selectedUser.maxLinkedPlayers}):</span>
+                {selectedUser.linkedPlayers.length === 0 && <span>None</span>}
+                {selectedUser.linkedPlayers.map((link) => (
+                  <Button
+                    key={link.playerId}
+                    variant={selectedLink?.playerId === link.playerId ? 'secondary' : 'outline'}
+                    size="xs"
+                    onClick={() => setSelectedPlayer({
+                      playerId: link.playerId,
+                      mainName: link.playerName ?? link.playerId,
+                      linkedUserId: selectedUser.userId,
+                      linkedDiscordUserId: selectedUser.discordUserId,
+                      linkedDisplayName: selectedUser.displayName,
+                      linkStatus: link.linkStatus,
+                    })}
+                  >
+                    {link.playerName ?? link.playerId}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="hidden h-8 items-center justify-center text-muted-foreground lg:flex lg:pt-7">
@@ -499,18 +539,23 @@ function PlayerLinksCard({
           </div>
         </div>
 
-        {(userWillMove || playerWillMove) && (
+        {playerWillMove && (
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-            Existing profile {userWillMove && playerWillMove ? 'links' : 'link'} will be replaced.
+            This player will move from its existing Discord account.
+          </div>
+        )}
+        {userAtCapacity && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+            This Discord account has reached its limit of {selectedUser?.maxLinkedPlayers} linked players.
           </div>
         )}
 
         <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-          <Button disabled={!selectedUser || !selectedPlayer || busy !== null} onClick={() => void assign()}>
+          <Button disabled={!selectedUser || !selectedPlayer || busy !== null || userAtCapacity || Boolean(selectedLink)} onClick={() => void assign()}>
             {busy === 'link' ? <Loader2 className="animate-spin" /> : <Link2 />}
             Link profiles
           </Button>
-          {selectedUser?.linkedPlayerId && (
+          {selectedLink && (
             <Button variant="outline" disabled={busy !== null} onClick={() => void unlinkUser()}>
               {busy === 'unlink' ? <Loader2 className="animate-spin" /> : <Unlink />}
               Remove link

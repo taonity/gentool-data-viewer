@@ -1,10 +1,12 @@
 package org.taonity.gentooldataviewer.config
 
 import org.taonity.gentooldataviewer.console.config.ConsolePagingProperties
+import org.taonity.gentooldataviewer.replay.config.ReplayRescanProperties
 
 data class EffectiveConfig(
     val retention: RetentionProperties,
     val console: ConsolePagingProperties,
+    val replayRescan: ReplayRescanProperties,
 )
 
 enum class ConfigType {

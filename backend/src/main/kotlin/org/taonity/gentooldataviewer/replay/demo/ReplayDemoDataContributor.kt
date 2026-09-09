@@ -71,7 +71,12 @@ class ReplayDemoDataContributor(
         val matchType = if (index % 3 == 0) "1v1" else "2v2"
         val duration = Duration.ofMinutes((8 + index % 34).toLong()).plusSeconds((index * 17 % 60).toLong())
         val replayFile = "demo-${index + 1}-${matchType}.rep"
-        val systemInfo = "Demo Mainboard D${index % 5 + 1}\n${reporter.cpu}\nDemo Graphics Adapter"
+        val reportedCpu = reporter.cpu.takeIf { reporter.reportsCpu }
+        val systemInfo = listOfNotNull(
+            "Demo Mainboard D${index % 5 + 1}",
+            reportedCpu,
+            "Demo Graphics Adapter",
+        ).joinToString("\n")
         val fields = linkedMapOf(
             "Windows (Compat)" to "10.0.19045 SP 0.0",
             "System" to systemInfo,
@@ -125,7 +130,7 @@ class ReplayDemoDataContributor(
             matchLength = duration,
             matchMode = fields["Match Mode"],
             system = systemInfo,
-            cpu = reporter.cpu,
+            cpu = reportedCpu,
             teams = teams,
             associatedFiles = associatedFiles,
             replayFileName = replayFile,
@@ -170,6 +175,7 @@ class ReplayDemoDataContributor(
         val cpu: String,
         val score: Int,
         val benchmarkId: String,
+        val reportsCpu: Boolean = true,
     ) {
         fun nameForOccurrence(occurrence: Int): String =
             if (occurrence < 2 || aliases.isEmpty()) mainName else aliases[(occurrence - 2) % aliases.size]
@@ -189,14 +195,14 @@ class ReplayDemoDataContributor(
             DemoPlayer("D3A000000004", "Delta", listOf("DeltaOne", "D3lta"), "AMD Ryzen 5 5600X", 3366, "3859"),
             DemoPlayer("D3A000000005", "Ember", listOf("EmberFox", "3mber"), "Intel Core i9-12900K", 4128, "4597"),
             DemoPlayer("D3A000000006", "Flux", listOf("FluxCap", "Fluxx"), "AMD Ryzen 9 5900X", 3465, "3870"),
-            DemoPlayer("D3A000000007", "Grove", emptyList(), "AMD Ryzen 7 5800X3D", 3233, "4823"),
+            DemoPlayer("D3A000000007", "Grove", emptyList(), "AMD Ryzen 7 5800X3D", 3233, "4823", reportsCpu = false),
             DemoPlayer("D3A000000008", "Halo", listOf("HaloRush", "HaLo"), "Intel Core i5-13400F", 3628, "5166"),
             DemoPlayer("D3A000000009", "Ion", listOf("IonStorm", "I0n"), "AMD Ryzen 5 7600", 3907, "5172"),
             DemoPlayer("D3A00000000A", "Jade", listOf("Jadeite", "J4de"), "Intel Core i7-12700K", 4003, "4609"),
             DemoPlayer("D3A00000000B", "Kilo", emptyList(), "Intel Core i5-12400F", 3485, "4681"),
             DemoPlayer("D3A00000000C", "Lumen", listOf("LumenZH", "Lum3n"), "AMD Ryzen 7 7700", 4050, "5169"),
             DemoPlayer("D3A00000000D", "Mesa", listOf("MesaHigh", "M3sa"), "Intel Core i3-12100", 3242, "4687"),
-            DemoPlayer("D3A00000000E", "Nova", emptyList(), "AMD Ryzen 5 5600", 3253, "4811"),
+            DemoPlayer("D3A00000000E", "Nova", emptyList(), "AMD Ryzen 5 5600", 3253, "4811", reportsCpu = false),
             DemoPlayer("D3A00000000F", "Orbit", listOf("OrbitZH", "0rbit"), "Intel Core i7-13700F", 4117, "5163"),
         )
         val MAPS = listOf("Demo Alpine Pass", "Demo Desert Basin", "Demo River Crossing", "Demo Tournament Field")

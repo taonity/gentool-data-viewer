@@ -1,6 +1,7 @@
 package org.taonity.gentooldataviewer.replay.service
 
 import org.taonity.gentooldataviewer.console.entity.AuditAction
+import org.taonity.gentooldataviewer.config.AppSettings
 import org.taonity.gentooldataviewer.console.exception.ConsoleNotFoundException
 import org.taonity.gentooldataviewer.console.service.AccessGuard
 import org.taonity.gentooldataviewer.console.service.AuditService
@@ -30,6 +31,7 @@ import java.time.ZoneOffset
 @Service
 class ReplayRescanService(
     private val properties: ReplayRescanProperties,
+    private val settings: AppSettings,
     private val accessGuard: AccessGuard,
     private val linkRepository: GentoolUserLinkRepository,
     private val requestRepository: ReplayRescanRequestRepository,
@@ -45,7 +47,8 @@ class ReplayRescanService(
         val limits = limitsFor(user)
         val dayStart = LocalDate.now(clock).atStartOfDay().toInstant(ZoneOffset.UTC)
         return ReplayRescanDashboardDto(
-            link = linkRepository.findById(user.userId).orElse(null)?.let { toDto(it, user) },
+            links = linkRepository.findByUserId(user.userId).map { toDto(it, user) }.sortedBy { it.playerName ?: it.playerId },
+            maxLinkedPlayers = settings.replayRescan().maxLinkedPlayers,
             otherUsedToday = requestRepository
                 .countByRequestedByUserIdAndOwnTargetFalseAndRequestedAtGreaterThanEqual(user.userId, dayStart),
             otherDailyLimit = limits.otherDailyLimit,
@@ -76,12 +79,17 @@ class ReplayRescanService(
         if (claimed != null && claimed.userId != user.userId) {
             throw ResponseStatusException(HttpStatus.CONFLICT, "This GenTool player is already claimed by another account")
         }
-        val existing = linkRepository.findById(user.userId).orElse(null)
-        if (existing?.playerId == playerId && existing.status == GentoolLinkStatus.APPROVED) {
+        val existing = linkRepository.findByUserIdAndPlayerId(user.userId, playerId)
+        if (existing?.status == GentoolLinkStatus.APPROVED) {
             return toDto(existing, user)
         }
+        if (existing == null && linkRepository.countByUserId(user.userId) >= settings.replayRescan().maxLinkedPlayers) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "A Discord account can link at most ${settings.replayRescan().maxLinkedPlayers} GenTool players",
+            )
+        }
         val link = existing?.apply {
-            this.playerId = playerId
             status = GentoolLinkStatus.APPROVED
             requestedAt = Instant.now(clock)
             decidedAt = requestedAt
@@ -95,7 +103,7 @@ class ReplayRescanService(
         )
         val saved = linkRepository.save(link)
         auditService.record(
-            if (existing == null) AuditAction.CLAIM_GENTOOL_LINK else AuditAction.RECLAIM_GENTOOL_LINK,
+            AuditAction.CLAIM_GENTOOL_LINK,
             "gentool_player",
             playerId,
             user,
@@ -104,9 +112,10 @@ class ReplayRescanService(
     }
 
     @Synchronized
-    fun unlink(principal: GoogleUserPrincipal) {
+    fun unlink(principal: GoogleUserPrincipal, rawPlayerId: String) {
         val user = accessGuard.currentUser(principal)
-        val link = linkRepository.findById(user.userId).orElse(null) ?: return
+        val playerId = normalizePlayerId(rawPlayerId)
+        val link = linkRepository.findByUserIdAndPlayerId(user.userId, playerId) ?: return
         linkRepository.delete(link)
         auditService.record(AuditAction.UNLINK_GENTOOL_LINK, "gentool_player", link.playerId, user)
     }
@@ -117,10 +126,10 @@ class ReplayRescanService(
         val limits = limitsFor(user)
         val playerId = normalizePlayerId(rawPlayerId)
         if (!hardwareRepository.existsById(playerId)) throw ConsoleNotFoundException("GenTool player not found")
-        val ownPlayerId = linkRepository.findById(user.userId).orElse(null)
-            ?.takeIf { it.status == GentoolLinkStatus.APPROVED }
-            ?.playerId
-        val ownTarget = playerId == ownPlayerId
+        val ownPlayerIds = linkRepository.findByUserId(user.userId)
+            .filter { it.status == GentoolLinkStatus.APPROVED }
+            .mapTo(mutableSetOf()) { it.playerId }
+        val ownTarget = playerId in ownPlayerIds
         val now = Instant.now(clock)
         val latest = requestRepository
             .findTopByRequestedByUserIdAndTargetPlayerIdOrderByRequestedAtDesc(user.userId, playerId)

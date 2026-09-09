@@ -5,6 +5,7 @@ import java.time.Duration
 
 @ConfigurationProperties(prefix = "app.replay-rescan")
 data class ReplayRescanProperties(
+    val maxLinkedPlayers: Int,
     val lookbackDays: Long,
     val otherDailyLimit: Long,
     val targetCooldown: Duration,

@@ -51,10 +51,11 @@ class GentoolLinkAdminController(
         @RequestBody body: AdminAssignGentoolLinkBody,
     ): AdminGentoolLinkDto = service.assign(principal, body.userId, body.playerId)
 
-    @DeleteMapping("/{userId}")
+    @DeleteMapping("/{userId}/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun unlink(
         @AuthenticationPrincipal principal: GoogleUserPrincipal,
         @PathVariable userId: String,
-    ) = service.unlink(principal, userId)
+        @PathVariable playerId: String,
+    ) = service.unlink(principal, userId, playerId)
 }

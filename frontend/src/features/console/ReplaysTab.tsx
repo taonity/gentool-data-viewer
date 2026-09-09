@@ -203,7 +203,7 @@ export function ReplaysTab({
   forceLoading: boolean
   onError: (message: string) => void
 }) {
-  const [linkedPlayerId, setLinkedPlayerId] = useState<string | null>(null)
+  const [linkedPlayerIds, setLinkedPlayerIds] = useState<string[]>([])
   const [myReplaysOnly, setMyReplaysOnly] = useState(false)
   const [copiedReplayId, setCopiedReplayId] = useState<string | null>(null)
 
@@ -213,9 +213,11 @@ export function ReplaysTab({
     consoleApi.getReplayRescanDashboard()
       .then((dashboard) => {
         if (!current) return
-        const playerId = dashboard.link?.status === 'APPROVED' ? dashboard.link.playerId : null
-        setLinkedPlayerId(playerId)
-        if (!playerId) setMyReplaysOnly(false)
+        const playerIds = (dashboard.links ?? [])
+          .filter((link) => link.status === 'APPROVED')
+          .map((link) => link.playerId)
+        setLinkedPlayerIds(playerIds)
+        if (playerIds.length === 0) setMyReplaysOnly(false)
       })
       .catch(() => onError('Failed to load linked GenTool account.'))
     return () => {
@@ -249,7 +251,7 @@ export function ReplaysTab({
       defaultSortKey="matchAt"
       defaultSortDirection="desc"
       active={active}
-      filterKey={targetReplayId ?? targetPlayerId ?? (myReplaysOnly ? linkedPlayerId : null)}
+      filterKey={targetReplayId ?? targetPlayerId ?? (myReplaysOnly ? linkedPlayerIds.join(',') : null)}
       toolbarFilters={(
         <>
           {targetReplayId && (
@@ -285,7 +287,7 @@ export function ReplaysTab({
               </Button>
             </Badge>
           )}
-          {!targetReplayId && !targetPlayerId && linkedPlayerId && (
+          {!targetReplayId && !targetPlayerId && linkedPlayerIds.length > 0 && (
             <label className="flex cursor-pointer items-center gap-2 text-xs">
               <Switch checked={myReplaysOnly} onCheckedChange={setMyReplaysOnly} />
               My replays
@@ -314,7 +316,7 @@ export function ReplaysTab({
         field,
         sort,
         direction,
-        targetReplayId ? undefined : targetPlayerId ?? (myReplaysOnly ? linkedPlayerId ?? undefined : undefined),
+        targetReplayId ? undefined : targetPlayerId ? [targetPlayerId] : myReplaysOnly ? linkedPlayerIds : undefined,
         targetReplayId ?? undefined,
       )}
       expand={(replay) => <ReplayDetails replay={replay} />}

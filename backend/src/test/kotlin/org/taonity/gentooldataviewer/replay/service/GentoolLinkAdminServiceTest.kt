@@ -88,15 +88,16 @@ class GentoolLinkAdminServiceTest {
     }
 
     @Test
-    fun `admin assignment replaces conflicts on both sides`() {
+    fun `admin assignment moves player while preserving existing user links`() {
         val result = service.assign(principal(), USER_A_ID, PLAYER_B_ID.lowercase())
 
         assertThat(result.user.userId).isEqualTo(USER_A_ID)
         assertThat(result.player.playerId).isEqualTo(PLAYER_B_ID)
-        assertThat(linkRepository.count()).isEqualTo(1)
-        assertThat(linkRepository.findById(USER_A_ID).orElseThrow().playerId).isEqualTo(PLAYER_B_ID)
-        assertThat(linkRepository.findById(USER_B_ID)).isEmpty
-        assertThat(linkRepository.findByPlayerId(PLAYER_A_ID)).isNull()
+        assertThat(linkRepository.count()).isEqualTo(2)
+        assertThat(linkRepository.findByUserId(USER_A_ID)).extracting<String> { it.playerId }
+            .containsExactlyInAnyOrder(PLAYER_A_ID, PLAYER_B_ID)
+        assertThat(linkRepository.findByUserId(USER_B_ID)).isEmpty()
+        assertThat(linkRepository.findByPlayerId(PLAYER_A_ID)?.userId).isEqualTo(USER_A_ID)
         assertThat(auditRepository.findAll().map { it.action }).contains(AuditAction.ADMIN_LINK_GENTOOL_USER)
     }
 
@@ -107,14 +108,14 @@ class GentoolLinkAdminServiceTest {
 
         assertThat(userResult).hasSize(1)
         assertThat(userResult.single().userId).isEqualTo(USER_B_ID)
-        assertThat(userResult.single().linkedPlayerId).isEqualTo(PLAYER_B_ID)
+        assertThat(userResult.single().linkedPlayers.single().playerId).isEqualTo(PLAYER_B_ID)
         assertThat(playerResult).hasSize(1)
         assertThat(playerResult.single().playerId).isEqualTo(PLAYER_B_ID)
         assertThat(playerResult.single().linkedUserId).isEqualTo(USER_B_ID)
 
-        service.unlink(principal(), USER_B_ID)
+        service.unlink(principal(), USER_B_ID, PLAYER_B_ID)
 
-        assertThat(linkRepository.findById(USER_B_ID)).isEmpty
+        assertThat(linkRepository.findByUserId(USER_B_ID)).isEmpty()
         assertThat(auditRepository.findAll().map { it.action }).contains(AuditAction.ADMIN_UNLINK_GENTOOL_USER)
     }
 
@@ -140,7 +141,7 @@ class GentoolLinkAdminServiceTest {
         assertThat(linked.user.userId).isEqualTo(stored.userId)
         assertThat(stored.role).isEqualTo(ConsoleRole.VIEWER)
         assertThat(stored.accessStatus).isEqualTo(AccessRequestStatus.APPROVED)
-        assertThat(linkRepository.findById(stored.userId).orElseThrow().playerId).isEqualTo(PLAYER_A_ID)
+        assertThat(linkRepository.findByUserId(stored.userId).single().playerId).isEqualTo(PLAYER_A_ID)
         assertThat(auditRepository.findAll().map { it.action })
             .contains(AuditAction.ADMIN_IMPORT_DISCORD_USER, AuditAction.ADMIN_LINK_GENTOOL_USER)
     }

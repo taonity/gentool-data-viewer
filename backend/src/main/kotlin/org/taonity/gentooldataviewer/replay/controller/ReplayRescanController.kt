@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -32,9 +33,12 @@ class ReplayRescanController(
         @RequestBody body: RequestGentoolLinkBody,
     ): GentoolLinkDto = service.requestLink(principal, body.playerId)
 
-    @DeleteMapping("/link")
+    @DeleteMapping("/link/{playerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun unlink(@AuthenticationPrincipal principal: GoogleUserPrincipal) = service.unlink(principal)
+    fun unlink(
+        @AuthenticationPrincipal principal: GoogleUserPrincipal,
+        @PathVariable playerId: String,
+    ) = service.unlink(principal, playerId)
 
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)

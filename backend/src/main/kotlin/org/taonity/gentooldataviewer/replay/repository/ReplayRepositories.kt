@@ -2,6 +2,7 @@ package org.taonity.gentooldataviewer.replay.repository
 
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
+import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkId
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.ReplayRescanRequestEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
@@ -31,7 +32,7 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         SELECT DISTINCT r FROM ReplayEntity r
         LEFT JOIN ReplayPlayerEntity p ON p.replayId = r.id
                     WHERE (:replayId IS NULL OR r.id = :replayId)
-                        AND (:reporterId IS NULL OR r.reporterId = :reporterId)
+                        AND (:filterReporterIds = false OR r.reporterId IN :reporterIds)
                         AND ((:field = 'all' AND (
                         LOWER(cast(r.matchAt as String)) LIKE LOWER(CONCAT('%', :q, '%'))
                       OR LOWER(r.reporterName) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -76,7 +77,8 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         q: String,
         field: String,
         pageable: Pageable,
-        reporterId: String? = null,
+        reporterIds: Collection<String> = listOf(""),
+        filterReporterIds: Boolean = false,
         replayId: String? = null,
     ): Page<ReplayEntity>
 }
@@ -198,8 +200,16 @@ interface ReplayCollectionJobRepository : JpaRepository<ReplayCollectionJobEntit
 }
 
 @Repository
-interface GentoolUserLinkRepository : JpaRepository<GentoolUserLinkEntity, String> {
+interface GentoolUserLinkRepository : JpaRepository<GentoolUserLinkEntity, GentoolUserLinkId> {
     fun findByPlayerId(playerId: String): GentoolUserLinkEntity?
+
+    fun findByUserId(userId: String): List<GentoolUserLinkEntity>
+
+    fun findByUserIdIn(userIds: Collection<String>): List<GentoolUserLinkEntity>
+
+    fun findByUserIdAndPlayerId(userId: String, playerId: String): GentoolUserLinkEntity?
+
+    fun countByUserId(userId: String): Long
 
     fun findByPlayerIdIn(playerIds: Collection<String>): List<GentoolUserLinkEntity>
 

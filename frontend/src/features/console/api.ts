@@ -113,8 +113,8 @@ export const consoleApi = {
   assignGentoolLink: (userId: string, playerId: string) =>
     mutate<AdminGentoolLink>('/player-links', 'PUT', { userId, playerId }),
 
-  unlinkGentoolUser: (userId: string) =>
-    mutate<void>(`/player-links/${encodeURIComponent(userId)}`, 'DELETE'),
+  unlinkGentoolUser: (userId: string, playerId: string) =>
+    mutate<void>(`/player-links/${encodeURIComponent(userId)}/${encodeURIComponent(playerId)}`, 'DELETE'),
 
   listAuditLogs: (page: number, size: number, q?: string, field?: string) =>
     get<PageResponse<AuditLog>>(buildListQuery('/audit-logs', page, size, q, field)),
@@ -137,14 +137,17 @@ export const consoleApi = {
   claimGentoolPlayer: (playerId: string) =>
     mutate<GentoolLink>('/replay-rescans/link', 'POST', { playerId }),
 
-  unlinkMyGentoolPlayer: () =>
-    mutate<void>('/replay-rescans/link', 'DELETE'),
+  unlinkMyGentoolPlayer: (playerId: string) =>
+    mutate<void>(`/replay-rescans/link/${encodeURIComponent(playerId)}`, 'DELETE'),
 
   requestReplayRescan: (playerId: string) =>
     mutate<ReplayRescanAccepted>('/replay-rescans', 'POST', { playerId }),
 
-  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, reporterId?: string, replay?: string) =>
-    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction, { reporterId, replay })),
+  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, reporterIds?: string[], replay?: string) =>
+    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction, {
+      reporterIds: reporterIds?.join(','),
+      replay,
+    })),
 
   listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, linkedOnly?: boolean, player?: string) =>
     get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction, { linkedOnly, player })),

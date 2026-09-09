@@ -26,7 +26,8 @@ data class ReplayRescanHistoryDto(
 )
 
 data class ReplayRescanDashboardDto(
-    val link: GentoolLinkDto?,
+    val links: List<GentoolLinkDto>,
+    val maxLinkedPlayers: Int,
     val otherUsedToday: Long,
     val otherDailyLimit: Long,
     val quotaResetsAt: Instant,
