@@ -117,6 +117,12 @@ class ReplayImportServiceTest {
         assertThat(
             replayRepository.search("", "all", PageRequest.of(0, 10), reporterId = "OTHER_PLAYER").totalElements,
         ).isZero()
+        assertThat(
+            replayRepository.search("", "all", PageRequest.of(0, 10), replayId = requireNotNull(importedReplay.id)).totalElements,
+        ).isEqualTo(1)
+        assertThat(
+            replayRepository.search("", "all", PageRequest.of(0, 10), replayId = "00000000-0000-0000-0000-000000000000").totalElements,
+        ).isZero()
         val hardware = hardwareRepository.findById("8313DCDFD572").orElseThrow()
         assertThat(hardware.latestName).isEqualTo("tao")
         assertThat(hardware.cpu).isEqualTo("13th Gen Intel Core i7-13700K")
@@ -155,6 +161,12 @@ class ReplayImportServiceTest {
         )
         assertThat(hardwareRepository.search("", "all", PageRequest.of(0, 10), linkedOnly = true).totalElements)
             .isEqualTo(1)
+        assertThat(
+            hardwareRepository.search("", "all", PageRequest.of(0, 10), playerId = hardware.playerId).totalElements,
+        ).isEqualTo(1)
+        assertThat(
+            hardwareRepository.search("", "all", PageRequest.of(0, 10), playerId = "OTHER_PLAYER").totalElements,
+        ).isZero()
     }
 
     @Test

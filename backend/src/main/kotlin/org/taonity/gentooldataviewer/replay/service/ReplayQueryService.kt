@@ -29,6 +29,7 @@ class ReplayQueryService(
         sort: String?,
         direction: String?,
         reporterId: String? = null,
+        replayId: String? = null,
     ): PageResponse<ReplayDto> {
         val sortProperty = replaySortProperty(sort)
         val sortDirection = if (direction == "asc") Sort.Direction.ASC else Sort.Direction.DESC
@@ -38,7 +39,7 @@ class ReplayQueryService(
             size.coerceIn(1, settings.console().maxPageSize),
             Sort.by(order, Sort.Order.asc("id")),
         )
-        val result = if (q.isNullOrBlank() && reporterId == null) {
+        val result = if (q.isNullOrBlank() && reporterId == null && replayId == null) {
             replayRepository.findAll(pageable)
         } else {
             replayRepository.search(
@@ -46,6 +47,7 @@ class ReplayQueryService(
                 field = field?.takeIf(String::isNotBlank) ?: "all",
                 pageable = pageable,
                 reporterId = reporterId,
+                replayId = replayId,
             )
         }
         val replayIds = result.content.mapNotNull { it.id }

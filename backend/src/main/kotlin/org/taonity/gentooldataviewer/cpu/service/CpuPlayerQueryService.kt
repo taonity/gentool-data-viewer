@@ -37,6 +37,7 @@ class CpuPlayerQueryService(
         sort: String?,
         direction: String?,
         linkedOnly: Boolean = false,
+        playerId: String? = null,
     ): PageResponse<CpuPlayerDto> {
         val pageNumber = page.coerceAtLeast(0)
         val pageSize = size.coerceIn(1, settings.console().maxPageSize)
@@ -44,6 +45,7 @@ class CpuPlayerQueryService(
         val searchField = field?.takeIf(String::isNotBlank) ?: "all"
         val sortProperty = cpuPlayerSortProperty(sort)
         val sortDirection = if (direction == "asc") Sort.Direction.ASC else Sort.Direction.DESC
+        val targetPlayerId = playerId?.trim()?.uppercase()?.takeIf(String::isNotEmpty)
         val order = Sort.Order(sortDirection, sortProperty).nullsLast()
         val result = if (sort == "discordUser") {
             hardwareRepository.searchSortedByDiscord(
@@ -53,6 +55,7 @@ class CpuPlayerQueryService(
                 ascending = sortDirection == Sort.Direction.ASC,
                 pageable = PageRequest.of(pageNumber, pageSize),
                 linkedOnly = linkedOnly,
+                playerId = targetPlayerId,
             )
         } else {
             hardwareRepository.search(
@@ -65,6 +68,7 @@ class CpuPlayerQueryService(
                 ),
                 linkedOnly = linkedOnly,
                 linkStatus = GentoolLinkStatus.APPROVED,
+                playerId = targetPlayerId,
             )
         }
         val linksByPlayerId = linkRepository.findByPlayerIdInAndStatus(

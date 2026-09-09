@@ -88,6 +88,7 @@ type DataTabProps<T> = {
   refreshToken?: number
   filterKey?: unknown
   toolbarFilters?: React.ReactNode
+  initialExpandedId?: string | null
   onError: (message: string) => void
 }
 
@@ -145,6 +146,7 @@ export function DataTab<T>({
   refreshToken = 0,
   filterKey,
   toolbarFilters,
+  initialExpandedId,
   onError,
 }: DataTabProps<T>) {
   const [page, setPage] = useState(0)
@@ -183,6 +185,10 @@ export function DataTab<T>({
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const columnLayoutKey = columnWidthsKey ?? columns.map((column) => column.key).join('.')
   const columnWidthsStorageKey = `data-console.column-widths.v2.${columnLayoutKey}`
+
+  useEffect(() => {
+    if (initialExpandedId) setExpandedIds(new Set([initialExpandedId]))
+  }, [initialExpandedId])
 
   const persistColumnWidths = useCallback((widths: Record<string, number>) => {
     try {
@@ -453,8 +459,10 @@ export function DataTab<T>({
     if (Object.is(lastFilterKey.current, filterKey)) return
     lastFilterKey.current = filterKey
     setPage(0)
-    if (active && data) void reload(0, size, activeQuery, field, sortKey, direction, { silent: true })
-  }, [active, activeQuery, data, direction, field, filterKey, reload, size, sortKey])
+    if (active && !forceLoading && didInitialLoad.current) {
+      void reload(0, size, activeQuery, field, sortKey, direction, { silent: true })
+    }
+  }, [active, activeQuery, direction, field, filterKey, forceLoading, reload, size, sortKey])
 
   useEffect(
     () => () => {

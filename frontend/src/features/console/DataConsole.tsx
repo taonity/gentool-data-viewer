@@ -46,6 +46,30 @@ const LOADING_ADMIN_ACCESS: AccessInfo = {
 
 type TabKey = 'players' | 'replays' | 'collection' | 'config' | 'admin' | 'about'
 const TAB_STORAGE_KEY = 'console.activeTab'
+const TAB_KEYS = new Set<TabKey>(['players', 'replays', 'collection', 'config', 'admin', 'about'])
+
+function browserNavigation(fallbackTab: TabKey): { tab: TabKey; playerId: string | null; replayId: string | null } {
+  const params = new URLSearchParams(window.location.search)
+  const requestedTab = params.get('tab')
+  const tab = requestedTab && TAB_KEYS.has(requestedTab as TabKey) ? requestedTab as TabKey : fallbackTab
+  const replayId = tab === 'replays' ? params.get('replay')?.trim() || null : null
+  const playerId = !replayId && (tab === 'players' || tab === 'replays')
+    ? params.get('player')?.trim().toUpperCase() || null
+    : null
+  return { tab, playerId, replayId }
+}
+
+function writeBrowserNavigation(tab: TabKey, playerId: string | null, replayId: string | null, replace = false) {
+  const url = new URL(window.location.href)
+  url.searchParams.set('tab', tab)
+  if (playerId && (tab === 'players' || tab === 'replays')) url.searchParams.set('player', playerId)
+  else url.searchParams.delete('player')
+  if (replayId && tab === 'replays') url.searchParams.set('replay', replayId)
+  else url.searchParams.delete('replay')
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`
+  if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) return
+  window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl)
+}
 
 function storedTab(): TabKey {
   const value = localStorage.getItem(TAB_STORAGE_KEY)
@@ -65,16 +89,28 @@ export default function DataConsole({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<TabKey>('players')
+  const [playerId, setPlayerId] = useState<string | null>(null)
+  const [replayId, setReplayId] = useState<string | null>(null)
   const [tabRestored, setTabRestored] = useState(false)
   const [tabAnimationsReady, setTabAnimationsReady] = useState(false)
   const [pendingCount, setPendingCount] = useState<number | null>(null)
-  const [visited, setVisited] = useState<Set<TabKey>>(() => new Set<TabKey>(['players']))
+  const [visited, setVisited] = useState<Set<TabKey>>(() => new Set<TabKey>())
 
-  const selectTab = useCallback((next: TabKey) => {
+  const navigate = useCallback((
+    next: TabKey,
+    nextPlayerId: string | null = null,
+    nextReplayId: string | null = null,
+    replace = false,
+  ) => {
     setTab(next)
+    setPlayerId(nextPlayerId)
+    setReplayId(nextReplayId)
     localStorage.setItem(TAB_STORAGE_KEY, next)
     setVisited((previous) => new Set(previous).add(next))
+    writeBrowserNavigation(next, nextPlayerId, nextReplayId, replace)
   }, [])
+
+  const selectTab = useCallback((next: TabKey) => navigate(next), [navigate])
 
   const loadAccess = useCallback(async () => {
     try {
@@ -87,10 +123,25 @@ export default function DataConsole({
   }, [])
 
   useLayoutEffect(() => {
-    const restored = storedTab()
-    setTab(restored)
-    setVisited(new Set<TabKey>([restored]))
+    const restored = browserNavigation(storedTab())
+    setTab(restored.tab)
+    setPlayerId(restored.playerId)
+    setReplayId(restored.replayId)
+    setVisited(new Set<TabKey>([restored.tab]))
+    localStorage.setItem(TAB_STORAGE_KEY, restored.tab)
+    writeBrowserNavigation(restored.tab, restored.playerId, restored.replayId, true)
     setTabRestored(true)
+
+    const restoreFromHistory = () => {
+      const next = browserNavigation(storedTab())
+      setTab(next.tab)
+      setPlayerId(next.playerId)
+      setReplayId(next.replayId)
+      localStorage.setItem(TAB_STORAGE_KEY, next.tab)
+      setVisited((previous) => new Set(previous).add(next.tab))
+    }
+    window.addEventListener('popstate', restoreFromHistory)
+    return () => window.removeEventListener('popstate', restoreFromHistory)
   }, [])
 
   useEffect(() => {
@@ -269,6 +320,10 @@ export default function DataConsole({
             <ReplaysTab
               active={selectedTab === 'replays'}
               canUseMyReplays={authenticated && canView}
+              targetPlayerId={playerId}
+              targetReplayId={replayId}
+              onClearPlayer={() => navigate('replays')}
+              onClearReplay={() => navigate('replays')}
               forceLoading={forceLoading}
               onError={setError}
             />
@@ -281,6 +336,10 @@ export default function DataConsole({
               active={selectedTab === 'players'}
               canManage={authenticated && canView}
               canRefresh={access?.isAdmin === true}
+              targetPlayerId={playerId}
+              onClearPlayer={() => navigate('players')}
+              onNavigateToPlayer={(targetPlayerId) => navigate('players', targetPlayerId)}
+              onNavigateToReplays={(targetPlayerId) => navigate('replays', targetPlayerId)}
               forceLoading={forceLoading}
               onError={setError}
             />

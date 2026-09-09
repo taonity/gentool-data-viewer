@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DatabaseZap, ExternalLink, Link2, Loader2, RefreshCw, RotateCw } from 'lucide-react'
+import { Clapperboard, DatabaseZap, ExternalLink, Link2, Loader2, RefreshCw, RotateCw, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -57,12 +57,26 @@ function DiscordIdentity({ user }: { user: DiscordUser }) {
   )
 }
 
-const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
+function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<CpuPlayer>[] {
+  return [
   {
     key: 'mainName',
     label: 'Main name',
     sortKey: 'mainName',
     value: (player) => player.mainName,
+    render: (player) => (
+      <a
+        href={`?tab=players&player=${encodeURIComponent(player.playerId)}`}
+        className="text-primary hover:underline"
+        onClick={(event) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+          event.preventDefault()
+          onNavigateToPlayer(player.playerId)
+        }}
+      >
+        {player.mainName}
+      </a>
+    ),
     cellClassName: 'truncate font-medium',
     defaultWidth: 122,
     searchKey: 'mainName',
@@ -195,18 +209,27 @@ const PLAYER_COLUMNS: Column<CpuPlayer>[] = [
     defaultVisible: false,
     searchKey: 'scoreUpdatedAt',
   },
-]
+  ]
+}
 
 export function CpuPlayersTab({
   active = true,
   canManage,
   canRefresh,
+  targetPlayerId,
+  onClearPlayer,
+  onNavigateToPlayer,
+  onNavigateToReplays,
   forceLoading,
   onError,
 }: {
   active?: boolean
   canManage: boolean
   canRefresh: boolean
+  targetPlayerId: string | null
+  onClearPlayer: () => void
+  onNavigateToPlayer: (playerId: string) => void
+  onNavigateToReplays: (playerId: string) => void
   forceLoading: boolean
   onError: (message: string) => void
 }) {
@@ -244,6 +267,7 @@ export function CpuPlayersTab({
         void loadSummary()
       }
       hadActiveRescan.current = activeRescan
+      setCooldownClock(Date.now())
       setRescanDashboard(next)
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to load rescan status.')
@@ -357,20 +381,37 @@ export function CpuPlayersTab({
       <DataTab<CpuPlayer>
         active={active}
         refreshToken={tableRefreshToken}
-        filterKey={linkedOnly}
+        filterKey={`${linkedOnly}:${targetPlayerId ?? ''}`}
         toolbarFilters={(
-          <label className="flex cursor-pointer items-center gap-2 text-xs">
-            <Switch checked={linkedOnly} onCheckedChange={setLinkedOnly} />
-            Linked users only
-          </label>
+          <>
+            {targetPlayerId && (
+              <Badge variant="outline" className="h-7 gap-1 pl-2 font-mono font-normal">
+                Player: {targetPlayerId}
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="-mr-1"
+                  aria-label="Show all players"
+                  title="Show all players"
+                  onClick={onClearPlayer}
+                >
+                  <X />
+                </Button>
+              </Badge>
+            )}
+            <label className="flex cursor-pointer items-center gap-2 text-xs">
+              <Switch checked={linkedOnly} onCheckedChange={setLinkedOnly} />
+              Linked users only
+            </label>
+          </>
         )}
-        columns={PLAYER_COLUMNS}
+        columns={playerColumns(onNavigateToPlayer)}
         columnWidthsKey="players"
         defaultSortKey="score"
         defaultSortDirection="desc"
         columnSelection
         rowKey={(player) => player.playerId}
-        rowActions={canManage ? (player) => {
+        rowActions={(player) => {
           const busyAction = busyActions[player.playerId]
           const linked = rescanDashboard?.link?.playerId === player.playerId
           const refreshInProgress = rescanDashboard?.history.some(
@@ -378,7 +419,7 @@ export function CpuPlayersTab({
               && (item.status === 'QUEUED' || item.status === 'RUNNING'),
           ) === true
           const cooldownRemaining = rescanDashboard
-            ? Math.max(0, (cooldownEnd(rescanDashboard, player.playerId) ?? 0) - Math.max(cooldownClock, Date.now()))
+            ? Math.max(0, (cooldownEnd(rescanDashboard, player.playerId) ?? 0) - cooldownClock)
             : 0
           const otherQuotaReached = !linked
             && Boolean(rescanDashboard)
@@ -395,33 +436,55 @@ export function CpuPlayersTab({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className={linked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}
-                disabled={busyAction !== undefined || !rescanDashboard || linked}
-                aria-label={linked ? 'Linked as my player' : rescanDashboard?.link ? 'Reclaim as my player' : 'Claim as my player'}
-                title={linked ? 'Linked as my player' : rescanDashboard?.link ? 'Reclaim as my player' : 'Claim as my player'}
-                onClick={() => void claimPlayer(player)}
-              >
-                {busyAction === 'claim'
-                  ? <Loader2 className="animate-spin" />
-                  : <Link2 />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
                 className="text-muted-foreground hover:text-foreground"
-                disabled={busyAction !== undefined || !rescanDashboard || refreshInProgress || otherQuotaReached || cooldownRemaining > 0}
-                aria-label={refreshInProgress ? `Refreshing ${player.mainName}` : `Refresh ${player.mainName}`}
-                title={refreshTitle}
-                onClick={() => void refreshPlayer(player)}
+                nativeButton={false}
+                render={<a href={`?tab=replays&player=${encodeURIComponent(player.playerId)}`} />}
+                aria-label={`View replays for ${player.mainName}`}
+                title="View player replays"
+                onClick={(event) => {
+                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                  event.preventDefault()
+                  onNavigateToReplays(player.playerId)
+                }}
               >
-                {refreshInProgress || busyAction === 'refresh'
-                  ? <Loader2 className="animate-spin" />
-                  : <RefreshCw />}
+                <Clapperboard />
               </Button>
+              {canManage && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className={linked ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}
+                    disabled={busyAction !== undefined || !rescanDashboard || linked}
+                    aria-label={linked ? 'Linked as my player' : rescanDashboard?.link ? 'Reclaim as my player' : 'Claim as my player'}
+                    title={linked ? 'Linked as my player' : rescanDashboard?.link ? 'Reclaim as my player' : 'Claim as my player'}
+                    onClick={() => void claimPlayer(player)}
+                  >
+                    {busyAction === 'claim'
+                      ? <Loader2 className="animate-spin" />
+                      : <Link2 />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    disabled={busyAction !== undefined || !rescanDashboard || refreshInProgress || otherQuotaReached || cooldownRemaining > 0}
+                    aria-label={refreshInProgress ? `Refreshing ${player.mainName}` : `Refresh ${player.mainName}`}
+                    title={refreshTitle}
+                    onClick={() => void refreshPlayer(player)}
+                  >
+                    {refreshInProgress || busyAction === 'refresh'
+                      ? <Loader2 className="animate-spin" />
+                      : <RefreshCw />}
+                  </Button>
+                </>
+              )}
             </>
           )
-        } : undefined}
-        load={(page, size, q, field, sort, direction) => consoleApi.listCpuPlayers(page, size, q, field, sort, direction, linkedOnly)}
+        }}
+        load={(page, size, q, field, sort, direction) => consoleApi.listCpuPlayers(
+          page, size, q, field, sort, direction, linkedOnly, targetPlayerId ?? undefined,
+        )}
         emptyLabel="No player hardware collected."
         sortLabel="single-thread score"
         sortDescendingLabel="Highest"

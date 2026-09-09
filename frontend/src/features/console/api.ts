@@ -140,11 +140,11 @@ export const consoleApi = {
   requestReplayRescan: (playerId: string) =>
     mutate<ReplayRescanAccepted>('/replay-rescans', 'POST', { playerId }),
 
-  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, reporterId?: string) =>
-    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction, { reporterId })),
+  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, reporterId?: string, replay?: string) =>
+    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction, { reporterId, replay })),
 
-  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, linkedOnly?: boolean) =>
-    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction, { linkedOnly })),
+  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, linkedOnly?: boolean, player?: string) =>
+    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction, { linkedOnly, player })),
 
   getCpuPlayerSummary: () => get<CpuPlayerSummary>('/cpu-players/summary'),
 

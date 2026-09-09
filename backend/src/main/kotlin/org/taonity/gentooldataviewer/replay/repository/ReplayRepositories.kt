@@ -30,7 +30,8 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         """
         SELECT DISTINCT r FROM ReplayEntity r
         LEFT JOIN ReplayPlayerEntity p ON p.replayId = r.id
-                    WHERE (:reporterId IS NULL OR r.reporterId = :reporterId)
+                    WHERE (:replayId IS NULL OR r.id = :replayId)
+                        AND (:reporterId IS NULL OR r.reporterId = :reporterId)
                         AND ((:field = 'all' AND (
                         LOWER(cast(r.matchAt as String)) LIKE LOWER(CONCAT('%', :q, '%'))
                       OR LOWER(r.reporterName) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -76,6 +77,7 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         field: String,
         pageable: Pageable,
         reporterId: String? = null,
+        replayId: String? = null,
     ): Page<ReplayEntity>
 }
 
@@ -94,7 +96,8 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
     @Query(
         """
                 SELECT h FROM PlayerHardwareEntity h
-                WHERE (:linkedOnly = false OR EXISTS (
+                WHERE (:playerId IS NULL OR h.playerId = :playerId)
+                AND (:linkedOnly = false OR EXISTS (
                     SELECT l.userId FROM GentoolUserLinkEntity l
                     WHERE l.playerId = h.playerId AND l.status = :linkStatus
                 ))
@@ -130,6 +133,7 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
          pageable: Pageable,
          linkedOnly: Boolean = false,
          linkStatus: GentoolLinkStatus = GentoolLinkStatus.APPROVED,
+         playerId: String? = null,
      ): Page<PlayerHardwareEntity>
 
      @Query(
@@ -137,7 +141,8 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
                 SELECT h FROM PlayerHardwareEntity h
                 LEFT JOIN GentoolUserLinkEntity l ON l.playerId = h.playerId AND l.status = :linkStatus
                 LEFT JOIN UserEntity u ON u.googleId = l.userId
-                WHERE (:linkedOnly = false OR l.userId IS NOT NULL)
+                WHERE (:playerId IS NULL OR h.playerId = :playerId)
+                AND (:linkedOnly = false OR l.userId IS NOT NULL)
                 AND ((:field = 'all' AND (
                              LOWER(h.mainName) LIKE LOWER(CONCAT('%', :q, '%'))
                          OR LOWER(h.playerId) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -177,6 +182,7 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
          ascending: Boolean,
          pageable: Pageable,
          linkedOnly: Boolean = false,
+         playerId: String? = null,
      ): Page<PlayerHardwareEntity>
 
      fun countByCpuScoreIsNotNull(): Long

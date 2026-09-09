@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { Check, Copy, ExternalLink, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
@@ -186,16 +187,25 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
 export function ReplaysTab({
   active = true,
   canUseMyReplays,
+  targetPlayerId,
+  targetReplayId,
+  onClearPlayer,
+  onClearReplay,
   forceLoading,
   onError,
 }: {
   active?: boolean
   canUseMyReplays: boolean
+  targetPlayerId: string | null
+  targetReplayId: string | null
+  onClearPlayer: () => void
+  onClearReplay: () => void
   forceLoading: boolean
   onError: (message: string) => void
 }) {
   const [linkedPlayerId, setLinkedPlayerId] = useState<string | null>(null)
   const [myReplaysOnly, setMyReplaysOnly] = useState(false)
+  const [copiedReplayId, setCopiedReplayId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!active || !canUseMyReplays || forceLoading) return
@@ -213,6 +223,25 @@ export function ReplaysTab({
     }
   }, [active, canUseMyReplays, forceLoading, onError])
 
+  useEffect(() => {
+    if (!copiedReplayId) return
+    const timer = window.setTimeout(() => setCopiedReplayId(null), 2000)
+    return () => window.clearTimeout(timer)
+  }, [copiedReplayId])
+
+  const copyReplayLink = async (replay: Replay) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('tab', 'replays')
+    url.searchParams.set('replay', replay.id)
+    url.searchParams.delete('player')
+    try {
+      await navigator.clipboard.writeText(url.toString())
+      setCopiedReplayId(replay.id)
+    } catch {
+      onError('Failed to copy replay link.')
+    }
+  }
+
   return (
     <DataTab<Replay>
       columns={REPLAY_COLUMNS}
@@ -220,15 +249,64 @@ export function ReplaysTab({
       defaultSortKey="matchAt"
       defaultSortDirection="desc"
       active={active}
-      filterKey={myReplaysOnly ? linkedPlayerId : null}
-      toolbarFilters={linkedPlayerId ? (
-        <label className="flex cursor-pointer items-center gap-2 text-xs">
-          <Switch checked={myReplaysOnly} onCheckedChange={setMyReplaysOnly} />
-          My replays
-        </label>
-      ) : undefined}
+      filterKey={targetReplayId ?? targetPlayerId ?? (myReplaysOnly ? linkedPlayerId : null)}
+      toolbarFilters={(
+        <>
+          {targetReplayId && (
+            <Badge variant="outline" className="h-7 gap-1 pl-2 font-mono font-normal">
+              Replay: {targetReplayId}
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="-mr-1"
+                aria-label="Show all replays"
+                title="Show all replays"
+                onClick={onClearReplay}
+              >
+                <X />
+              </Button>
+            </Badge>
+          )}
+          {!targetReplayId && targetPlayerId && (
+            <Badge variant="outline" className="h-7 gap-1 pl-2 font-mono font-normal">
+              Player: {targetPlayerId}
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="-mr-1"
+                aria-label="Show all replays"
+                title="Show all replays"
+                onClick={() => {
+                  setMyReplaysOnly(false)
+                  onClearPlayer()
+                }}
+              >
+                <X />
+              </Button>
+            </Badge>
+          )}
+          {!targetReplayId && !targetPlayerId && linkedPlayerId && (
+            <label className="flex cursor-pointer items-center gap-2 text-xs">
+              <Switch checked={myReplaysOnly} onCheckedChange={setMyReplaysOnly} />
+              My replays
+            </label>
+          )}
+        </>
+      )}
       columnSelection
       rowKey={(replay) => replay.id}
+      rowActions={(replay) => (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-foreground"
+          aria-label={copiedReplayId === replay.id ? 'Replay link copied' : 'Copy replay link'}
+          title={copiedReplayId === replay.id ? 'Copied' : 'Copy replay link'}
+          onClick={() => void copyReplayLink(replay)}
+        >
+          {copiedReplayId === replay.id ? <Check className="text-primary" /> : <Copy />}
+        </Button>
+      )}
       load={(page, size, q, field, sort, direction) => consoleApi.listReplays(
         page,
         size,
@@ -236,10 +314,12 @@ export function ReplaysTab({
         field,
         sort,
         direction,
-        myReplaysOnly ? linkedPlayerId ?? undefined : undefined,
+        targetReplayId ? undefined : targetPlayerId ?? (myReplaysOnly ? linkedPlayerId ?? undefined : undefined),
+        targetReplayId ?? undefined,
       )}
       expand={(replay) => <ReplayDetails replay={replay} />}
-      emptyLabel="No replays collected."
+      initialExpandedId={targetReplayId}
+      emptyLabel={targetReplayId ? 'Replay not found.' : 'No replays collected.'}
       sortLabel="match time"
       forceLoading={forceLoading}
       onError={onError}
