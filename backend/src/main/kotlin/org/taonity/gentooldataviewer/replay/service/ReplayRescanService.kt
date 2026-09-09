@@ -41,7 +41,7 @@ class ReplayRescanService(
     private val clock = Clock.systemUTC()
 
     fun dashboard(principal: GoogleUserPrincipal): ReplayRescanDashboardDto {
-        val user = accessGuard.requireView(principal)
+        val user = accessGuard.currentUser(principal)
         val limits = limitsFor(user)
         val dayStart = LocalDate.now(clock).atStartOfDay().toInstant(ZoneOffset.UTC)
         return ReplayRescanDashboardDto(
@@ -69,7 +69,7 @@ class ReplayRescanService(
 
     @Synchronized
     fun requestLink(principal: GoogleUserPrincipal, rawPlayerId: String): GentoolLinkDto {
-        val user = accessGuard.requireView(principal)
+        val user = accessGuard.currentUser(principal)
         val playerId = normalizePlayerId(rawPlayerId)
         if (!hardwareRepository.existsById(playerId)) throw ConsoleNotFoundException("GenTool player not found")
         val claimed = linkRepository.findByPlayerId(playerId)
@@ -101,6 +101,14 @@ class ReplayRescanService(
             user,
         )
         return toDto(saved, user)
+    }
+
+    @Synchronized
+    fun unlink(principal: GoogleUserPrincipal) {
+        val user = accessGuard.currentUser(principal)
+        val link = linkRepository.findById(user.userId).orElse(null) ?: return
+        linkRepository.delete(link)
+        auditService.record(AuditAction.UNLINK_GENTOOL_LINK, "gentool_player", link.playerId, user)
     }
 
     @Synchronized

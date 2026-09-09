@@ -137,6 +137,9 @@ export const consoleApi = {
   claimGentoolPlayer: (playerId: string) =>
     mutate<GentoolLink>('/replay-rescans/link', 'POST', { playerId }),
 
+  unlinkMyGentoolPlayer: () =>
+    mutate<void>('/replay-rescans/link', 'DELETE'),
+
   requestReplayRescan: (playerId: string) =>
     mutate<ReplayRescanAccepted>('/replay-rescans', 'POST', { playerId }),
 

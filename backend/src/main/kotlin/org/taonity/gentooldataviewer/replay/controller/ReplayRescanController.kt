@@ -10,6 +10,7 @@ import org.taonity.gentooldataviewer.security.principal.GoogleUserPrincipal
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -30,6 +31,10 @@ class ReplayRescanController(
         @AuthenticationPrincipal principal: GoogleUserPrincipal,
         @RequestBody body: RequestGentoolLinkBody,
     ): GentoolLinkDto = service.requestLink(principal, body.playerId)
+
+    @DeleteMapping("/link")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun unlink(@AuthenticationPrincipal principal: GoogleUserPrincipal) = service.unlink(principal)
 
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)

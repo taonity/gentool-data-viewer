@@ -20,6 +20,7 @@ import { ConfigTab } from './ConfigTab'
 import { ReplayCollectionTab } from './ReplayCollectionTab'
 import { ReplaysTab } from './ReplaysTab'
 import { CpuPlayersTab } from './CpuPlayersTab'
+import { MyGentoolTab } from './MyGentoolTab'
 import { AppInfoPanel } from '@/features/info/AppInfoPanel'
 import type { AccessInfo, ConsoleRole } from './types'
 
@@ -44,9 +45,9 @@ const LOADING_ADMIN_ACCESS: AccessInfo = {
   accessRequestsEnabled: false,
 }
 
-type TabKey = 'players' | 'replays' | 'collection' | 'config' | 'admin' | 'about'
+type TabKey = 'players' | 'replays' | 'gentool' | 'collection' | 'config' | 'admin' | 'about'
 const TAB_STORAGE_KEY = 'console.activeTab'
-const TAB_KEYS = new Set<TabKey>(['players', 'replays', 'collection', 'config', 'admin', 'about'])
+const TAB_KEYS = new Set<TabKey>(['players', 'replays', 'gentool', 'collection', 'config', 'admin', 'about'])
 
 function browserNavigation(fallbackTab: TabKey): { tab: TabKey; playerId: string | null; replayId: string | null } {
   const params = new URLSearchParams(window.location.search)
@@ -73,16 +74,18 @@ function writeBrowserNavigation(tab: TabKey, playerId: string | null, replayId: 
 
 function storedTab(): TabKey {
   const value = localStorage.getItem(TAB_STORAGE_KEY)
-  return value === 'replays' || value === 'collection' || value === 'config' || value === 'admin' || value === 'about'
+  return value === 'replays' || value === 'gentool' || value === 'collection' || value === 'config' || value === 'admin' || value === 'about'
     ? value
     : 'players'
 }
 
 export default function DataConsole({
   authenticated = false,
+  authenticationLoading = false,
   forceLoading = false,
 }: {
   authenticated?: boolean
+  authenticationLoading?: boolean
   forceLoading?: boolean
 }) {
   const [access, setAccess] = useState<AccessInfo | null>(null)
@@ -161,14 +164,18 @@ export default function DataConsole({
   }, [authenticated, loadAccess])
 
   useEffect(() => {
-    if (forceLoading || loading) return
-    const allowed = tab !== 'config'
-      ? tab !== 'collection' && tab !== 'admin' || (authenticated && access?.isAdmin === true)
-      : authenticated && access?.canView === true
+    if (forceLoading || authenticationLoading || loading) return
+    const allowed = tab === 'gentool'
+      ? authenticated
+      : tab === 'config'
+        ? authenticated && access?.canView === true
+        : tab === 'collection' || tab === 'admin'
+          ? authenticated && access?.isAdmin === true
+          : true
     if (!allowed) {
       selectTab('players')
     }
-  }, [access, authenticated, forceLoading, loading, selectTab, tab])
+  }, [access, authenticated, authenticationLoading, forceLoading, loading, selectTab, tab])
 
   // Load the pending-request count independently of the Admin tab so the tab badge is accurate
   // even before an admin opens the tab (the tab is mounted lazily).
@@ -194,9 +201,11 @@ export default function DataConsole({
   const canView = access?.canView === true
   const accessLoading = authenticated && loading
   const showConfig = authenticated && (accessLoading || canView)
+  const showMyGentool = authenticated
   const showCollection = authenticated && (accessLoading || access?.isAdmin === true)
   const showAdmin = authenticated && (accessLoading || access?.isAdmin === true)
   const selectedTab = ((!showConfig && tab === 'config')
+    || (!showMyGentool && tab === 'gentool')
     || (!showCollection && tab === 'collection')
     || (!showAdmin && tab === 'admin'))
     ? 'players'
@@ -208,6 +217,7 @@ export default function DataConsole({
   const tabItems: Record<string, string> = {
     players: 'Players',
     replays: 'Replays',
+    ...(showMyGentool ? { gentool: 'My GenTool' } : {}),
     ...(showCollection ? { collection: 'Collection' } : {}),
     ...(showConfig ? { config: 'Config' } : {}),
     ...(showAdmin ? { admin: 'Admin' } : {}),
@@ -254,6 +264,14 @@ export default function DataConsole({
             >
               Replays
             </TabsTrigger>
+            {showMyGentool && (
+              <TabsTrigger
+                value="gentool"
+                className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
+              >
+                My GenTool
+              </TabsTrigger>
+            )}
             {showCollection && (
                 <TabsTrigger
                   value="collection"
@@ -319,7 +337,7 @@ export default function DataConsole({
           {visited.has('replays') && (
             <ReplaysTab
               active={selectedTab === 'replays'}
-              canUseMyReplays={authenticated && canView}
+              canUseMyReplays={authenticated}
               targetPlayerId={playerId}
               targetReplayId={replayId}
               onClearPlayer={() => navigate('replays')}
@@ -329,6 +347,18 @@ export default function DataConsole({
             />
           )}
         </TabsContent>
+
+        {showMyGentool && <TabsContent value="gentool" className="pt-2" keepMounted>
+          {visited.has('gentool') && (
+            <MyGentoolTab
+              active={selectedTab === 'gentool'}
+              forceLoading={forceLoading}
+              onNavigateToPlayer={(targetPlayerId) => navigate('players', targetPlayerId)}
+              onNavigateToReplays={(targetPlayerId) => navigate('replays', targetPlayerId)}
+              onError={setError}
+            />
+          )}
+        </TabsContent>}
 
         <TabsContent value="players" className="pt-2" keepMounted>
           {visited.has('players') && (

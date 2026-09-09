@@ -129,6 +129,24 @@ class ReplayRescanServiceTest {
     }
 
     @Test
+    fun `user without console role can manage own link`() {
+        val user = userRepository.findById(userId).orElseThrow()
+        user.role = ConsoleRole.NONE
+        user.accessStatus = AccessRequestStatus.NONE
+        userRepository.save(user)
+
+        val claimed = service.requestLink(principal(), playerId)
+        assertThat(claimed.playerId).isEqualTo(playerId)
+        assertThat(service.dashboard(principal()).link?.playerId).isEqualTo(playerId)
+
+        service.unlink(principal())
+
+        assertThat(service.dashboard(principal()).link).isNull()
+        assertThat(auditRepository.findAll().map { it.action })
+            .contains(AuditAction.CLAIM_GENTOOL_LINK, AuditAction.UNLINK_GENTOOL_LINK)
+    }
+
+    @Test
     fun `recent other target consumes quota and is blocked by cooldown`() {
         val principal = principal()
         val jobId = queuedJob(otherPlayerId)

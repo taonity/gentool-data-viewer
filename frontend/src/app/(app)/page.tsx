@@ -118,7 +118,11 @@ export default function Home() {
 
         <main className="pt-4">
           {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
-          <DataConsole authenticated={user !== null} forceLoading={forceLoading} />
+          <DataConsole
+            authenticated={user !== null}
+            authenticationLoading={loading}
+            forceLoading={forceLoading}
+          />
         </main>
 
         <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t py-5 text-xs text-muted-foreground">
