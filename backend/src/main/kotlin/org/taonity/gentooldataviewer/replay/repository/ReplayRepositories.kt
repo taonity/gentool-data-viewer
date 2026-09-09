@@ -30,7 +30,8 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         """
         SELECT DISTINCT r FROM ReplayEntity r
         LEFT JOIN ReplayPlayerEntity p ON p.replayId = r.id
-          WHERE (:field = 'all' AND (
+                    WHERE (:reporterId IS NULL OR r.reporterId = :reporterId)
+                        AND ((:field = 'all' AND (
                         LOWER(cast(r.matchAt as String)) LIKE LOWER(CONCAT('%', :q, '%'))
                       OR LOWER(r.reporterName) LIKE LOWER(CONCAT('%', :q, '%'))
                       OR LOWER(r.reporterId) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -67,10 +68,15 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
               OR (:field = 'repInfoInUse' AND LOWER(COALESCE(r.repInfoInUse, '')) LIKE LOWER(CONCAT('%', :q, '%')))
                OR (:field = 'replaySize' AND LOWER(COALESCE(cast(r.replaySizeBytes as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
                OR (:field = 'sourceDate' AND LOWER(cast(r.sourceDate as String)) LIKE LOWER(CONCAT('%', :q, '%')))
-               OR (:field = 'collectedAt' AND LOWER(cast(r.collectedAt as String)) LIKE LOWER(CONCAT('%', :q, '%')))
+               OR (:field = 'collectedAt' AND LOWER(cast(r.collectedAt as String)) LIKE LOWER(CONCAT('%', :q, '%'))))
         """,
     )
-    fun search(q: String, field: String, pageable: Pageable): Page<ReplayEntity>
+    fun search(
+        q: String,
+        field: String,
+        pageable: Pageable,
+        reporterId: String? = null,
+    ): Page<ReplayEntity>
 }
 
 @Repository
@@ -88,7 +94,11 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
     @Query(
         """
                 SELECT h FROM PlayerHardwareEntity h
-                WHERE (:field = 'all' AND (
+                WHERE (:linkedOnly = false OR EXISTS (
+                    SELECT l.userId FROM GentoolUserLinkEntity l
+                    WHERE l.playerId = h.playerId AND l.status = :linkStatus
+                ))
+                AND ((:field = 'all' AND (
                              LOWER(h.mainName) LIKE LOWER(CONCAT('%', :q, '%'))
                          OR LOWER(h.playerId) LIKE LOWER(CONCAT('%', :q, '%'))
                          OR LOWER(h.aliasesJson) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -111,17 +121,24 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
                     OR (:field = 'benchmark' AND LOWER(COALESCE(h.cpuBenchmarkName, '')) LIKE LOWER(CONCAT('%', :q, '%')))
                     OR (:field = 'status' AND LOWER(string(h.cpuMatchStatus)) LIKE LOWER(CONCAT('%', :q, '%')))
                     OR (:field = 'gentoolUpdatedAt' AND LOWER(COALESCE(cast(h.gentoolUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
-                    OR (:field = 'scoreUpdatedAt' AND LOWER(COALESCE(cast(h.cpuScoreUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'scoreUpdatedAt' AND LOWER(COALESCE(cast(h.cpuScoreUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%'))))
           """,
      )
-     fun search(q: String, field: String, pageable: Pageable): Page<PlayerHardwareEntity>
+     fun search(
+         q: String,
+         field: String,
+         pageable: Pageable,
+         linkedOnly: Boolean = false,
+         linkStatus: GentoolLinkStatus = GentoolLinkStatus.APPROVED,
+     ): Page<PlayerHardwareEntity>
 
      @Query(
          """
                 SELECT h FROM PlayerHardwareEntity h
                 LEFT JOIN GentoolUserLinkEntity l ON l.playerId = h.playerId AND l.status = :linkStatus
                 LEFT JOIN UserEntity u ON u.googleId = l.userId
-                WHERE (:field = 'all' AND (
+                WHERE (:linkedOnly = false OR l.userId IS NOT NULL)
+                AND ((:field = 'all' AND (
                              LOWER(h.mainName) LIKE LOWER(CONCAT('%', :q, '%'))
                          OR LOWER(h.playerId) LIKE LOWER(CONCAT('%', :q, '%'))
                          OR LOWER(h.aliasesJson) LIKE LOWER(CONCAT('%', :q, '%'))
@@ -144,7 +161,7 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
                     OR (:field = 'benchmark' AND LOWER(COALESCE(h.cpuBenchmarkName, '')) LIKE LOWER(CONCAT('%', :q, '%')))
                     OR (:field = 'status' AND LOWER(string(h.cpuMatchStatus)) LIKE LOWER(CONCAT('%', :q, '%')))
                     OR (:field = 'gentoolUpdatedAt' AND LOWER(COALESCE(cast(h.gentoolUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
-                    OR (:field = 'scoreUpdatedAt' AND LOWER(COALESCE(cast(h.cpuScoreUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%')))
+                    OR (:field = 'scoreUpdatedAt' AND LOWER(COALESCE(cast(h.cpuScoreUpdatedAt as String), '')) LIKE LOWER(CONCAT('%', :q, '%'))))
                 ORDER BY
                     CASE WHEN u.displayName IS NULL THEN 1 ELSE 0 END,
                     CASE WHEN :ascending = true THEN LOWER(u.displayName) END ASC,
@@ -159,6 +176,7 @@ interface PlayerHardwareRepository : JpaRepository<PlayerHardwareEntity, String>
          linkStatus: GentoolLinkStatus,
          ascending: Boolean,
          pageable: Pageable,
+         linkedOnly: Boolean = false,
      ): Page<PlayerHardwareEntity>
 
      fun countByCpuScoreIsNotNull(): Long

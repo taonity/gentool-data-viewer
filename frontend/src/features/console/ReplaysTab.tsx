@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
 import { formatTime } from './format'
@@ -183,13 +185,34 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
 
 export function ReplaysTab({
   active = true,
+  canUseMyReplays,
   forceLoading,
   onError,
 }: {
   active?: boolean
+  canUseMyReplays: boolean
   forceLoading: boolean
   onError: (message: string) => void
 }) {
+  const [linkedPlayerId, setLinkedPlayerId] = useState<string | null>(null)
+  const [myReplaysOnly, setMyReplaysOnly] = useState(false)
+
+  useEffect(() => {
+    if (!active || !canUseMyReplays || forceLoading) return
+    let current = true
+    consoleApi.getReplayRescanDashboard()
+      .then((dashboard) => {
+        if (!current) return
+        const playerId = dashboard.link?.status === 'APPROVED' ? dashboard.link.playerId : null
+        setLinkedPlayerId(playerId)
+        if (!playerId) setMyReplaysOnly(false)
+      })
+      .catch(() => onError('Failed to load linked GenTool account.'))
+    return () => {
+      current = false
+    }
+  }, [active, canUseMyReplays, forceLoading, onError])
+
   return (
     <DataTab<Replay>
       columns={REPLAY_COLUMNS}
@@ -197,9 +220,24 @@ export function ReplaysTab({
       defaultSortKey="matchAt"
       defaultSortDirection="desc"
       active={active}
+      filterKey={myReplaysOnly ? linkedPlayerId : null}
+      toolbarFilters={linkedPlayerId ? (
+        <label className="flex cursor-pointer items-center gap-2 text-xs">
+          <Switch checked={myReplaysOnly} onCheckedChange={setMyReplaysOnly} />
+          My replays
+        </label>
+      ) : undefined}
       columnSelection
       rowKey={(replay) => replay.id}
-      load={(page, size, q, field, sort, direction) => consoleApi.listReplays(page, size, q, field, sort, direction)}
+      load={(page, size, q, field, sort, direction) => consoleApi.listReplays(
+        page,
+        size,
+        q,
+        field,
+        sort,
+        direction,
+        myReplaysOnly ? linkedPlayerId ?? undefined : undefined,
+      )}
       expand={(replay) => <ReplayDetails replay={replay} />}
       emptyLabel="No replays collected."
       sortLabel="match time"

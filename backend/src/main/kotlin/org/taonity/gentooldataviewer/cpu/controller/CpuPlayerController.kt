@@ -30,7 +30,8 @@ class CpuPlayerController(
         @RequestParam(defaultValue = "50") size: Int,
         @RequestParam(defaultValue = "score") sort: String,
         @RequestParam(defaultValue = "desc") direction: String,
-    ): PageResponse<CpuPlayerDto> = queryService.list(q, field, page, size, sort, direction)
+        @RequestParam(defaultValue = "false") linkedOnly: Boolean,
+    ): PageResponse<CpuPlayerDto> = queryService.list(q, field, page, size, sort, direction, linkedOnly)
 
     @GetMapping("/summary")
     fun summary(): CpuPlayerSummaryDto = queryService.summary()

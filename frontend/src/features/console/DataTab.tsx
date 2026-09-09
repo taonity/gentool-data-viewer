@@ -86,6 +86,8 @@ type DataTabProps<T> = {
   columnSelection?: boolean
   active?: boolean
   refreshToken?: number
+  filterKey?: unknown
+  toolbarFilters?: React.ReactNode
   onError: (message: string) => void
 }
 
@@ -141,6 +143,8 @@ export function DataTab<T>({
   columnSelection = false,
   active = true,
   refreshToken = 0,
+  filterKey,
+  toolbarFilters,
   onError,
 }: DataTabProps<T>) {
   const [page, setPage] = useState(0)
@@ -422,6 +426,7 @@ export function DataTab<T>({
   const didInitialLoad = useRef(false)
   const wasActive = useRef(false)
   const lastRefreshToken = useRef(refreshToken)
+  const lastFilterKey = useRef(filterKey)
   useEffect(() => {
     if (forceLoading || !active) {
       wasActive.current = false
@@ -443,6 +448,13 @@ export function DataTab<T>({
     lastRefreshToken.current = refreshToken
     if (active && data) void reload(page, size, activeQuery, field, sortKey, direction, { silent: true })
   }, [active, activeQuery, data, direction, field, page, refreshToken, reload, size, sortKey])
+
+  useEffect(() => {
+    if (Object.is(lastFilterKey.current, filterKey)) return
+    lastFilterKey.current = filterKey
+    setPage(0)
+    if (active && data) void reload(0, size, activeQuery, field, sortKey, direction, { silent: true })
+  }, [active, activeQuery, data, direction, field, filterKey, reload, size, sortKey])
 
   useEffect(
     () => () => {
@@ -621,6 +633,7 @@ export function DataTab<T>({
               {data.totalElements} match{data.totalElements === 1 ? '' : 'es'} across all rows
             </span>
           )}
+          {toolbarFilters}
         </div>
         <div className="flex items-center gap-1">
           {columnSelection && (

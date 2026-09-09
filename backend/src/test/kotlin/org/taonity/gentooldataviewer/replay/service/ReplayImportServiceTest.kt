@@ -6,11 +6,14 @@ import org.taonity.gentooldataviewer.replay.parser.ParsedReplay
 import org.taonity.gentooldataviewer.replay.parser.ParsedAssociatedFile
 import org.taonity.gentooldataviewer.replay.parser.ParsedTeam
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
+import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
+import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.cpu.entity.CpuBenchmarkEntity
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.cpu.service.CpuBenchmarkMatcher
 import org.taonity.gentooldataviewer.cpu.service.CpuMatchStatus
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
+import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayAssociatedFileRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
@@ -21,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
 import org.springframework.test.context.ActiveProfiles
+import org.taonity.gentooldataviewer.user.entity.UserEntity
+import org.taonity.gentooldataviewer.user.repository.UserRepository
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -44,6 +49,12 @@ class ReplayImportServiceTest {
     lateinit var hardwareRepository: PlayerHardwareRepository
 
     @Autowired
+    lateinit var linkRepository: GentoolUserLinkRepository
+
+    @Autowired
+    lateinit var userRepository: UserRepository
+
+    @Autowired
     lateinit var benchmarkRepository: CpuBenchmarkRepository
 
     @Autowired
@@ -54,11 +65,13 @@ class ReplayImportServiceTest {
 
     @AfterEach
     fun cleanUp() {
+        linkRepository.deleteAll()
         replayPlayerRepository.deleteAll()
         replayAssociatedFileRepository.deleteAll()
         hardwareRepository.deleteAll()
         benchmarkRepository.deleteAll()
         replayRepository.deleteAll()
+        userRepository.deleteAll()
     }
 
     @Test
@@ -98,6 +111,12 @@ class ReplayImportServiceTest {
                 .describedAs("Replay search field %s", field)
                 .isEqualTo(1)
         }
+        assertThat(
+            replayRepository.search("", "all", PageRequest.of(0, 10), reporterId = "8313DCDFD572").totalElements,
+        ).isEqualTo(1)
+        assertThat(
+            replayRepository.search("", "all", PageRequest.of(0, 10), reporterId = "OTHER_PLAYER").totalElements,
+        ).isZero()
         val hardware = hardwareRepository.findById("8313DCDFD572").orElseThrow()
         assertThat(hardware.latestName).isEqualTo("tao")
         assertThat(hardware.cpu).isEqualTo("13th Gen Intel Core i7-13700K")
@@ -118,6 +137,24 @@ class ReplayImportServiceTest {
                 .describedAs("Player search field %s", field)
                 .isEqualTo(1)
         }
+        assertThat(hardwareRepository.search("", "all", PageRequest.of(0, 10), linkedOnly = true).totalElements)
+            .isZero()
+        val user = userRepository.save(
+            UserEntity(
+                googleId = "discord:100",
+                authProvider = "discord",
+                displayName = "Linked player",
+            ),
+        )
+        linkRepository.save(
+            GentoolUserLinkEntity(
+                userId = user.userId,
+                playerId = hardware.playerId,
+                status = GentoolLinkStatus.APPROVED,
+            ),
+        )
+        assertThat(hardwareRepository.search("", "all", PageRequest.of(0, 10), linkedOnly = true).totalElements)
+            .isEqualTo(1)
     }
 
     @Test

@@ -140,11 +140,11 @@ export const consoleApi = {
   requestReplayRescan: (playerId: string) =>
     mutate<ReplayRescanAccepted>('/replay-rescans', 'POST', { playerId }),
 
-  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string) =>
-    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction)),
+  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, reporterId?: string) =>
+    get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction, { reporterId })),
 
-  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string) =>
-    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction)),
+  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, linkedOnly?: boolean) =>
+    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction, { linkedOnly })),
 
   getCpuPlayerSummary: () => get<CpuPlayerSummary>('/cpu-players/summary'),
 
@@ -160,6 +160,7 @@ function buildListQuery(
   field?: string,
   sort?: string,
   direction?: string,
+  filters?: Record<string, string | boolean | undefined>,
 ): string {
   const params = new URLSearchParams({ page: String(page), size: String(size) })
   if (q && q.trim()) {
@@ -174,5 +175,10 @@ function buildListQuery(
   if (direction) {
     params.set('direction', direction)
   }
+  Object.entries(filters ?? {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== false && value !== '') {
+      params.set(key, String(value))
+    }
+  })
   return `${path}?${params.toString()}`
 }

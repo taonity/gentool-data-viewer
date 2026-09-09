@@ -36,6 +36,7 @@ class CpuPlayerQueryService(
         size: Int,
         sort: String?,
         direction: String?,
+        linkedOnly: Boolean = false,
     ): PageResponse<CpuPlayerDto> {
         val pageNumber = page.coerceAtLeast(0)
         val pageSize = size.coerceIn(1, settings.console().maxPageSize)
@@ -51,6 +52,7 @@ class CpuPlayerQueryService(
                 linkStatus = GentoolLinkStatus.APPROVED,
                 ascending = sortDirection == Sort.Direction.ASC,
                 pageable = PageRequest.of(pageNumber, pageSize),
+                linkedOnly = linkedOnly,
             )
         } else {
             hardwareRepository.search(
@@ -61,6 +63,8 @@ class CpuPlayerQueryService(
                     pageSize,
                     Sort.by(order, Sort.Order.asc("mainName"), Sort.Order.asc("playerId")),
                 ),
+                linkedOnly = linkedOnly,
+                linkStatus = GentoolLinkStatus.APPROVED,
             )
         }
         val linksByPlayerId = linkRepository.findByPlayerIdInAndStatus(

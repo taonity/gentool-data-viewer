@@ -268,6 +268,7 @@ export default function DataConsole({
           {visited.has('replays') && (
             <ReplaysTab
               active={selectedTab === 'replays'}
+              canUseMyReplays={authenticated && canView}
               forceLoading={forceLoading}
               onError={setError}
             />

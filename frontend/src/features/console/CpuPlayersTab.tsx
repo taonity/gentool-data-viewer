@@ -5,6 +5,7 @@ import { DatabaseZap, ExternalLink, Link2, Loader2, RefreshCw, RotateCw } from '
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
 import { formatTime } from './format'
@@ -216,6 +217,7 @@ export function CpuPlayersTab({
   const [busyActions, setBusyActions] = useState<Record<string, 'claim' | 'refresh'>>({})
   const [refreshingCatalog, setRefreshingCatalog] = useState(false)
   const [tableRefreshToken, setTableRefreshToken] = useState(0)
+  const [linkedOnly, setLinkedOnly] = useState(false)
   const [cooldownClock, setCooldownClock] = useState(() => Date.now())
   const wasActive = useRef(false)
   const hadActiveRescan = useRef(false)
@@ -355,6 +357,13 @@ export function CpuPlayersTab({
       <DataTab<CpuPlayer>
         active={active}
         refreshToken={tableRefreshToken}
+        filterKey={linkedOnly}
+        toolbarFilters={(
+          <label className="flex cursor-pointer items-center gap-2 text-xs">
+            <Switch checked={linkedOnly} onCheckedChange={setLinkedOnly} />
+            Linked users only
+          </label>
+        )}
         columns={PLAYER_COLUMNS}
         columnWidthsKey="players"
         defaultSortKey="score"
@@ -412,7 +421,7 @@ export function CpuPlayersTab({
             </>
           )
         } : undefined}
-        load={(page, size, q, field, sort, direction) => consoleApi.listCpuPlayers(page, size, q, field, sort, direction)}
+        load={(page, size, q, field, sort, direction) => consoleApi.listCpuPlayers(page, size, q, field, sort, direction, linkedOnly)}
         emptyLabel="No player hardware collected."
         sortLabel="single-thread score"
         sortDescendingLabel="Highest"

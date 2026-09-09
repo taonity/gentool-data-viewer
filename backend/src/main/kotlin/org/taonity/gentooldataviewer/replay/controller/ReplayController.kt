@@ -21,5 +21,6 @@ class ReplayController(
         @RequestParam(defaultValue = "50") size: Int,
         @RequestParam(defaultValue = "matchAt") sort: String,
         @RequestParam(defaultValue = "desc") direction: String,
-    ): PageResponse<ReplayDto> = replayQueryService.list(q, field, page, size, sort, direction)
+        @RequestParam(required = false) reporterId: String?,
+    ): PageResponse<ReplayDto> = replayQueryService.list(q, field, page, size, sort, direction, reporterId)
 }
