@@ -11,6 +11,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
   title: 'Gentool Data Viewer',
+  description: 'Browse and manage GenTool replay data with optional Discord authentication.',
 }
 
 export default function RootLayout({

@@ -9,6 +9,15 @@ A full-stack viewer and collector for GenTool replay data with Discord OAuth2 au
 - Discord OAuth2 production and WireMock-backed local login profiles
 - PostgreSQL, H2, Flyway, health endpoints, and Docker Compose deployment templates
 
+## Discord application review
+
+The public legal documents required for the Discord application are available without authentication:
+
+- Privacy Policy: `https://gentool-data-viewer.taonity.org/privacy`
+- Terms of Service: `https://gentool-data-viewer.taonity.org/terms`
+
+Enter these URLs in the Discord Developer Portal under the application's **General Information** page. Before requesting review, verify that both production URLs return `200`, keep the application description and requested `identify` scope accurate, and ensure `taonity.org@gmail.com` remains a monitored support, privacy, and data-deletion channel. Update the documents whenever collected data, Discord scopes, providers, retention, or user-facing functionality changes.
+
 ## Prerequisites
 
 - Java 17

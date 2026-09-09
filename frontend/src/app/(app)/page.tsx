@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { LogIn } from 'lucide-react'
+import Link from 'next/link'
 import { checkBackendLiveness, fetchAuthenticatedUserStatus, requestLogout } from '@/lib/auth'
 import { getRuntimeConfig } from '@/lib/runtimeConfig'
 import { deleteCookie, getCookie } from '@/lib/cookies'
@@ -119,6 +120,22 @@ export default function Home() {
           {error && <ErrorNotification message={error} onClose={() => setError(null)} />}
           <DataConsole authenticated={user !== null} forceLoading={forceLoading} />
         </main>
+
+        <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t py-5 text-xs text-muted-foreground">
+          <span>Operated by Taonity</span>
+          <Link className="underline-offset-4 hover:text-foreground hover:underline" href="/privacy">
+            Privacy Policy
+          </Link>
+          <Link className="underline-offset-4 hover:text-foreground hover:underline" href="/terms">
+            Terms of Service
+          </Link>
+          <a
+            className="underline-offset-4 hover:text-foreground hover:underline"
+            href="mailto:taonity.org@gmail.com"
+          >
+            Contact
+          </a>
+        </footer>
       </div>
     </div>
   )

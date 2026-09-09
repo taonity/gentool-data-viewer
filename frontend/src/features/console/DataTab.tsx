@@ -105,10 +105,8 @@ type OverflowPreviewPayload = {
 }
 
 function hasOverflow(element: HTMLElement): boolean {
-  if (element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight) return true
-  const range = document.createRange()
-  range.selectNodeContents(element)
-  return [...range.getClientRects()].some((rect) => rect.width > element.clientWidth)
+  if (element.clientWidth === 0 || element.clientHeight === 0) return false
+  return element.scrollWidth - element.clientWidth > 1 || element.scrollHeight - element.clientHeight > 1
 }
 
 const SKELETON_BAR_WIDTHS = [
@@ -983,7 +981,11 @@ function OverflowPreviewTrigger({
       if (!trigger) return false
       const cell = trigger.closest<HTMLElement>('[data-slot="table-cell"]')
       if (hasOverflow(trigger) || (cell && hasOverflow(cell))) return true
-      return [...trigger.querySelectorAll<HTMLElement>('*')].some(hasOverflow)
+      return [...trigger.querySelectorAll<HTMLElement>('*')].some((element) => {
+        const style = getComputedStyle(element)
+        const clipsContent = style.overflowX !== 'visible' || style.overflowY !== 'visible'
+        return clipsContent && hasOverflow(element)
+      })
     },
   }
 

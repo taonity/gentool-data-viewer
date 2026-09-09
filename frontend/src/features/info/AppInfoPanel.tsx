@@ -10,6 +10,7 @@ import {
   fetchBackendInfo,
   fetchFrontendInfo,
   formatRelativeAge,
+  GITHUB_REPO_URL,
   infoRows,
   type AppInfoSource,
   type InfoRow,
@@ -33,8 +34,8 @@ const rowCountCache: Record<string, number> = { Backend: 5, Frontend: 5 }
 const LABELS = ['Backend', 'Frontend'] as const
 
 /**
- * Displays curated release information for the backend and frontend. Used on the login
- * screen and the About tab.
+ * Displays service and release information. Compact mode, used on the login screen,
+ * shows release information only.
  */
 export function AppInfoPanel({ compact = false, className, forceLoading = false, active = true }: AppInfoPanelProps) {
   const [sources, setSources] = useState<AppInfoSource[] | null>(null)
@@ -58,6 +59,7 @@ export function AppInfoPanel({ compact = false, className, forceLoading = false,
 
   return (
     <div className={className}>
+      {!compact && <ServiceGuide />}
       <div className="grid gap-4 sm:grid-cols-2">
         {LABELS.map((label, index) => (
           <InfoCard
@@ -69,6 +71,91 @@ export function AppInfoPanel({ compact = false, className, forceLoading = false,
         ))}
       </div>
     </div>
+  )
+}
+
+function ServiceGuide() {
+  const issuesUrl = GITHUB_REPO_URL ? `${GITHUB_REPO_URL}/issues` : undefined
+
+  return (
+    <Card className="mb-4 text-left">
+      <CardHeader className="border-b">
+        <CardTitle>GenTool Data Viewer</CardTitle>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          A searchable view of public Command &amp; Conquer: Generals - Zero Hour replay reports,
+          with match details, player hardware, and CPU comparisons.
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+        <AboutSection title="Replays and scans">
+          <p>
+            Replay data comes from GenTool&apos;s public Zero Hour archive. The service reads GenTool&apos;s
+            uploaded text reports and links associated replay files back to their source; it does not
+            scan your computer.
+          </p>
+          <p>
+            The automatic scan starts daily at 02:15 UTC and scans the previous calendar day; it does
+            not backfill on startup. A user-requested rescan fetches a player&apos;s latest available data
+            now, without waiting for the daily scan. It checks the latest 7 days and runs in the background.
+          </p>
+        </AboutSection>
+
+        <AboutSection title="CPU rating">
+          <p>
+            The score is PassMark&apos;s Single Thread Rating matched against the CPU name reported by
+            GenTool. It is a reference score, not a benchmark run by this service.
+          </p>
+          <p>
+            Missing, unmatched, or ambiguous CPU names are left unrated. Ratings may change when the
+            PassMark catalog is refreshed.
+          </p>
+        </AboutSection>
+
+        <AboutSection title="Roles">
+          <dl className="grid gap-2 sm:grid-cols-[7rem_1fr]">
+            <dt className="font-medium text-foreground">Public</dt>
+            <dd>Browse player, CPU, and replay data.</dd>
+            <dt className="font-medium text-foreground">Viewer (default)</dt>
+            <dd>Link a GenTool player and request recent rescans.</dd>
+            <dt className="font-medium text-foreground">Editor</dt>
+            <dd>Viewer access; no editor-only actions are currently available.</dd>
+            <dt className="font-medium text-foreground">Admin</dt>
+            <dd>Run collection jobs, refresh CPU data, and manage access and player links.</dd>
+            <dt className="font-medium text-foreground">Owner</dt>
+            <dd>Admin access plus runtime configuration and admin-role management.</dd>
+          </dl>
+        </AboutSection>
+
+        <AboutSection title="Feedback">
+          <p>
+            Report bugs, incorrect replay or CPU data, and feature requests in{' '}
+            {issuesUrl ? (
+              <a
+                href={issuesUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline decoration-dotted underline-offset-2 hover:decoration-solid"
+              >
+                GitHub Issues
+              </a>
+            ) : (
+              'GitHub Issues'
+            )}
+            . Include the relevant player or replay and what you expected. Do not post credentials or
+            private information.
+          </p>
+        </AboutSection>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AboutSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2 text-sm text-foreground">
+      <h3 className="font-semibold text-foreground">{title}</h3>
+      {children}
+    </section>
   )
 }
 
