@@ -1,9 +1,13 @@
 services:
   backend:
     image: generaltao725/gentool-data-viewer-backend:latest
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-768m}
     environment:
       JDK_JAVA_OPTIONS: --add-opens java.base/java.lang=ALL-UNNAMED
-      JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      JAVA_TOOL_OPTIONS: >-
+        -XX:InitialRAMPercentage=${BACKEND_INITIAL_RAM_PERCENTAGE:-10.0}
+        -XX:MaxRAMPercentage=${BACKEND_MAX_RAM_PERCENTAGE:-60.0}
+        ${BACKEND_JAVA_EXTRA_OPTIONS:-}
       POSTGRES_APP_USER: ${POSTGRES_APP_USER:?POSTGRES_APP_USER must be set}
       POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?POSTGRES_APP_PASSWORD must be set}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID must be set}

@@ -44,6 +44,8 @@ FRONTEND_PROFILE=prod
 
 The environment file contains Compose bootstrap selectors, credentials, and the backend/frontend profiles. `DISCORD_BOT_TOKEN` enables admins to resolve users who have not logged in; create it for a Discord bot application and keep it server-side. Use `COMPOSE_PROJECT_NAME=gentool-data-viewer-stage`, `SPRING_PROFILES_ACTIVE=stage`, and `FRONTEND_PROFILE=stage` for staging. Public URLs, cookie names, database topology, and internal service addresses remain committed in application profiles and Compose configuration.
 
+The backend defaults to a 768 MiB container limit, with an initial heap target of 10% and a maximum heap of 60% of that limit. Override `BACKEND_MEMORY_LIMIT`, `BACKEND_INITIAL_RAM_PERCENTAGE`, or `BACKEND_MAX_RAM_PERCENTAGE` in the deployment environment only after checking container memory and GC metrics under representative load. To attach a debugger temporarily, set `BACKEND_JAVA_EXTRA_OPTIONS` to the required JDWP agent options.
+
 The file is passed with Compose's `--env-file` option for interpolation. Services receive only their explicitly listed variables, so database and OAuth credentials are not injected into the frontend container.
 
 The production override [`docker-compose.prodenv.yml`](../templates/docker/docker-compose.prodenv.yml) attaches backend and frontend to the external `prodenv-shared-internal` network. That network must already exist in the target production environment.
