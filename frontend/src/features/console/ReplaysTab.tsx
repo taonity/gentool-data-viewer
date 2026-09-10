@@ -25,8 +25,14 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function playerNames(replay: Replay): string {
-  return replay.players.map((player) => player.name).join(', ')
+function playerMatchup(replay: Replay): string {
+  const teams = Map.groupBy(
+    replay.players.toSorted((left, right) => left.teamNumber - right.teamNumber || left.slotNumber - right.slotNumber),
+    (player) => player.teamNumber,
+  )
+  return [...teams.values()]
+    .map((players) => players.map((player) => player.name).join(' + '))
+    .join(' vs ')
 }
 
 const REPLAY_COLUMNS: Column<Replay>[] = [
@@ -60,7 +66,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     key: 'players',
     label: 'Players',
     sortKey: 'players',
-    value: playerNames,
+    value: playerMatchup,
     cellClassName: 'truncate',
     defaultWidth: 363,
     searchKey: 'players',
@@ -72,7 +78,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     value: (replay) => replay.mapName ?? '',
     render: (replay) => replay.mapName ?? '—',
     cellClassName: 'truncate',
-    defaultWidth: 275,
+    defaultWidth: 218,
     searchKey: 'mapName',
   },
   {
@@ -81,7 +87,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     sortKey: 'matchType',
     value: (replay) => replay.matchType ?? '',
     render: (replay) => replay.matchType ? <Badge variant="outline">{replay.matchType}</Badge> : '—',
-    headClassName: 'w-[90px]',
+    defaultWidth: 88,
     searchKey: 'matchType',
   },
   {
@@ -91,7 +97,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
     initialSortDirection: 'desc',
     value: (replay) => formatDuration(replay.matchLengthSeconds),
     cellClassName: 'font-mono text-xs tabular-nums',
-    headClassName: 'w-[90px]',
+    defaultWidth: 149,
     searchKey: 'duration',
   },
   {

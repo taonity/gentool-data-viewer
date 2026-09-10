@@ -114,9 +114,13 @@ class DemoDataProfileTest {
         val maxLinksField = configRegistry.field("app.replay-rescan.max-linked-players")
         assertThat(maxLinksField).isNotNull
         assertThat(maxLinksField?.read(appSettings.defaults())).isEqualTo(3)
-        assertThat(cpuPlayerQueryService.list(null, null, 0, 50, null, null).content)
+        val playerDtos = cpuPlayerQueryService.list(null, null, 0, 50, null, null).content
+        assertThat(playerDtos)
             .filteredOn { it.discordUser != null }
             .hasSize(8)
+        assertThat(playerDtos).allMatch { player ->
+            player.latestMatch?.teams?.flatten()?.isNotEmpty() == true
+        }
         val atlas = playerHardwareRepository.findById("D3A000000001").orElseThrow()
         assertThat(atlas.mainName).isEqualTo("Atlas")
         assertThat(atlas.aliasesJson).contains("Atlas_GT", "Atlas2v2")

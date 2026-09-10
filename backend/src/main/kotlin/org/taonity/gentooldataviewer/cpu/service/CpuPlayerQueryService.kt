@@ -4,12 +4,14 @@ import org.taonity.gentooldataviewer.config.AppSettings
 import org.taonity.gentooldataviewer.console.dto.PageResponse
 import org.taonity.gentooldataviewer.cpu.dto.DiscordUserDto
 import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerDto
+import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerLatestMatchDto
 import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerSummaryDto
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.user.repository.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -21,6 +23,7 @@ import tools.jackson.databind.ObjectMapper
 class CpuPlayerQueryService(
     private val hardwareRepository: PlayerHardwareRepository,
     private val replayRepository: ReplayRepository,
+    private val replayPlayerRepository: ReplayPlayerRepository,
     private val linkRepository: GentoolUserLinkRepository,
     private val userRepository: UserRepository,
     private val benchmarkRepository: CpuBenchmarkRepository,
@@ -77,12 +80,29 @@ class CpuPlayerQueryService(
         ).associateBy { it.playerId }
         val usersById = userRepository.findAllById(linksByPlayerId.values.map { it.userId })
             .associateBy { it.userId }
+        val latestReplaysByPlayerId = replayRepository.findLatestByReporterIds(result.content.map { it.playerId })
+            .associateBy { it.reporterId }
+        val latestReplayPlayers = replayPlayerRepository.findByReplayIdIn(
+            latestReplaysByPlayerId.values.mapNotNull { it.id },
+        ).groupBy { it.replayId }
         return PageResponse.of(result) { player ->
             val user = linksByPlayerId[player.playerId]?.let { usersById[it.userId] }
+            val latestReplay = latestReplaysByPlayerId[player.playerId]
+            val latestMatch = latestReplay?.let { replay ->
+                CpuPlayerLatestMatchDto(
+                    matchAt = replay.matchAt,
+                    teams = latestReplayPlayers[replay.id].orEmpty()
+                        .sortedWith(compareBy({ it.teamNumber }, { it.slotNumber }))
+                        .groupBy { it.teamNumber }
+                        .values
+                        .map { team -> team.map { it.name } },
+                )
+            }
             CpuPlayerDto.from(
                 player,
                 objectMapper,
                 user?.let { DiscordUserDto(it.displayName, it.pictureUrl) },
+                latestMatch,
             )
         }
     }

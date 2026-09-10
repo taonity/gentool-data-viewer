@@ -14,17 +14,22 @@ import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
+import org.taonity.gentooldataviewer.replay.entity.ReplayEntity
+import org.taonity.gentooldataviewer.replay.entity.ReplayPlayerEntity
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.user.entity.UserEntity
 import org.taonity.gentooldataviewer.user.repository.UserRepository
 import tools.jackson.databind.ObjectMapper
 import java.time.Instant
+import java.time.LocalDate
 
 class CpuPlayerQueryServiceTest {
     private val hardwareRepository = mock(PlayerHardwareRepository::class.java)
     private val replayRepository = mock(ReplayRepository::class.java)
+    private val replayPlayerRepository = mock(ReplayPlayerRepository::class.java)
     private val linkRepository = mock(GentoolUserLinkRepository::class.java)
     private val userRepository = mock(UserRepository::class.java)
     private val benchmarkRepository = mock(CpuBenchmarkRepository::class.java)
@@ -33,6 +38,7 @@ class CpuPlayerQueryServiceTest {
     private val service = CpuPlayerQueryService(
         hardwareRepository,
         replayRepository,
+        replayPlayerRepository,
         linkRepository,
         userRepository,
         benchmarkRepository,
@@ -66,6 +72,17 @@ class CpuPlayerQueryServiceTest {
             displayName = "Discord Player",
             pictureUrl = "https://cdn.discordapp.com/avatars/100/avatar.png",
         )
+        val latestReplay = ReplayEntity(
+            id = "latest-replay",
+            sourceUrl = "https://example.invalid/latest.txt",
+            sourceDate = LocalDate.parse("2026-09-01"),
+            reporterId = approvedPlayer.playerId,
+            reporterName = approvedPlayer.mainName,
+            playerNames = "Approved player, Ally, Rival",
+            matchAt = Instant.parse("2026-09-01T11:00:00Z"),
+            fieldsJson = "{}",
+            rawText = "fixture",
+        )
         `when`(settings.console()).thenReturn(
             ConsolePagingProperties(maxPageSize = 100, accessRequestsEnabled = false),
         )
@@ -78,6 +95,15 @@ class CpuPlayerQueryServiceTest {
             ),
         ).thenReturn(listOf(approvedLink))
         `when`(userRepository.findAllById(listOf(approvedLink.userId))).thenReturn(listOf(discordUser))
+        `when`(replayRepository.findLatestByReporterIds(listOf(approvedPlayer.playerId, unlinkedPlayer.playerId)))
+            .thenReturn(listOf(latestReplay))
+        `when`(replayPlayerRepository.findByReplayIdIn(listOf("latest-replay"))).thenReturn(
+            listOf(
+                ReplayPlayerEntity(replayId = "latest-replay", teamNumber = 2, slotNumber = 1, address = "3", name = "Rival"),
+                ReplayPlayerEntity(replayId = "latest-replay", teamNumber = 1, slotNumber = 2, address = "2", name = "Ally"),
+                ReplayPlayerEntity(replayId = "latest-replay", teamNumber = 1, slotNumber = 1, address = "1", name = "Approved player"),
+            ),
+        )
 
         val result = service.list(null, null, 0, 50, null, null)
 
@@ -85,6 +111,11 @@ class CpuPlayerQueryServiceTest {
         assertThat(result.content[0].discordUser?.displayName).isEqualTo("Discord Player")
         assertThat(result.content[0].discordUser?.pictureUrl).isEqualTo(discordUser.pictureUrl)
         assertThat(result.content[1].discordUser).isNull()
+        assertThat(result.content[0].latestMatch?.teams).containsExactly(
+            listOf("Approved player", "Ally"),
+            listOf("Rival"),
+        )
+        assertThat(result.content[1].latestMatch).isNull()
         verify(linkRepository).findByPlayerIdInAndStatus(
             listOf(approvedPlayer.playerId, unlinkedPlayer.playerId),
             GentoolLinkStatus.APPROVED,

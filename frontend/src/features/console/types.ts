@@ -239,6 +239,12 @@ export interface CpuPlayer {
   observedAt: string
   gentoolUpdatedAt: string | null
   scoreUpdatedAt: string | null
+  latestMatch: CpuPlayerLatestMatch | null
+}
+
+export interface CpuPlayerLatestMatch {
+  matchAt: string
+  teams: string[][]
 }
 
 export interface CpuPlayerSummary {

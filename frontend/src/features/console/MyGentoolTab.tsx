@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { consoleApi } from './api'
+import { formatTime } from './format'
 import type { CpuPlayer, GentoolLink, ReplayRescanDashboard } from './types'
 
 export function MyGentoolTab({
@@ -183,6 +184,9 @@ export function MyGentoolTab({
           {players?.map((player) => {
             const isCurrent = currentLinks.some((link) => link.playerId === player.playerId)
             const unavailable = Boolean(player.discordUser && !isCurrent)
+            const latestLineup = player.latestMatch?.teams
+              .map((team) => team.join(' + '))
+              .join(' vs ')
             return (
               <button
                 type="button"
@@ -194,6 +198,14 @@ export function MyGentoolTab({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{player.mainName}</span>
                   <span className="block truncate font-mono text-xs text-muted-foreground">{player.playerId}</span>
+                  {player.latestMatch && latestLineup && (
+                    <span
+                      className="mt-1 block truncate text-xs text-muted-foreground"
+                      title={`${formatTime(player.latestMatch.matchAt)} · ${latestLineup}`}
+                    >
+                      Latest: {formatTime(player.latestMatch.matchAt)} · {latestLineup}
+                    </span>
+                  )}
                 </span>
                 {(isCurrent || unavailable) && (
                   <Badge variant={isCurrent ? 'secondary' : 'outline'}>{isCurrent ? 'Current' : 'Linked'}</Badge>

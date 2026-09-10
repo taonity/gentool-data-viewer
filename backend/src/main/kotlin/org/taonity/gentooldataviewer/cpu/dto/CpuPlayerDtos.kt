@@ -22,6 +22,7 @@ data class CpuPlayerDto(
     val observedAt: Instant,
     val gentoolUpdatedAt: Instant?,
     val scoreUpdatedAt: Instant?,
+    val latestMatch: CpuPlayerLatestMatchDto?,
 ) {
     companion object {
         private val ALIASES_TYPE = object : TypeReference<List<String>>() {}
@@ -30,6 +31,7 @@ data class CpuPlayerDto(
             entity: PlayerHardwareEntity,
             objectMapper: ObjectMapper,
             discordUser: DiscordUserDto? = null,
+            latestMatch: CpuPlayerLatestMatchDto? = null,
         ) = CpuPlayerDto(
             playerId = entity.playerId,
             mainName = entity.mainName,
@@ -45,9 +47,15 @@ data class CpuPlayerDto(
             observedAt = entity.observedAt,
             gentoolUpdatedAt = entity.gentoolUpdatedAt,
             scoreUpdatedAt = entity.cpuScoreUpdatedAt,
+            latestMatch = latestMatch,
         )
     }
 }
+
+data class CpuPlayerLatestMatchDto(
+    val matchAt: Instant,
+    val teams: List<List<String>>,
+)
 
 data class DiscordUserDto(
     val displayName: String,

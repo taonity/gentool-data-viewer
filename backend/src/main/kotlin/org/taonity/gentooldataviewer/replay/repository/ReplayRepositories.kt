@@ -24,6 +24,18 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
 
     fun findByReporterId(reporterId: String): List<ReplayEntity>
 
+    @Query(
+        """
+        SELECT r FROM ReplayEntity r
+        WHERE r.reporterId IN :reporterIds
+          AND r.matchAt = (
+              SELECT MAX(latest.matchAt) FROM ReplayEntity latest
+              WHERE latest.reporterId = r.reporterId
+          )
+        """,
+    )
+    fun findLatestByReporterIds(reporterIds: Collection<String>): List<ReplayEntity>
+
     @Query("SELECT MIN(r.collectedAt) FROM ReplayEntity r")
     fun findEarliestCollectedAt(): Instant?
 
