@@ -12,3 +12,5 @@ app:
   replay-collector:
     schedule-cron: "0 15 6 * * *"
     schedule-user-limit: 20
+  replay-rescan:
+    lookback-days: 7
