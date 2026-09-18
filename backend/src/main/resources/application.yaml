@@ -32,7 +32,7 @@ app:
     schedule-zone: UTC
   replay-rescan:
     max-linked-players: 3
-    lookback-days: 7
+    lookback-days: 1
     other-daily-limit: 20
     target-cooldown: 5m
     privileged-other-daily-limit: 100
