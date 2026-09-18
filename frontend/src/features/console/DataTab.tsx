@@ -98,7 +98,6 @@ type DataTabProps<T> = {
 
 const PAGE_SIZES = [20, 50, 100]
 const DEFAULT_PAGE_SIZE = 50
-const SKELETON_ROWS = 10
 const MIN_COLUMN_WIDTH = 64
 const MAX_COLUMN_WIDTH = 640
 const KEYBOARD_RESIZE_STEP = 16
@@ -561,12 +560,11 @@ export function DataTab<T>({
       + (expand ? EXPAND_COLUMN_WIDTH : 0)
       + (showRowNumbers ? ROW_NUMBER_COLUMN_WIDTH : 0)
       + (locate ? LOCATE_COLUMN_WIDTH : 0)
+      + (hasActions ? ACTIONS_COLUMN_WIDTH : 0)
     : null
   const tableWidthStyle = fixedTableWidth === null
     ? undefined
-    : hasActions
-      ? { width: `max(calc(100% - ${ACTIONS_COLUMN_WIDTH}px), ${fixedTableWidth}px)` }
-      : { width: `max(100%, ${fixedTableWidth}px)` }
+    : { width: `max(100%, ${fixedTableWidth}px)` }
   const firstRow = rows[0]
   const roomName = roomAccessor && firstRow ? roomAccessor(firstRow) : null
   const searchableColumns = columns.filter((column) => column.searchKey)
@@ -823,7 +821,7 @@ export function DataTab<T>({
           </TableHeader>
           <TableBody>
             {showLoading &&
-              Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+              Array.from({ length: size }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`} className="h-[33px] hover:bg-transparent">
                   {expand && <TableCell className="w-[40px]" />}
                   {showRowNumbers && (

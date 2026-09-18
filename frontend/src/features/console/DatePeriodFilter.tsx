@@ -65,7 +65,7 @@ export function DatePeriodFilter({ value, onChange, active, forceLoading, refres
           />}
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor={`${id}-end`} className="w-8 shrink-0 text-xs text-muted-foreground">To</label>
+          <label htmlFor={`${id}-end`} className="shrink-0 text-xs text-muted-foreground">To</label>
           {showLoading ? <Skeleton className="h-8 w-40" /> : <DatePicker
             id={`${id}-end`}
             label="End date (UTC)"

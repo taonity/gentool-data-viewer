@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
 import { DatePeriodFilter, type DatePeriod } from './DatePeriodFilter'
-import { formatTime } from './format'
+import { formatExactTime, formatTime } from './format'
 import { formatRelativeAge } from '@/lib/appInfo'
 import type { CpuMatchStatus, CpuPlayer, CpuPlayerSummary, DiscordUser, ReplayRescanDashboard } from './types'
 
@@ -121,7 +121,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
     value: (player) => player.aliases.join(', '),
     render: (player) => player.aliases.length ? player.aliases.join(', ') : '—',
     cellClassName: 'truncate text-muted-foreground',
-    defaultWidth: 155,
+    defaultWidth: 190,
     searchKey: 'aliases',
   },
   {
@@ -132,7 +132,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
     value: (player) => player.replayCount.toString(),
     render: (player) => player.replayCount.toLocaleString(),
     cellClassName: 'font-mono tabular-nums',
-    defaultWidth: 81,
+    defaultWidth: 96,
     searchKey: 'replayCount',
   },
   {
@@ -142,18 +142,19 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
     value: (player) => player.reportedCpu ?? '',
     render: (player) => player.reportedCpu ?? 'Not reported',
     cellClassName: 'truncate',
-    defaultWidth: 256,
+    defaultWidth: 204,
+    defaultVisible: false,
     searchKey: 'reportedCpu',
   },
   {
     key: 'score',
-    label: 'Thread Mark',
+    label: 'CPU score',
     sortKey: 'score',
     initialSortDirection: 'desc',
     value: (player) => player.singleThreadScore?.toString() ?? '',
     render: (player) => player.singleThreadScore?.toLocaleString() ?? '—',
     cellClassName: 'font-mono font-medium tabular-nums',
-    defaultWidth: 119,
+    defaultWidth: 118,
     searchKey: 'score',
   },
   {
@@ -201,13 +202,27 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
     initialSortDirection: 'desc',
     value: (player) => player.gentoolUpdatedAt ?? '',
     render: (player) => player.gentoolUpdatedAt ? (
-      <span title={formatTime(player.gentoolUpdatedAt)}>
-        {formatRelativeAge(player.gentoolUpdatedAt) ?? formatTime(player.gentoolUpdatedAt)}
-      </span>
+      <time dateTime={player.gentoolUpdatedAt} title={formatExactTime(player.gentoolUpdatedAt)}>
+        {formatRelativeAge(player.gentoolUpdatedAt) ?? formatExactTime(player.gentoolUpdatedAt)}
+      </time>
     ) : 'Never',
     cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
-    defaultWidth: 129,
+    defaultWidth: 145,
     searchKey: 'gentoolUpdatedAt',
+  },
+  {
+    key: 'observedAt',
+    label: 'Last played',
+    sortKey: 'observedAt',
+    initialSortDirection: 'desc',
+    value: (player) => player.observedAt,
+    render: (player) => (
+      <time dateTime={player.observedAt} title={formatExactTime(player.observedAt)}>
+        {formatRelativeAge(player.observedAt) ?? formatExactTime(player.observedAt)}
+      </time>
+    ),
+    cellClassName: 'whitespace-nowrap text-muted-foreground tabular-nums',
+    defaultWidth: 116,
   },
   {
     key: 'scoreUpdatedAt',
