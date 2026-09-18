@@ -21,6 +21,7 @@ class PublicReadSecurityTest {
     fun `analytics reads are public`() {
         listOf(
             "/console/replays",
+            "/console/replays/date-range",
             "/console/cpu-players",
             "/console/cpu-players/summary"
         ).forEach { path ->

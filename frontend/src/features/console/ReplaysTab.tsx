@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
+import { DatePeriodFilter, type DatePeriod } from './DatePeriodFilter'
 import { formatTime } from './format'
 import type { Replay, ReplayAssociatedFile } from './types'
 
@@ -211,6 +212,7 @@ export function ReplaysTab({
 }) {
   const [linkedPlayerIds, setLinkedPlayerIds] = useState<string[]>([])
   const [myReplaysOnly, setMyReplaysOnly] = useState(false)
+  const [period, setPeriod] = useState<DatePeriod>({ startDate: '', endDate: '' })
   const [copiedReplayId, setCopiedReplayId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -251,13 +253,15 @@ export function ReplaysTab({
   }
 
   return (
+    <div className="flex flex-col gap-3">
+    <DatePeriodFilter value={period} onChange={setPeriod} active={active} forceLoading={forceLoading} onError={onError} />
     <DataTab<Replay>
       columns={REPLAY_COLUMNS}
       columnWidthsKey="replays"
       defaultSortKey="matchAt"
       defaultSortDirection="desc"
       active={active}
-      filterKey={targetReplayId ?? targetPlayerId ?? (myReplaysOnly ? linkedPlayerIds.join(',') : null)}
+      filterKey={`${targetReplayId ?? targetPlayerId ?? (myReplaysOnly ? linkedPlayerIds.join(',') : '')}:${period.startDate}:${period.endDate}`}
       toolbarFilters={(
         <>
           {targetReplayId && (
@@ -315,15 +319,18 @@ export function ReplaysTab({
           {copiedReplayId === replay.id ? <Check className="text-primary" /> : <Copy />}
         </Button>
       )}
-      load={(page, size, q, field, sort, direction) => consoleApi.listReplays(
+      load={(page, size, q, field, sort, direction, exact) => consoleApi.listReplays(
         page,
         size,
         q,
         field,
         sort,
         direction,
+        exact,
         targetReplayId ? undefined : targetPlayerId ? [targetPlayerId] : myReplaysOnly ? linkedPlayerIds : undefined,
         targetReplayId ?? undefined,
+        period.startDate,
+        period.endDate,
       )}
       expand={(replay) => <ReplayDetails replay={replay} />}
       initialExpandedId={targetReplayId}
@@ -332,6 +339,7 @@ export function ReplaysTab({
       forceLoading={forceLoading}
       onError={onError}
     />
+    </div>
   )
 }
 

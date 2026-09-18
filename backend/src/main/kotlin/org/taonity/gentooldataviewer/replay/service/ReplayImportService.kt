@@ -5,6 +5,7 @@ import org.taonity.gentooldataviewer.replay.entity.ReplayAssociatedFileEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayPlayerEntity
 import org.taonity.gentooldataviewer.replay.parser.ParsedReplay
+import org.taonity.gentooldataviewer.replay.parser.ReplayTextParser
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayAssociatedFileRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
@@ -24,6 +25,7 @@ class ReplayImportService(
     private val playerHardwareRepository: PlayerHardwareRepository,
     private val cpuRatingService: CpuRatingService,
     private val objectMapper: ObjectMapper,
+    private val textParser: ReplayTextParser,
 ) {
     fun exists(sourceUrl: String): Boolean = replayRepository.existsBySourceUrl(sourceUrl)
 
@@ -90,6 +92,35 @@ class ReplayImportService(
         )
         updateHardware(replayId, parsed)
         return true
+    }
+
+    @Transactional
+    fun repairMissingPlayers(): Int {
+        var repaired = 0
+        replayRepository.findByPlayerNames("").forEach { replay ->
+            val parsed = runCatching { textParser.parse(replay.rawText) }.getOrNull() ?: return@forEach
+            val teams = parsed.teams.filter { it.players.isNotEmpty() }
+            if (teams.isEmpty()) return@forEach
+            val replayId = requireNotNull(replay.id)
+            if (replayPlayerRepository.findByReplayIdIn(listOf(replayId)).isNotEmpty()) return@forEach
+            replay.playerNames = teams.flatMap { it.players }.joinToString(", ") { it.name }
+            replayPlayerRepository.saveAll(
+                teams.flatMap { team ->
+                    team.players.mapIndexed { slot, player ->
+                        ReplayPlayerEntity(
+                            replayId = replayId,
+                            teamNumber = team.number,
+                            slotNumber = slot + 1,
+                            address = player.address,
+                            name = player.name,
+                            army = player.army,
+                        )
+                    }
+                },
+            )
+            repaired++
+        }
+        return repaired
     }
 
     private fun updateHardware(replayId: String, parsed: ParsedReplay) {

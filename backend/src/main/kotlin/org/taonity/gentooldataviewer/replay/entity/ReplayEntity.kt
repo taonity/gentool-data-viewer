@@ -24,7 +24,7 @@ class ReplayEntity(
     @Column(name = "reporter_name", nullable = false)
     val reporterName: String,
     @Column(name = "player_names", nullable = false, length = 2000)
-    val playerNames: String,
+    var playerNames: String,
     @Column(name = "match_at", nullable = false)
     val matchAt: Instant,
     @Column(name = "windows_compat")

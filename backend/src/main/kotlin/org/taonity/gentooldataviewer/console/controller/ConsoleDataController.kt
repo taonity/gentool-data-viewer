@@ -22,5 +22,6 @@ class ConsoleDataController(
         @RequestParam(required = false) field: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "50") size: Int,
-    ): PageResponse<AuditLogDto> = consoleDataService.listAuditLogs(principal, q, field, page, size)
+        @RequestParam(defaultValue = "false") exact: Boolean,
+    ): PageResponse<AuditLogDto> = consoleDataService.listAuditLogs(principal, q, field, page, size, exact)
 }

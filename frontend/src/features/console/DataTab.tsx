@@ -65,7 +65,10 @@ type DataTabProps<T> = {
     field?: string,
     sort?: string,
     direction?: string,
+    exact?: boolean,
   ) => Promise<PageResponse<T>>
+  loadPinnedRows?: (sort?: string, direction?: string) => Promise<Array<{ rank: number; row: T }>>
+  showRowNumbers?: boolean
   /** Resolves the page index where a searched row lives in the unfiltered list, enabling the jump action. */
   locate?: (row: T, size: number, direction?: string) => Promise<number>
   /** When set, rows get a chevron toggle that reveals this content in a full-width row below. */
@@ -102,6 +105,7 @@ const KEYBOARD_RESIZE_STEP = 16
 const EXPAND_COLUMN_WIDTH = 40
 const LOCATE_COLUMN_WIDTH = 48
 const ACTIONS_COLUMN_WIDTH = 79
+const ROW_NUMBER_COLUMN_WIDTH = 56
 
 type OverflowPreviewPayload = {
   getText: () => string
@@ -129,6 +133,8 @@ export function DataTab<T>({
   columnWidthsKey,
   rowKey,
   load,
+  loadPinnedRows,
+  showRowNumbers = false,
   locate,
   expand,
   roomAccessor,
@@ -154,10 +160,12 @@ export function DataTab<T>({
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(DEFAULT_PAGE_SIZE)
   const [data, setData] = useState<PageResponse<T> | null>(null)
+  const [pinnedRows, setPinnedRows] = useState<Array<{ rank: number; row: T }>>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [query, setQuery] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
+  const [exactMatch, setExactMatch] = useState(false)
   const [field, setField] = useState('all')
   const [sortKey, setSortKey] = useState(() => defaultSortKey ?? columns.find((column) => column.sortKey)?.sortKey ?? '')
   const [direction, setDirection] = useState<'desc' | 'asc'>(defaultSortDirection)
@@ -399,6 +407,7 @@ export function DataTab<T>({
       searchField: string,
       targetSortKey: string,
       dir: string,
+      exact: boolean,
       // A silent reload keeps the current table visible and only spins the refresh icon,
       // instead of swapping the rows out for skeletons.
       opts?: { silent?: boolean },
@@ -406,15 +415,22 @@ export function DataTab<T>({
       if (opts?.silent) setRefreshing(true)
       else setLoading(true)
       try {
-        const result = await load(
-          targetPage,
-          targetSize,
-          q.trim() || undefined,
-          searchField,
-          targetSortKey || undefined,
-          dir,
-        )
+        const [result, nextPinnedRows] = await Promise.all([
+          load(
+            targetPage,
+            targetSize,
+            q.trim() || undefined,
+            searchField,
+            targetSortKey || undefined,
+            dir,
+            exact && Boolean(q.trim()),
+          ),
+          loadPinnedRows && !q.trim()
+            ? loadPinnedRows(targetSortKey || undefined, dir)
+            : Promise.resolve([]),
+        ])
         setData(result)
+        setPinnedRows(nextPinnedRows)
         setPage(result.page)
       } catch {
         onError('Failed to load data.')
@@ -423,7 +439,7 @@ export function DataTab<T>({
         else setLoading(false)
       }
     },
-    [load, onError],
+    [load, loadPinnedRows, onError],
   )
 
   // Initial load only. Subsequent loads are triggered explicitly by user actions
@@ -442,29 +458,29 @@ export function DataTab<T>({
     }
     if (!wasActive.current) {
       if (didInitialLoad.current) {
-        void reload(page, size, activeQuery, field, sortKey, direction, { silent: true })
+        void reload(page, size, activeQuery, field, sortKey, direction, exactMatch, { silent: true })
       } else {
         didInitialLoad.current = true
-        void reload(0, DEFAULT_PAGE_SIZE, '', 'all', sortKey, defaultSortDirection)
+        void reload(0, DEFAULT_PAGE_SIZE, '', 'all', sortKey, defaultSortDirection, false)
       }
     }
     wasActive.current = true
-  }, [active, activeQuery, defaultSortDirection, direction, field, forceLoading, page, reload, size, sortKey])
+  }, [active, activeQuery, defaultSortDirection, direction, exactMatch, field, forceLoading, page, reload, size, sortKey])
 
   useEffect(() => {
     if (lastRefreshToken.current === refreshToken) return
     lastRefreshToken.current = refreshToken
-    if (active && data) void reload(page, size, activeQuery, field, sortKey, direction, { silent: true })
-  }, [active, activeQuery, data, direction, field, page, refreshToken, reload, size, sortKey])
+    if (active && data) void reload(page, size, activeQuery, field, sortKey, direction, exactMatch, { silent: true })
+  }, [active, activeQuery, data, direction, exactMatch, field, page, refreshToken, reload, size, sortKey])
 
   useEffect(() => {
     if (Object.is(lastFilterKey.current, filterKey)) return
     lastFilterKey.current = filterKey
     setPage(0)
     if (active && !forceLoading && didInitialLoad.current) {
-      void reload(0, size, activeQuery, field, sortKey, direction, { silent: true })
+      void reload(0, size, activeQuery, field, sortKey, direction, exactMatch, { silent: true })
     }
-  }, [active, activeQuery, direction, field, filterKey, forceLoading, reload, size, sortKey])
+  }, [active, activeQuery, direction, exactMatch, field, filterKey, forceLoading, reload, size, sortKey])
 
   useEffect(
     () => () => {
@@ -479,29 +495,41 @@ export function DataTab<T>({
   // swapping the table out for skeletons on every keystroke.
   const onSearchChange = (value: string) => {
     setQuery(value)
+    if (!value.trim()) {
+      setExactMatch(false)
+    }
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => {
       setActiveQuery(value)
-      void reload(0, size, value, field, sortKey, direction, { silent: true })
+      void reload(0, size, value, field, sortKey, direction, value.trim() ? exactMatch : false, { silent: true })
     }, 300)
+  }
+
+  const onExactMatchChange = (checked: boolean) => {
+    setExactMatch(checked)
+    if (query.trim()) {
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+      setActiveQuery(query)
+      void reload(0, size, query, field, sortKey, direction, checked, { silent: true })
+    }
   }
 
   const onFieldChange = (next: string) => {
     setField(next)
     if (activeQuery.trim()) {
-      void reload(0, size, activeQuery, next, sortKey, direction, { silent: true })
+      void reload(0, size, activeQuery, next, sortKey, direction, exactMatch, { silent: true })
     }
   }
 
   const onSizeChange = (next: number) => {
     setSize(next)
-    void reload(0, next, activeQuery, field, sortKey, direction)
+    void reload(0, next, activeQuery, field, sortKey, direction, exactMatch)
   }
 
   const onToggleDirection = () => {
     const next = direction === 'desc' ? 'asc' : 'desc'
     setDirection(next)
-    void reload(0, size, activeQuery, field, sortKey, next, { silent: true })
+    void reload(0, size, activeQuery, field, sortKey, next, exactMatch, { silent: true })
   }
 
   const onSort = (column: Column<T>) => {
@@ -511,19 +539,27 @@ export function DataTab<T>({
       : column.initialSortDirection ?? 'asc'
     setSortKey(column.sortKey)
     setDirection(nextDirection)
-    void reload(0, size, activeQuery, field, column.sortKey, nextDirection, { silent: true })
+    void reload(0, size, activeQuery, field, column.sortKey, nextDirection, exactMatch, { silent: true })
   }
 
   const searching = activeQuery.trim().length > 0
   const showLoading = forceLoading || loading
   const rows = data?.content ?? []
+  const pinnedIds = new Set(pinnedRows.map(({ row }) => rowKey(row)))
+  const displayedRows = [
+    ...pinnedRows.map(({ rank, row }) => ({ rank, row, pinned: true })),
+    ...rows
+      .map((row, index) => ({ rank: page * size + index + 1, row, pinned: false }))
+      .filter(({ row }) => !pinnedIds.has(rowKey(row))),
+  ]
   const visibleColumns = columns.filter((column) => visibleColumnKeys.has(column.key))
   const hasActions = Boolean(rowActions) || canEdit
-  const columnCount = visibleColumns.length + (expand ? 1 : 0) + (locate ? 1 : 0) + (hasActions ? 1 : 0)
+  const columnCount = visibleColumns.length + (showRowNumbers ? 1 : 0) + (expand ? 1 : 0) + (locate ? 1 : 0) + (hasActions ? 1 : 0)
   const visibleColumnWidths = visibleColumns.map((column) => columnWidths[column.key] ?? column.defaultWidth)
   const fixedTableWidth = visibleColumnWidths.every((width): width is number => width !== undefined)
     ? visibleColumnWidths.reduce((total, width) => total + width, 0)
       + (expand ? EXPAND_COLUMN_WIDTH : 0)
+      + (showRowNumbers ? ROW_NUMBER_COLUMN_WIDTH : 0)
       + (locate ? LOCATE_COLUMN_WIDTH : 0)
     : null
   const tableWidthStyle = fixedTableWidth === null
@@ -562,29 +598,9 @@ export function DataTab<T>({
     if (!confirm('Delete this row? This action cannot be undone.')) return
     try {
       await onDelete(row)
-      await reload(page, size, activeQuery, field, sortKey, direction)
+      await reload(page, size, activeQuery, field, sortKey, direction, exactMatch)
     } catch {
       onError('Failed to delete row.')
-    }
-  }
-
-  const jumpTo = async (row: T) => {
-    if (!locate) return
-    const id = rowKey(row)
-    setJumpingId(id)
-    try {
-      const targetPage = await locate(row, size, direction)
-      if (searchTimer.current) clearTimeout(searchTimer.current)
-      setQuery('')
-      setActiveQuery('')
-      await reload(targetPage, size, '', field, sortKey, direction)
-      setHighlightId(id)
-      if (highlightTimer.current) clearTimeout(highlightTimer.current)
-      highlightTimer.current = setTimeout(() => setHighlightId(null), 3000)
-    } catch {
-      onError('Failed to locate the selected row.')
-    } finally {
-      setJumpingId(null)
     }
   }
 
@@ -638,6 +654,17 @@ export function DataTab<T>({
               />
             )}
           </div>
+          <label className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              aria-label="Exact match"
+              checked={exactMatch}
+              disabled={!query.trim()}
+              onChange={(event) => onExactMatchChange(event.target.checked)}
+            />
+            Exact
+          </label>
           {searching && data && (
             <span className="text-xs text-muted-foreground">
               {data.totalElements} match{data.totalElements === 1 ? '' : 'es'} across all rows
@@ -699,7 +726,7 @@ export function DataTab<T>({
             variant="ghost"
             size="sm"
             disabled={showLoading || refreshing}
-            onClick={() => reload(page, size, activeQuery, field, sortKey, direction, { silent: true })}
+            onClick={() => reload(page, size, activeQuery, field, sortKey, direction, exactMatch, { silent: true })}
           >
             <RotateCw className={showLoading || refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -718,6 +745,15 @@ export function DataTab<T>({
           <TableHeader>
             <TableRow className="bg-muted/40">
               {expand && <TableHead style={{ width: EXPAND_COLUMN_WIDTH }} />}
+              {showRowNumbers && (
+                <TableHead
+                  style={{ width: ROW_NUMBER_COLUMN_WIDTH }}
+                  className="text-right"
+                  title="Position in the current sorting"
+                >
+                  #
+                </TableHead>
+              )}
               {visibleColumns.map((c, index) => {
                 const nextColumn = visibleColumns[index + 1]
                 return (
@@ -790,6 +826,11 @@ export function DataTab<T>({
               Array.from({ length: SKELETON_ROWS }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`} className="h-[33px] hover:bg-transparent">
                   {expand && <TableCell className="w-[40px]" />}
+                  {showRowNumbers && (
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-4 w-5" />
+                    </TableCell>
+                  )}
                   {visibleColumns.map((c, idx) => (
                     <TableCell key={c.key} className={c.cellClassName}>
                       <Skeleton
@@ -821,12 +862,19 @@ export function DataTab<T>({
               ))}
 
             {!showLoading &&
-              rows.map((row) => {
+              displayedRows.map(({ rank, row, pinned }) => {
                 const id = rowKey(row)
                 const isExpanded = expandedIds.has(id)
                 return (
                   <Fragment key={id}>
-                    <TableRow className={cn('group h-[33px]', highlightId === id && 'bg-primary/10')}>
+                    <TableRow
+                      title={pinned ? 'Your linked GenTool player' : undefined}
+                      className={cn(
+                        'group h-[33px]',
+                        pinned && 'bg-primary/10 hover:bg-primary/15',
+                        highlightId === id && 'bg-primary/10',
+                      )}
+                    >
                       {expand && (
                         <TableCell className="w-[40px]">
                           <Button
@@ -839,6 +887,11 @@ export function DataTab<T>({
                           >
                             {isExpanded ? <ChevronDown /> : <ChevronRight />}
                           </Button>
+                        </TableCell>
+                      )}
+                      {showRowNumbers && (
+                        <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
+                          {rank.toLocaleString()}
                         </TableCell>
                       )}
                       {visibleColumns.map((c) => (
@@ -861,7 +914,24 @@ export function DataTab<T>({
                               aria-label="Jump to this row"
                               title="Jump to this row in the full list"
                               disabled={jumpingId === id}
-                              onClick={() => jumpTo(row)}
+                              onClick={async () => {
+                                if (!locate) return
+                                setJumpingId(id)
+                                try {
+                                  const targetPage = await locate(row, size, direction)
+                                  if (searchTimer.current) clearTimeout(searchTimer.current)
+                                  setQuery('')
+                                  setActiveQuery('')
+                                  await reload(targetPage, size, '', field, sortKey, direction, false)
+                                  setHighlightId(id)
+                                  if (highlightTimer.current) clearTimeout(highlightTimer.current)
+                                  highlightTimer.current = setTimeout(() => setHighlightId(null), 3000)
+                                } catch {
+                                  onError('Failed to locate the selected row.')
+                                } finally {
+                                  setJumpingId(null)
+                                }
+                              }}
                             >
                               <ArrowRightToLine />
                             </Button>
@@ -875,7 +945,9 @@ export function DataTab<T>({
                             rowActionsAlign === 'center' ? 'text-center' : 'pr-3 text-right',
                             highlightId === id
                               ? 'bg-primary/10'
-                              : 'bg-background group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-has-aria-expanded:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]',
+                              : pinned
+                                ? 'bg-[color-mix(in_oklab,var(--primary)_10%,var(--background))] group-hover:bg-[color-mix(in_oklab,var(--primary)_15%,var(--background))]'
+                                : 'bg-background group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))] group-has-aria-expanded:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]',
                           )}
                         >
                           <div className={cn('flex gap-0.5', rowActionsAlign === 'center' ? 'justify-center' : 'justify-end')}>
@@ -906,7 +978,7 @@ export function DataTab<T>({
                 )
               })}
 
-            {!showLoading && rows.length === 0 && (
+            {!showLoading && displayedRows.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={columnCount}
@@ -947,7 +1019,7 @@ export function DataTab<T>({
             variant="outline"
             size="sm"
             disabled={showLoading || page <= 0}
-            onClick={() => reload(page - 1, size, activeQuery, field, sortKey, direction)}
+            onClick={() => reload(page - 1, size, activeQuery, field, sortKey, direction, exactMatch)}
           >
             Previous
           </Button>
@@ -956,7 +1028,7 @@ export function DataTab<T>({
             variant="outline"
             size="sm"
             disabled={showLoading || !data || page + 1 >= data.totalPages}
-            onClick={() => reload(page + 1, size, activeQuery, field, sortKey, direction)}
+            onClick={() => reload(page + 1, size, activeQuery, field, sortKey, direction, exactMatch)}
           >
             Next
           </Button>

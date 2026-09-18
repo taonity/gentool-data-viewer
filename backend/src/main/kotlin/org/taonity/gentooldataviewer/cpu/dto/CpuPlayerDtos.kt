@@ -57,6 +57,11 @@ data class CpuPlayerLatestMatchDto(
     val teams: List<List<String>>,
 )
 
+data class RankedCpuPlayerDto(
+    val rank: Long,
+    val player: CpuPlayerDto,
+)
+
 data class DiscordUserDto(
     val displayName: String,
     val pictureUrl: String?,

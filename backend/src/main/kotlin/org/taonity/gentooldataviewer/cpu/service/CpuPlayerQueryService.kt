@@ -6,13 +6,18 @@ import org.taonity.gentooldataviewer.cpu.dto.DiscordUserDto
 import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerDto
 import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerLatestMatchDto
 import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerSummaryDto
+import org.taonity.gentooldataviewer.cpu.dto.RankedCpuPlayerDto
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
+import org.taonity.gentooldataviewer.cpu.repository.CpuPlayerRankingRepository
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
+import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.user.repository.UserRepository
+import org.taonity.gentooldataviewer.console.service.AccessGuard
+import org.taonity.gentooldataviewer.security.principal.GoogleUserPrincipal
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
@@ -28,6 +33,8 @@ class CpuPlayerQueryService(
     private val userRepository: UserRepository,
     private val benchmarkRepository: CpuBenchmarkRepository,
     private val benchmarkSyncService: CpuBenchmarkSyncService,
+    private val rankingRepository: CpuPlayerRankingRepository,
+    private val accessGuard: AccessGuard,
     private val settings: AppSettings,
     private val objectMapper: ObjectMapper,
 ) {
@@ -41,6 +48,7 @@ class CpuPlayerQueryService(
         direction: String?,
         linkedOnly: Boolean = false,
         playerId: String? = null,
+        exact: Boolean = false,
     ): PageResponse<CpuPlayerDto> {
         val pageNumber = page.coerceAtLeast(0)
         val pageSize = size.coerceIn(1, settings.console().maxPageSize)
@@ -59,6 +67,7 @@ class CpuPlayerQueryService(
                 pageable = PageRequest.of(pageNumber, pageSize),
                 linkedOnly = linkedOnly,
                 playerId = targetPlayerId,
+                exact = exact,
             )
         } else {
             hardwareRepository.search(
@@ -72,20 +81,48 @@ class CpuPlayerQueryService(
                 linkedOnly = linkedOnly,
                 linkStatus = GentoolLinkStatus.APPROVED,
                 playerId = targetPlayerId,
+                exact = exact,
             )
         }
+        val playersById = playerDtos(result.content)
+        return PageResponse.of(result) { player -> playersById.getValue(player.playerId) }
+    }
+
+    @Transactional(readOnly = true)
+    fun listLinked(
+        principal: GoogleUserPrincipal,
+        sort: String?,
+        direction: String?,
+        linkedOnly: Boolean,
+    ): List<RankedCpuPlayerDto> {
+        val user = accessGuard.requireView(principal)
+        val playerIds = linkRepository.findByUserId(user.userId)
+            .filter { it.status == GentoolLinkStatus.APPROVED }
+            .map { it.playerId }
+        if (playerIds.isEmpty()) return emptyList()
+        val players = hardwareRepository.findAllById(playerIds)
+        val playersById = playerDtos(players)
+        val ranks = rankingRepository.findRanks(playerIds, sort, direction, linkedOnly)
+        return playerIds.mapNotNull { playerId ->
+            val player = playersById[playerId] ?: return@mapNotNull null
+            val rank = ranks[playerId] ?: return@mapNotNull null
+            RankedCpuPlayerDto(rank, player)
+        }.sortedBy { it.rank }
+    }
+
+    private fun playerDtos(players: List<PlayerHardwareEntity>): Map<String, CpuPlayerDto> {
         val linksByPlayerId = linkRepository.findByPlayerIdInAndStatus(
-            result.content.map { it.playerId },
+            players.map { it.playerId },
             GentoolLinkStatus.APPROVED,
         ).associateBy { it.playerId }
         val usersById = userRepository.findAllById(linksByPlayerId.values.map { it.userId })
             .associateBy { it.userId }
-        val latestReplaysByPlayerId = replayRepository.findLatestByReporterIds(result.content.map { it.playerId })
+        val latestReplaysByPlayerId = replayRepository.findLatestByReporterIds(players.map { it.playerId })
             .associateBy { it.reporterId }
         val latestReplayPlayers = replayPlayerRepository.findByReplayIdIn(
             latestReplaysByPlayerId.values.mapNotNull { it.id },
         ).groupBy { it.replayId }
-        return PageResponse.of(result) { player ->
+        return players.associate { player ->
             val user = linksByPlayerId[player.playerId]?.let { usersById[it.userId] }
             val latestReplay = latestReplaysByPlayerId[player.playerId]
             val latestMatch = latestReplay?.let { replay ->
@@ -98,7 +135,7 @@ class CpuPlayerQueryService(
                         .map { team -> team.map { it.name } },
                 )
             }
-            CpuPlayerDto.from(
+            player.playerId to CpuPlayerDto.from(
                 player,
                 objectMapper,
                 user?.let { DiscordUserDto(it.displayName, it.pictureUrl) },

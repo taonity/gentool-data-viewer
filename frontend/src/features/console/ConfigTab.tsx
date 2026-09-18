@@ -78,6 +78,7 @@ export function ConfigTab({
   const [resettingKey, setResettingKey] = useState<string | null>(null)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [exactMatch, setExactMatch] = useState(false)
   const wasActive = useRef(false)
 
   const draftsFromSchema = (next: ConfigSchema) =>
@@ -135,14 +136,16 @@ export function ConfigTab({
         .map((g) => ({
           ...g,
           fields: g.fields.filter(
-            (f) => f.key.toLowerCase().includes(q) || f.label.toLowerCase().includes(q),
+            (f) => exactMatch
+              ? f.key.toLowerCase() === q || f.label.toLowerCase() === q
+              : f.key.toLowerCase().includes(q) || f.label.toLowerCase().includes(q),
           ),
         }))
         .filter((g) => g.fields.length > 0)
     }
     const active = groups.find((g) => g.name === activeGroup)
     return active ? [active] : []
-  }, [groups, q, activeGroup])
+  }, [groups, q, activeGroup, exactMatch])
 
   const save = async () => {
     if (!schema || dirtyKeys.length === 0) return
@@ -192,6 +195,17 @@ export function ConfigTab({
               className="h-8 pl-8"
             />
           </div>
+          <label className="flex h-8 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              className="size-4"
+              aria-label="Exact match"
+              checked={exactMatch}
+              disabled
+              readOnly
+            />
+            Exact
+          </label>
           <span className="hidden text-xs text-muted-foreground md:inline">
             Applies live · no restart
           </span>
@@ -243,11 +257,25 @@ export function ConfigTab({
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              if (!event.target.value.trim()) setExactMatch(false)
+            }}
             placeholder="Search settings…"
             className="h-8 pl-8"
           />
         </div>
+        <label className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            aria-label="Exact match"
+            checked={exactMatch}
+            disabled={!query.trim()}
+            onChange={(event) => setExactMatch(event.target.checked)}
+          />
+          Exact
+        </label>
         <span className="hidden text-xs text-muted-foreground md:inline">
           Applies live · no restart
         </span>

@@ -124,10 +124,15 @@ class ReplayTextParser {
 
     private fun parseTeams(lines: List<String>): List<ParsedTeam> {
         val teams = mutableListOf<ParsedTeam>()
+        var nextUnteamedNumber = lines.mapNotNull { line ->
+            TEAM_PATTERN.matchEntire(line.trim())?.groupValues?.get(1)?.toInt()
+        }.maxOrNull()?.plus(1) ?: 1
         var index = 0
         while (index < lines.size) {
-            val teamMatch = TEAM_PATTERN.matchEntire(lines[index].trim())
-            if (teamMatch == null) {
+            val heading = lines[index].trim()
+            val teamMatch = TEAM_PATTERN.matchEntire(heading)
+            val unteamed = heading.equals("No Team", ignoreCase = true)
+            if (teamMatch == null && !unteamed) {
                 index++
                 continue
             }
@@ -143,7 +148,11 @@ class ReplayTextParser {
                 )
                 index++
             }
-            teams += ParsedTeam(teamMatch.groupValues[1].toInt(), players)
+            if (unteamed) {
+                players.forEach { player -> teams += ParsedTeam(nextUnteamedNumber++, listOf(player)) }
+            } else {
+                teams += ParsedTeam(teamMatch!!.groupValues[1].toInt(), players)
+            }
         }
         return teams
     }

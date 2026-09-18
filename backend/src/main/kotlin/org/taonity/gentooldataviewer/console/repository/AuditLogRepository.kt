@@ -18,14 +18,14 @@ interface AuditLogRepository : JpaRepository<AuditLogEntity, String> {
     @Query(
         """
         SELECT a FROM AuditLogEntity a
-        WHERE ((:field = 'all' OR :field = 'action') AND LOWER(string(a.action)) LIKE LOWER(CONCAT('%', :q, '%')))
-           OR ((:field = 'all' OR :field = 'targetType') AND LOWER(a.targetType) LIKE LOWER(CONCAT('%', :q, '%')))
-           OR ((:field = 'all' OR :field = 'targetId') AND LOWER(COALESCE(a.targetId, '')) LIKE LOWER(CONCAT('%', :q, '%')))
-           OR ((:field = 'all' OR :field = 'actorUserId') AND LOWER(a.actorUserId) LIKE LOWER(CONCAT('%', :q, '%')))
+          WHERE ((:field = 'all' OR :field = 'action') AND LOWER(string(a.action)) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
+              OR ((:field = 'all' OR :field = 'targetType') AND LOWER(a.targetType) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
+              OR ((:field = 'all' OR :field = 'targetId') AND LOWER(COALESCE(a.targetId, '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
+              OR ((:field = 'all' OR :field = 'actorUserId') AND LOWER(a.actorUserId) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
         ORDER BY a.occurredAt DESC
         """,
     )
-    fun search(q: String, field: String, pageable: Pageable): Page<AuditLogEntity>
+    fun search(q: String, field: String, pageable: Pageable, exact: Boolean = false): Page<AuditLogEntity>
 
     @Modifying
     fun deleteByOccurredAtBefore(cutoff: Instant): Int

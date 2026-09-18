@@ -18,6 +18,7 @@ import type {
   Replay,
   CpuBenchmarkSync,
   CpuPlayer,
+  RankedCpuPlayer,
   CpuPlayerSummary,
   UserSummary,
 } from './types'
@@ -101,14 +102,20 @@ export const consoleApi = {
   changeUserRole: (googleId: string, role: ConsoleRole) =>
     mutate<UserSummary>(`/users/${encodeURIComponent(googleId)}/role`, 'PUT', { role }),
 
-  searchDiscordUsersForLink: (q: string) =>
-    get<AdminDiscordUserOption[]>(`/player-links/users?${new URLSearchParams({ q }).toString()}`),
+  searchDiscordUsersForLink: (q: string, exact = false) =>
+    get<AdminDiscordUserOption[]>(`/player-links/users?${new URLSearchParams({
+      q,
+      ...(exact && q.trim() ? { exact: 'true' } : {}),
+    }).toString()}`),
 
   resolveDiscordUserForLink: (discordUserId: string) =>
     mutate<AdminDiscordUserOption>('/player-links/users/resolve', 'POST', { discordUserId }),
 
-  searchGentoolPlayersForLink: (q: string) =>
-    get<AdminGentoolPlayerOption[]>(`/player-links/players?${new URLSearchParams({ q }).toString()}`),
+  searchGentoolPlayersForLink: (q: string, exact = false) =>
+    get<PageResponse<AdminGentoolPlayerOption>>(`/player-links/players?${new URLSearchParams({
+      q,
+      ...(exact && q.trim() ? { exact: 'true' } : {}),
+    }).toString()}`),
 
   assignGentoolLink: (userId: string, playerId: string) =>
     mutate<AdminGentoolLink>('/player-links', 'PUT', { userId, playerId }),
@@ -116,8 +123,8 @@ export const consoleApi = {
   unlinkGentoolUser: (userId: string, playerId: string) =>
     mutate<void>(`/player-links/${encodeURIComponent(userId)}/${encodeURIComponent(playerId)}`, 'DELETE'),
 
-  listAuditLogs: (page: number, size: number, q?: string, field?: string) =>
-    get<PageResponse<AuditLog>>(buildListQuery('/audit-logs', page, size, q, field)),
+  listAuditLogs: (page: number, size: number, q?: string, field?: string, exact?: boolean) =>
+    get<PageResponse<AuditLog>>(buildListQuery('/audit-logs', page, size, q, field, undefined, undefined, { exact })),
 
   getConfig: () => get<ConfigSchema>('/config'),
 
@@ -143,16 +150,26 @@ export const consoleApi = {
   requestReplayRescan: (playerId: string) =>
     mutate<ReplayRescanAccepted>('/replay-rescans', 'POST', { playerId }),
 
-  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, reporterIds?: string[], replay?: string) =>
+  getReplayDateRange: () =>
+    get<{ startDate: string | null; endDate: string | null }>('/replays/date-range'),
+
+  listReplays: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, exact?: boolean, reporterIds?: string[], replay?: string, startDate?: string, endDate?: string) =>
     get<PageResponse<Replay>>(buildListQuery('/replays', page, size, q, field, sort, direction, {
+      exact,
       reporterIds: reporterIds?.join(','),
       replay,
+      startDate,
+      endDate,
     })),
 
-  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, linkedOnly?: boolean, player?: string) =>
-    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction, { linkedOnly, player })),
+  listCpuPlayers: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, linkedOnly?: boolean, player?: string, exact?: boolean, startDate?: string, endDate?: string) =>
+    get<PageResponse<CpuPlayer>>(buildListQuery('/cpu-players', page, size, q, field, sort, direction, { linkedOnly, player, exact, startDate, endDate })),
 
-  getCpuPlayerSummary: () => get<CpuPlayerSummary>('/cpu-players/summary'),
+  listMyRankedCpuPlayers: (sort?: string, direction?: string, linkedOnly?: boolean, startDate?: string, endDate?: string) =>
+    get<RankedCpuPlayer[]>(buildListQuery('/cpu-players/mine', 0, 1, undefined, undefined, sort, direction, { linkedOnly, startDate, endDate })),
+
+  getCpuPlayerSummary: (startDate?: string, endDate?: string) =>
+    get<CpuPlayerSummary>(buildListQuery('/cpu-players/summary', 0, 1, undefined, undefined, undefined, undefined, { startDate, endDate })),
 
   refreshCpuBenchmarks: () =>
     mutate<CpuBenchmarkSync>('/cpu-players/benchmarks/refresh', 'POST', undefined, 120000),

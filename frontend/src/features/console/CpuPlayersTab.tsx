@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
+import { DatePeriodFilter, type DatePeriod } from './DatePeriodFilter'
 import { formatTime } from './format'
 import { formatRelativeAge } from '@/lib/appInfo'
 import type { CpuMatchStatus, CpuPlayer, CpuPlayerSummary, DiscordUser, ReplayRescanDashboard } from './types'
@@ -252,21 +253,21 @@ export function CpuPlayersTab({
   const [refreshingCatalog, setRefreshingCatalog] = useState(false)
   const [tableRefreshToken, setTableRefreshToken] = useState(0)
   const [linkedOnly, setLinkedOnly] = useState(false)
+  const [period, setPeriod] = useState<DatePeriod>({ startDate: '', endDate: '' })
   const [cooldownClock, setCooldownClock] = useState(() => Date.now())
-  const wasActive = useRef(false)
   const hadActiveRescan = useRef(false)
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true)
     try {
-      setSummary(await consoleApi.getCpuPlayerSummary())
+      setSummary(await consoleApi.getCpuPlayerSummary(period.startDate, period.endDate))
       setSummaryError(false)
     } catch {
       setSummaryError(true)
     } finally {
       setSummaryLoading(false)
     }
-  }, [])
+  }, [period.startDate, period.endDate])
 
   const loadRescanDashboard = useCallback(async () => {
     if (!canManage) return
@@ -286,15 +287,8 @@ export function CpuPlayersTab({
   }, [canManage, loadSummary, onError])
 
   useEffect(() => {
-    if (forceLoading || !active) {
-      wasActive.current = false
-      return
-    }
-    if (!wasActive.current) {
-      void loadSummary()
-    }
-    wasActive.current = true
-  }, [active, forceLoading, loadRescanDashboard, loadSummary])
+    if (active && !forceLoading) void loadSummary()
+  }, [active, forceLoading, loadSummary])
 
   useEffect(() => {
     if (active && canManage && !forceLoading) void loadRescanDashboard()
@@ -351,27 +345,29 @@ export function CpuPlayersTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <Summary
-          summary={forceLoading ? null : summary}
-          loading={forceLoading || summaryLoading}
-          error={summaryError}
-          onRetry={() => void loadSummary()}
-        />
-        {canRefresh && (
+      {canRefresh && (
+        <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <Summary
+            summary={forceLoading ? null : summary}
+            loading={forceLoading || summaryLoading}
+            error={summaryError}
+            onRetry={() => void loadSummary()}
+          />
           <Button variant="outline" size="sm" disabled={refreshingCatalog} onClick={refreshCatalog}>
             {refreshingCatalog ? <Loader2 className="animate-spin" /> : <DatabaseZap />}
             Refresh benchmarks
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       {canManage && rescanDashboard && (
         <PlayerRescanStatus dashboard={rescanDashboard} />
       )}
+      <DatePeriodFilter value={period} onChange={setPeriod} active={active} forceLoading={forceLoading}
+        refreshToken={tableRefreshToken} onError={onError} />
       <DataTab<CpuPlayer>
         active={active}
         refreshToken={tableRefreshToken}
-        filterKey={`${linkedOnly}:${targetPlayerId ?? ''}`}
+        filterKey={`${linkedOnly}:${targetPlayerId ?? ''}:${period.startDate}:${period.endDate}`}
         toolbarFilters={(
           <>
             {targetPlayerId && (
@@ -397,8 +393,13 @@ export function CpuPlayersTab({
         )}
         columns={playerColumns(onNavigateToPlayer)}
         columnWidthsKey="players"
-        defaultSortKey="score"
+        defaultSortKey="replayCount"
         defaultSortDirection="desc"
+        showRowNumbers
+        loadPinnedRows={canManage && !targetPlayerId
+          ? async (sort, direction) => (await consoleApi.listMyRankedCpuPlayers(sort, direction, linkedOnly, period.startDate, period.endDate))
+            .map(({ rank, player }) => ({ rank, row: player }))
+          : undefined}
         columnSelection
         rowKey={(player) => player.playerId}
         rowActionsAlign={canManage ? 'end' : 'center'}
@@ -458,11 +459,11 @@ export function CpuPlayersTab({
             </>
           )
         }}
-        load={(page, size, q, field, sort, direction) => consoleApi.listCpuPlayers(
-          page, size, q, field, sort, direction, linkedOnly, targetPlayerId ?? undefined,
+        load={(page, size, q, field, sort, direction, exact) => consoleApi.listCpuPlayers(
+          page, size, q, field, sort, direction, linkedOnly, targetPlayerId ?? undefined, exact, period.startDate, period.endDate,
         )}
         emptyLabel="No player hardware collected."
-        sortLabel="single-thread score"
+        sortLabel="games"
         sortDescendingLabel="Highest"
         sortAscendingLabel="Lowest"
         forceLoading={forceLoading}
@@ -491,8 +492,7 @@ function Summary({
         <Stat label="Unmatched" value={summary.unmatchedPlayers.toLocaleString()} />
         <Stat label="Ambiguous" value={summary.ambiguousPlayers.toLocaleString()} />
         <Stat label="No CPU" value={summary.playersWithoutCpu.toLocaleString()} />
-        <Stat label="Catalog" value={summary.catalogEntries ? `${summary.catalogEntries.toLocaleString()} · ${summary.catalogFetchedAt ? formatTime(summary.catalogFetchedAt) : ''}` : 'Not loaded'} />
-        <Stat label="Data since" value={summary.dataSince ? formatTime(summary.dataSince) : 'No data yet'} />
+        <Stat label="CPU benchmarks" value={summary.catalogEntries ? `${summary.catalogEntries.toLocaleString()} · ${summary.catalogFetchedAt ? formatTime(summary.catalogFetchedAt) : ''}` : 'Not loaded'} />
       </dl>
     )
   }
@@ -508,7 +508,7 @@ function Summary({
     )
   }
   if (loading) {
-    return <div className="flex flex-wrap gap-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-9 w-28" />)}</div>
+    return <div className="flex flex-wrap gap-4">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-9 w-28" />)}</div>
   }
   return null
 }

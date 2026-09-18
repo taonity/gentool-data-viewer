@@ -1,0 +1,1 @@
+CREATE INDEX idx_replay_reporter_match ON replay(reporter_id, match_at);

@@ -77,6 +77,34 @@ spring:
 
 ```
 
+## Match Date Periods
+
+Players and Replays accept optional `startDate` and `endDate` in `YYYY-MM-DD` form.
+Both use replay `match_at`, not collection or source-directory dates. Start is
+inclusive UTC midnight; end includes the entire UTC calendar day. Either bound
+may be omitted. Omitting both keeps the existing all-time query path.
+
+Both date filters display the earliest and latest replay match dates by default,
+obtained from `/console/replays/date-range` in UTC. The All time selection still
+omits date parameters so newly collected data is included automatically. Clearing
+a custom period restores these visible full-range dates. An empty replay dataset
+returns null bounds instead of inventing dates.
+
+The period player view is read-only: names are ranked by frequency, latest use,
+then name; Games counts reports by reporter ID; CPU and lineup come from the latest
+report inside the period. Players without period reports are excluded, including
+pinned players. Sorting, pagination, pinned rank, and player summary counts use
+the period dataset. Discord links and GenTool collection timestamps remain current.
+Historical CPU observations are matched against the current benchmark catalog,
+not a historical benchmark-score snapshot.
+
+SQL reduces history to one row per player/name; the service rates distinct CPUs
+and filters/sorts those aggregate rows before pagination. This avoids loading raw
+reports but memory use still scales with active players and aliases in the period.
+The `(reporter_id, match_at)` index supports player history access; `match_at` is
+also indexed for date-range scans. Benchmark larger production datasets before
+adding caching or precomputed daily aggregates.
+
 ## Tips
 
 - Keep migrations small and focused

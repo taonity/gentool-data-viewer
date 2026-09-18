@@ -247,7 +247,7 @@ export function AdminPanel({
             columns={AUDIT_COLUMNS}
             columnWidthsKey="audit-log"
             rowKey={(a) => a.id}
-            load={(page, size, q, field) => consoleApi.listAuditLogs(page, size, q, field)}
+            load={(page, size, q, field, _sort, _direction, exact) => consoleApi.listAuditLogs(page, size, q, field, exact)}
             emptyLabel="No audit entries."
             forceLoading={forceLoading}
             onError={onError}
@@ -300,8 +300,11 @@ function PlayerLinksCard({
   const [playerQuery, setPlayerQuery] = useState('')
   const deferredUserQuery = useDeferredValue(userQuery)
   const deferredPlayerQuery = useDeferredValue(playerQuery)
+  const [exactUserMatch, setExactUserMatch] = useState(false)
+  const [exactPlayerMatch, setExactPlayerMatch] = useState(false)
   const [users, setUsers] = useState<AdminDiscordUserOption[] | null>(null)
   const [players, setPlayers] = useState<AdminGentoolPlayerOption[] | null>(null)
+  const [playerTotal, setPlayerTotal] = useState(0)
   const [selectedUser, setSelectedUser] = useState<AdminDiscordUserOption | null>(null)
   const [selectedPlayer, setSelectedPlayer] = useState<AdminGentoolPlayerOption | null>(null)
   const [usersLoading, setUsersLoading] = useState(false)
@@ -312,11 +315,11 @@ function PlayerLinksCard({
   const userRequest = useRef(0)
   const playerRequest = useRef(0)
 
-  const loadUsers = useCallback(async (query: string) => {
+  const loadUsers = useCallback(async (query: string, exact: boolean) => {
     const request = ++userRequest.current
     setUsersLoading(true)
     try {
-      const result = await consoleApi.searchDiscordUsersForLink(query)
+      const result = await consoleApi.searchDiscordUsersForLink(query, exact)
       if (request === userRequest.current) setUsers(result)
     } catch {
       if (request === userRequest.current) onError('Failed to search Discord users.')
@@ -325,12 +328,15 @@ function PlayerLinksCard({
     }
   }, [onError])
 
-  const loadPlayers = useCallback(async (query: string) => {
+  const loadPlayers = useCallback(async (query: string, exact: boolean) => {
     const request = ++playerRequest.current
     setPlayersLoading(true)
     try {
-      const result = await consoleApi.searchGentoolPlayersForLink(query)
-      if (request === playerRequest.current) setPlayers(result)
+      const result = await consoleApi.searchGentoolPlayersForLink(query, exact)
+      if (request === playerRequest.current) {
+        setPlayers(result.content)
+        setPlayerTotal(result.totalElements)
+      }
     } catch {
       if (request === playerRequest.current) onError('Failed to search GenTool players.')
     } finally {
@@ -340,13 +346,13 @@ function PlayerLinksCard({
 
   useEffect(() => {
     if (!active || forceLoading) return
-    void loadUsers(deferredUserQuery)
-  }, [active, deferredUserQuery, forceLoading, loadUsers])
+    void loadUsers(deferredUserQuery, exactUserMatch)
+  }, [active, deferredUserQuery, exactUserMatch, forceLoading, loadUsers])
 
   useEffect(() => {
     if (!active || forceLoading) return
-    void loadPlayers(deferredPlayerQuery)
-  }, [active, deferredPlayerQuery, forceLoading, loadPlayers])
+    void loadPlayers(deferredPlayerQuery, exactPlayerMatch)
+  }, [active, deferredPlayerQuery, exactPlayerMatch, forceLoading, loadPlayers])
 
   const playerWillMove = Boolean(
     selectedPlayer?.linkedUserId && selectedPlayer.linkedUserId !== selectedUser?.userId,
@@ -358,6 +364,7 @@ function PlayerLinksCard({
       && !selectedLink,
   )
   const canResolveUser = /^[0-9]{17,20}$/.test(userQuery.trim())
+  const additionalPlayers = Math.max(playerTotal - (players?.length ?? 0), 0)
 
   const resolveUser = async (discordUserId = userQuery.trim()) => {
     if (!/^[0-9]{17,20}$/.test(discordUserId)) return
@@ -387,7 +394,10 @@ function PlayerLinksCard({
       setSelectedUser(result.user)
       setSelectedPlayer(result.player)
       setResultMessage(`Linked ${result.user.displayName} to ${result.player.mainName}.`)
-      await Promise.all([loadUsers(deferredUserQuery), loadPlayers(deferredPlayerQuery)])
+      await Promise.all([
+        loadUsers(deferredUserQuery, exactUserMatch),
+        loadPlayers(deferredPlayerQuery, exactPlayerMatch),
+      ])
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to link profiles.')
     } finally {
@@ -417,7 +427,10 @@ function PlayerLinksCard({
         })
       }
       setResultMessage(`Removed the link to ${playerName}.`)
-      await Promise.all([loadUsers(deferredUserQuery), loadPlayers(deferredPlayerQuery)])
+      await Promise.all([
+        loadUsers(deferredUserQuery, exactUserMatch),
+        loadPlayers(deferredPlayerQuery, exactPlayerMatch),
+      ])
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to remove profile link.')
     } finally {
@@ -437,10 +450,25 @@ function PlayerLinksCard({
             <div className="flex gap-2">
               <Input
                 id="discord-user-search"
+                className="min-w-0 flex-1"
                 value={userQuery}
-                onChange={(event) => setUserQuery(event.target.value)}
+                onChange={(event) => {
+                  setUserQuery(event.target.value)
+                  if (!event.target.value.trim()) setExactUserMatch(false)
+                }}
                 placeholder="Display name or Discord user ID"
               />
+              <label className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  aria-label="Exact Discord account match"
+                  checked={exactUserMatch}
+                  disabled={!userQuery.trim()}
+                  onChange={(event) => setExactUserMatch(event.target.checked)}
+                />
+                Exact
+              </label>
               <Button
                 type="button"
                 variant="outline"
@@ -492,6 +520,7 @@ function PlayerLinksCard({
                       linkedDiscordUserId: selectedUser.discordUserId,
                       linkedDisplayName: selectedUser.displayName,
                       linkStatus: link.linkStatus,
+                      latestMatch: null,
                     })}
                   >
                     {link.playerName ?? link.playerId}
@@ -507,18 +536,38 @@ function PlayerLinksCard({
 
           <div className="min-w-0 space-y-2">
             <Label htmlFor="gentool-player-search">GenTool player</Label>
-            <Input
-              id="gentool-player-search"
-              value={playerQuery}
-              onChange={(event) => setPlayerQuery(event.target.value)}
-              placeholder="Player name or GenTool ID"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="gentool-player-search"
+                className="min-w-0 flex-1"
+                value={playerQuery}
+                onChange={(event) => {
+                  setPlayerQuery(event.target.value)
+                  if (!event.target.value.trim()) setExactPlayerMatch(false)
+                }}
+                placeholder="Player name or GenTool ID"
+              />
+              <label className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  aria-label="Exact match"
+                  checked={exactPlayerMatch}
+                  disabled={!playerQuery.trim()}
+                  onChange={(event) => setExactPlayerMatch(event.target.checked)}
+                />
+                Exact
+              </label>
+            </div>
             <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
               {players === null && playersLoading && <LinkSearchSkeleton />}
               {players === null && !playersLoading && <EmptySearchResult label="No GenTool players found." />}
               {players?.length === 0 && <EmptySearchResult label="No GenTool players found." />}
-              {players?.map((player) => (
-                <button
+              {players?.map((player) => {
+                const latestLineup = player.latestMatch?.teams
+                  .map((team) => team.join(' + '))
+                  .join(' vs ')
+                return <button
                   type="button"
                   key={player.playerId}
                   className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedPlayer?.playerId === player.playerId ? 'bg-muted' : ''}`}
@@ -527,6 +576,14 @@ function PlayerLinksCard({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{player.mainName}</span>
                     <span className="block truncate font-mono text-xs text-muted-foreground">{player.playerId}</span>
+                    {player.latestMatch && latestLineup && (
+                      <span
+                        className="mt-1 block truncate text-xs text-muted-foreground"
+                        title={`${formatTime(player.latestMatch.matchAt)} · ${latestLineup}`}
+                      >
+                        Latest: {formatTime(player.latestMatch.matchAt)} · {latestLineup}
+                      </span>
+                    )}
                   </span>
                   {player.linkedUserId && (
                     <Badge variant="secondary" className="max-w-36 shrink-0 truncate font-normal">
@@ -534,8 +591,13 @@ function PlayerLinksCard({
                     </Badge>
                   )}
                 </button>
-              ))}
+              })}
             </div>
+            {players && players.length > 0 && (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {players.length} shown · {additionalPlayers} more {additionalPlayers === 1 ? 'match' : 'matches'}
+              </p>
+            )}
           </div>
         </div>
 

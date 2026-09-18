@@ -14,6 +14,9 @@ class CpuRatingService(
     private val hardwareRepository: PlayerHardwareRepository,
     private val matcher: CpuBenchmarkMatcher,
 ) {
+    @Transactional(readOnly = true)
+    fun preview(cpu: String?): CpuMatch = findMatch(cpu)
+
     @Transactional
     fun rate(hardware: PlayerHardwareEntity) {
         apply(hardware, findMatch(hardware.cpu))

@@ -27,7 +27,9 @@ export function MyGentoolTab({
   const [dashboardLoading, setDashboardLoading] = useState(true)
   const [query, setQuery] = useState('')
   const deferredQuery = useDeferredValue(query)
+  const [exactMatch, setExactMatch] = useState(false)
   const [players, setPlayers] = useState<CpuPlayer[] | null>(null)
+  const [playerTotal, setPlayerTotal] = useState(0)
   const [playersLoading, setPlayersLoading] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<CpuPlayer | null>(null)
   const [linking, setLinking] = useState(false)
@@ -45,7 +47,7 @@ export function MyGentoolTab({
     }
   }, [onError])
 
-  const loadPlayers = useCallback(async (search: string) => {
+  const loadPlayers = useCallback(async (search: string, exact: boolean) => {
     const request = ++playerRequest.current
     setPlayersLoading(true)
     try {
@@ -56,8 +58,14 @@ export function MyGentoolTab({
         'all',
         'mainName',
         'asc',
+        undefined,
+        undefined,
+        exact && Boolean(search),
       )
-      if (request === playerRequest.current) setPlayers(result.content)
+      if (request === playerRequest.current) {
+        setPlayers(result.content)
+        setPlayerTotal(result.totalElements)
+      }
     } catch {
       if (request === playerRequest.current) onError('Failed to search GenTool players.')
     } finally {
@@ -70,8 +78,8 @@ export function MyGentoolTab({
   }, [active, forceLoading, loadDashboard])
 
   useEffect(() => {
-    if (active && !forceLoading) void loadPlayers(deferredQuery.trim())
-  }, [active, deferredQuery, forceLoading, loadPlayers])
+    if (active && !forceLoading) void loadPlayers(deferredQuery.trim(), exactMatch)
+  }, [active, deferredQuery, exactMatch, forceLoading, loadPlayers])
 
   const linkPlayer = async () => {
     if (!selectedPlayer) return
@@ -79,7 +87,7 @@ export function MyGentoolTab({
     try {
       await consoleApi.claimGentoolPlayer(selectedPlayer.playerId)
       setSelectedPlayer(null)
-      await Promise.all([loadDashboard(), loadPlayers(deferredQuery.trim())])
+      await Promise.all([loadDashboard(), loadPlayers(deferredQuery.trim(), exactMatch)])
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to link GenTool player.')
     } finally {
@@ -92,7 +100,7 @@ export function MyGentoolTab({
     setUnlinkingPlayerId(link.playerId)
     try {
       await consoleApi.unlinkMyGentoolPlayer(link.playerId)
-      await Promise.all([loadDashboard(), loadPlayers(deferredQuery.trim())])
+      await Promise.all([loadDashboard(), loadPlayers(deferredQuery.trim(), exactMatch)])
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to remove GenTool link.')
     } finally {
@@ -103,6 +111,7 @@ export function MyGentoolTab({
   const currentLinks = dashboard?.links ?? []
   const maxLinkedPlayers = dashboard?.maxLinkedPlayers ?? 0
   const atCapacity = dashboard !== null && currentLinks.length >= maxLinkedPlayers
+  const additionalPlayers = Math.max(playerTotal - (players?.length ?? 0), 0)
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(260px,0.75fr)_minmax(360px,1.25fr)]">
@@ -164,17 +173,33 @@ export function MyGentoolTab({
         <div className="mb-4">
           <h2 className="font-heading text-base font-medium">Find your GenTool player</h2>
         </div>
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Player name or GenTool ID"
-          />
-          {playersLoading && (
-            <Loader2 className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-          )}
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                if (!event.target.value.trim()) setExactMatch(false)
+              }}
+              placeholder="Player name or GenTool ID"
+            />
+            {playersLoading && (
+              <Loader2 className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          <label className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              aria-label="Exact match"
+              checked={exactMatch}
+              disabled={!query.trim()}
+              onChange={(event) => setExactMatch(event.target.checked)}
+            />
+            Exact
+          </label>
         </div>
         <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
           {players === null && <div className="space-y-2 p-3">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-11 w-full" />)}</div>}
@@ -214,6 +239,11 @@ export function MyGentoolTab({
             )
           })}
         </div>
+        {players && players.length > 0 && (
+          <p className="mt-1.5 text-xs text-muted-foreground" aria-live="polite">
+            {players.length} shown · {additionalPlayers} more {additionalPlayers === 1 ? 'match' : 'matches'}
+          </p>
+        )}
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t pt-4">
           <Button disabled={!selectedPlayer || linking || unlinkingPlayerId !== null || atCapacity} onClick={() => void linkPlayer()}>
             {linking ? <Loader2 className="animate-spin" /> : <Link2 />}

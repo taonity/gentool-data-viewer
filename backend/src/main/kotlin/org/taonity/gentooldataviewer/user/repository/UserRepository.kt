@@ -19,11 +19,11 @@ interface UserRepository : JpaRepository<UserEntity, String> {
             WHERE u.authProvider = 'discord'
               AND (
                    :q = ''
-                   OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :q, '%'))
-                   OR LOWER(u.googleId) LIKE LOWER(CONCAT('%', :q, '%'))
+                   OR LOWER(u.displayName) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
+                   OR LOWER(u.googleId) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
               )
             ORDER BY u.displayName, u.googleId
         """,
     )
-    fun searchDiscordUsers(q: String, pageable: Pageable): List<UserEntity>
+    fun searchDiscordUsers(q: String, pageable: Pageable, exact: Boolean = false): List<UserEntity>
 }

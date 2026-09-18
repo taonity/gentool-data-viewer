@@ -1,10 +1,12 @@
 package org.taonity.gentooldataviewer.replay.service
 
 import org.taonity.gentooldataviewer.config.AppSettings
+import org.taonity.gentooldataviewer.console.dto.PageResponse
 import org.taonity.gentooldataviewer.console.entity.AuditAction
 import org.taonity.gentooldataviewer.console.exception.ConsoleNotFoundException
 import org.taonity.gentooldataviewer.console.service.AccessGuard
 import org.taonity.gentooldataviewer.console.service.AuditService
+import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerLatestMatchDto
 import org.taonity.gentooldataviewer.replay.dto.AdminDiscordUserOptionDto
 import org.taonity.gentooldataviewer.replay.dto.AdminGentoolLinkDto
 import org.taonity.gentooldataviewer.replay.dto.AdminGentoolPlayerOptionDto
@@ -14,6 +16,8 @@ import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
 import org.taonity.gentooldataviewer.security.principal.GoogleUserPrincipal
 import org.taonity.gentooldataviewer.security.client.DiscordBotClient
 import org.taonity.gentooldataviewer.user.entity.AccessRequestStatus
@@ -33,17 +37,21 @@ class GentoolLinkAdminService(
     private val accessGuard: AccessGuard,
     private val userRepository: UserRepository,
     private val playerRepository: PlayerHardwareRepository,
+    private val replayRepository: ReplayRepository,
+    private val replayPlayerRepository: ReplayPlayerRepository,
     private val linkRepository: GentoolUserLinkRepository,
     private val auditService: AuditService,
     private val settings: AppSettings,
     private val discordBotClient: DiscordBotClient,
 ) {
     @Transactional(readOnly = true)
-    fun searchUsers(principal: GoogleUserPrincipal, query: String?, size: Int): List<AdminDiscordUserOptionDto> {
+    fun searchUsers(principal: GoogleUserPrincipal, query: String?, size: Int, exact: Boolean = false): List<AdminDiscordUserOptionDto> {
         accessGuard.requireAdmin(principal)
+        val value = query?.trim().orEmpty()
         val users = userRepository.searchDiscordUsers(
-            query?.trim().orEmpty(),
+            value,
             PageRequest.of(0, size.coerceIn(1, settings.console().maxPageSize)),
+            exact,
         )
         val links = linkRepository.findByUserIdIn(users.map { it.userId })
         val linksByUserId = links.groupBy { it.userId }
@@ -52,9 +60,14 @@ class GentoolLinkAdminService(
     }
 
     @Transactional(readOnly = true)
-    fun searchPlayers(principal: GoogleUserPrincipal, query: String?, size: Int): List<AdminGentoolPlayerOptionDto> {
+    fun searchPlayers(
+        principal: GoogleUserPrincipal,
+        query: String?,
+        size: Int,
+        exact: Boolean = false,
+    ): PageResponse<AdminGentoolPlayerOptionDto> {
         accessGuard.requireAdmin(principal)
-        val players = playerRepository.search(
+        val result = playerRepository.search(
             query?.trim().orEmpty(),
             "all",
             PageRequest.of(
@@ -62,10 +75,15 @@ class GentoolLinkAdminService(
                 size.coerceIn(1, settings.console().maxPageSize),
                 Sort.by(Sort.Order.asc("mainName"), Sort.Order.asc("playerId")),
             ),
-        ).content
+            exact = exact,
+        )
+        val players = result.content
         val links = linkRepository.findByPlayerIdIn(players.map { it.playerId }).associateBy { it.playerId }
         val users = userRepository.findAllById(links.values.map { it.userId }).associateBy { it.userId }
-        return players.map { player -> playerOption(player, links[player.playerId], users) }
+        val latestMatches = latestMatches(players)
+        return PageResponse.of(result) { player ->
+            playerOption(player, links[player.playerId], users, latestMatches[player.playerId])
+        }
     }
 
     @Transactional
@@ -186,6 +204,7 @@ class GentoolLinkAdminService(
         player: PlayerHardwareEntity,
         link: GentoolUserLinkEntity?,
         users: Map<String, UserEntity>,
+        latestMatch: CpuPlayerLatestMatchDto? = null,
     ): AdminGentoolPlayerOptionDto {
         val user = link?.let { users[it.userId] }
         return AdminGentoolPlayerOptionDto(
@@ -195,7 +214,25 @@ class GentoolLinkAdminService(
             linkedDiscordUserId = user?.userId?.substringAfter("discord:"),
             linkedDisplayName = user?.displayName,
             linkStatus = link?.status,
+            latestMatch = latestMatch,
         )
+    }
+
+    private fun latestMatches(players: List<PlayerHardwareEntity>): Map<String, CpuPlayerLatestMatchDto> {
+        val latestReplays = replayRepository.findLatestByReporterIds(players.map { it.playerId })
+            .associateBy { it.reporterId }
+        val replayPlayers = replayPlayerRepository.findByReplayIdIn(latestReplays.values.mapNotNull { it.id })
+            .groupBy { it.replayId }
+        return latestReplays.mapValues { (_, replay) ->
+            CpuPlayerLatestMatchDto(
+                matchAt = replay.matchAt,
+                teams = replayPlayers[replay.id].orEmpty()
+                    .sortedWith(compareBy({ it.teamNumber }, { it.slotNumber }))
+                    .groupBy { it.teamNumber }
+                    .values
+                    .map { team -> team.map { it.name } },
+            )
+        }
     }
 
     private fun fetchUnregisteredUser(userId: String): UserEntity {

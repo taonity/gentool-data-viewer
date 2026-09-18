@@ -15,9 +15,11 @@ import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayEntity
+import org.taonity.gentooldataviewer.replay.entity.ReplayPlayerEntity
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.security.principal.AuthenticatedUserInfo
 import org.taonity.gentooldataviewer.security.principal.AuthenticatedUserPrincipal
 import org.taonity.gentooldataviewer.security.client.DiscordBotClient
@@ -37,6 +39,7 @@ class GentoolLinkAdminServiceTest {
     @Autowired lateinit var userRepository: UserRepository
     @Autowired lateinit var playerRepository: PlayerHardwareRepository
     @Autowired lateinit var replayRepository: ReplayRepository
+    @Autowired lateinit var replayPlayerRepository: ReplayPlayerRepository
     @Autowired lateinit var linkRepository: GentoolUserLinkRepository
     @Autowired lateinit var auditRepository: AuditLogRepository
     @MockitoBean lateinit var discordBotClient: DiscordBotClient
@@ -47,6 +50,7 @@ class GentoolLinkAdminServiceTest {
         linkRepository.deleteAll()
         auditRepository.deleteAll()
         playerRepository.deleteAll()
+        replayPlayerRepository.deleteAll()
         replayRepository.deleteAll()
         userRepository.deleteAll()
         userRepository.saveAll(
@@ -78,6 +82,12 @@ class GentoolLinkAdminServiceTest {
                     sourceReplayId = requireNotNull(replay.id),
                 ),
             )
+            replayPlayerRepository.saveAll(
+                listOf(
+                    ReplayPlayerEntity(replayId = requireNotNull(replay.id), teamNumber = 1, slotNumber = 1, address = "1", name = "Player $index"),
+                    ReplayPlayerEntity(replayId = requireNotNull(replay.id), teamNumber = 2, slotNumber = 1, address = "2", name = "Rival $index"),
+                ),
+            )
         }
         linkRepository.saveAll(
             listOf(
@@ -104,14 +114,28 @@ class GentoolLinkAdminServiceTest {
     @Test
     fun `admin can search by Discord ID and unlink result`() {
         val userResult = service.searchUsers(principal(), "000002", 20)
-        val playerResult = service.searchPlayers(principal(), "Player 1", 20)
+        val exactUserResult = service.searchUsers(principal(), "Bravo Discord", 20, exact = true)
+        val partialExactUserResult = service.searchUsers(principal(), "Bravo", 20, exact = true)
+        val playerResult = service.searchPlayers(principal(), "Player 1", 20, exact = true)
 
         assertThat(userResult).hasSize(1)
         assertThat(userResult.single().userId).isEqualTo(USER_B_ID)
         assertThat(userResult.single().linkedPlayers.single().playerId).isEqualTo(PLAYER_B_ID)
-        assertThat(playerResult).hasSize(1)
-        assertThat(playerResult.single().playerId).isEqualTo(PLAYER_B_ID)
-        assertThat(playerResult.single().linkedUserId).isEqualTo(USER_B_ID)
+        assertThat(exactUserResult).hasSize(1)
+        assertThat(partialExactUserResult).isEmpty()
+        assertThat(playerResult.content).hasSize(1)
+        assertThat(playerResult.totalElements).isEqualTo(1)
+        assertThat(playerResult.content.single().playerId).isEqualTo(PLAYER_B_ID)
+        assertThat(playerResult.content.single().linkedUserId).isEqualTo(USER_B_ID)
+        assertThat(playerResult.content.single().latestMatch?.teams).containsExactly(
+            listOf("Player 1"),
+            listOf("Rival 1"),
+        )
+
+        val limitedResult = service.searchPlayers(principal(), null, 1)
+        assertThat(limitedResult.content).hasSize(1)
+        assertThat(limitedResult.totalElements).isEqualTo(2)
+        assertThat(limitedResult.hasMore).isTrue()
 
         service.unlink(principal(), USER_B_ID, PLAYER_B_ID)
 

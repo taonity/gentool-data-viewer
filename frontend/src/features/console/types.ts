@@ -45,6 +45,7 @@ export interface AdminGentoolPlayerOption {
   linkedDiscordUserId: string | null
   linkedDisplayName: string | null
   linkStatus: GentoolLinkStatus | null
+  latestMatch: CpuPlayerLatestMatch | null
 }
 
 export interface AdminGentoolLink {
@@ -245,6 +246,11 @@ export interface CpuPlayer {
 export interface CpuPlayerLatestMatch {
   matchAt: string
   teams: string[][]
+}
+
+export interface RankedCpuPlayer {
+  rank: number
+  player: CpuPlayer
 }
 
 export interface CpuPlayerSummary {

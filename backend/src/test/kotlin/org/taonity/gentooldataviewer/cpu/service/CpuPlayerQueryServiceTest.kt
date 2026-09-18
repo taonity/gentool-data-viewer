@@ -11,6 +11,8 @@ import org.springframework.data.domain.Sort
 import org.taonity.gentooldataviewer.config.AppSettings
 import org.taonity.gentooldataviewer.console.config.ConsolePagingProperties
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
+import org.taonity.gentooldataviewer.cpu.repository.CpuPlayerRankingRepository
+import org.taonity.gentooldataviewer.console.service.AccessGuard
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
@@ -34,6 +36,8 @@ class CpuPlayerQueryServiceTest {
     private val userRepository = mock(UserRepository::class.java)
     private val benchmarkRepository = mock(CpuBenchmarkRepository::class.java)
     private val benchmarkSyncService = mock(CpuBenchmarkSyncService::class.java)
+    private val rankingRepository = mock(CpuPlayerRankingRepository::class.java)
+    private val accessGuard = mock(AccessGuard::class.java)
     private val settings = mock(AppSettings::class.java)
     private val service = CpuPlayerQueryService(
         hardwareRepository,
@@ -43,6 +47,8 @@ class CpuPlayerQueryServiceTest {
         userRepository,
         benchmarkRepository,
         benchmarkSyncService,
+        rankingRepository,
+        accessGuard,
         settings,
         ObjectMapper(),
     )

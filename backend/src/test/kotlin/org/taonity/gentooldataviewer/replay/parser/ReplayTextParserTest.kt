@@ -40,6 +40,21 @@ class ReplayTextParserTest {
         assertThat(replay.fields["System"]).isEqualTo("NVIDIA GeForce GT 630")
     }
 
+    @Test
+    fun `parses Generals Online free for all players without teams`() {
+        val replay = parser.parse(GENERALS_ONLINE_SAMPLE)
+
+        assertThat(replay.gameVersion).isEqualTo("Generals: Zero Hour")
+        assertThat(replay.installType).isEqualTo("Unknown")
+        assertThat(replay.teams).hasSize(3)
+        assertThat(replay.teams.flatMap { it.players }).extracting<String> { it.name }
+            .containsExactly("tao", "gla", "cnc")
+        assertThat(replay.teams.map { it.number }).containsExactly(1, 2, 3)
+        assertThat(replay.teams[2].players.single().army).isEqualTo("USA Superweapon")
+        assertThat(replay.associatedFiles).hasSize(18)
+        assertThat(replay.replayFileName).isEqualTo("20-16-25_1v1v1_tao_gla_cnc.rep")
+    }
+
     private companion object {
         val SAMPLE = """
             GenTool Replay Information
@@ -106,6 +121,59 @@ class ReplayTextParserTest {
 
 
             Associated files: 20-16-58_2v2_AK47DEKL_JWbotnhy_MURAD_DESKTOPE.rep [130755 bytes]
+        """.trimIndent()
+
+        val GENERALS_ONLINE_SAMPLE = """
+            GenTool Replay Information
+
+            Windows (Compat): 6.2.9200 SP 0.0
+            System:           American Megatrends International, LLC. 1.G1 1.G1
+                              PRO Z790-S WIFI (MS-7D88) 1.0
+                              Controller0-DIMMA1 0
+                              Controller0-DIMMA2 F5-6000J3238F16G     16384
+                              Controller1-DIMMB1 0
+                              Controller1-DIMMB2 F5-6000J3238F16G     16384
+                              13th Gen Intel(R) Core(TM) i7-13700K
+                              NVIDIA GeForce RTX 4070 SUPER
+
+            GenTool Version:  8.9
+            Player Name:      tao
+            Player Id:        8313DCDFD572
+            Match Date (UTC): 2026 Sep 08, 20:16:25
+            Game Version:     Generals: Zero Hour
+            Install Type:     Unknown
+            RepInfo in use:   no
+
+            Map Name:         maps/highlands
+            Start Cash:       30000
+            Match Type:       1v1v1
+            Match Length:     00:31:59
+            Match Mode:       LAN
+
+            No Team
+               1AB53000 tao (GLA)
+               1AEE1000 gla (USA)
+               1ACB9000 cnc (USA Superweapon)
+
+
+            Associated files: 20-16-25_1v1v1_tao_gla_cnc.rep [246358 bytes]
+                              20-16-25_shot1.jpg [72863 bytes]
+                              20-16-43_shot2.jpg [103854 bytes]
+                              20-20-24_shot3.jpg [99262 bytes]
+                              20-23-37_shot4.jpg [93653 bytes]
+                              20-24-45_shot5.jpg [93946 bytes]
+                              20-24-54_shot6.jpg [94768 bytes]
+                              20-28-10_shot7.jpg [106880 bytes]
+                              20-29-01_shot8.jpg [106650 bytes]
+                              20-31-41_shot9.jpg [103386 bytes]
+                              20-35-24_shot10.jpg [101830 bytes]
+                              20-37-36_shot11.jpg [79247 bytes]
+                              20-39-12_shot12.jpg [92828 bytes]
+                              20-41-03_shot13.jpg [99056 bytes]
+                              20-42-23_shot14.jpg [98714 bytes]
+                              20-44-45_shot15.jpg [90945 bytes]
+                              20-45-43_shot16.jpg [92331 bytes]
+                              20-47-13_shot17.jpg [108060 bytes]
         """.trimIndent()
     }
 }

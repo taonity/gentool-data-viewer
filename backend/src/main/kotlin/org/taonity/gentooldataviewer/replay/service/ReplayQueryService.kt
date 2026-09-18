@@ -3,6 +3,10 @@ package org.taonity.gentooldataviewer.replay.service
 import org.taonity.gentooldataviewer.config.AppSettings
 import org.taonity.gentooldataviewer.console.dto.PageResponse
 import org.taonity.gentooldataviewer.replay.dto.ReplayDto
+import org.taonity.gentooldataviewer.replay.dto.ReplayDateRangeDto
+import org.taonity.gentooldataviewer.replay.dto.MatchDatePeriod
+import java.time.LocalDate
+import java.time.ZoneOffset
 import org.taonity.gentooldataviewer.replay.repository.ReplayAssociatedFileRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
@@ -21,6 +25,15 @@ class ReplayQueryService(
     private val objectMapper: ObjectMapper,
 ) {
     @Transactional(readOnly = true)
+    fun dateRange(): ReplayDateRangeDto {
+        val bounds = replayRepository.findMatchDateBounds()
+        return ReplayDateRangeDto(
+            startDate = bounds.firstMatchAt?.atOffset(ZoneOffset.UTC)?.toLocalDate(),
+            endDate = bounds.lastMatchAt?.atOffset(ZoneOffset.UTC)?.toLocalDate(),
+        )
+    }
+
+    @Transactional(readOnly = true)
     fun list(
         q: String?,
         field: String?,
@@ -30,7 +43,11 @@ class ReplayQueryService(
         direction: String?,
         reporterIds: List<String> = emptyList(),
         replayId: String? = null,
+        exact: Boolean = false,
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null,
     ): PageResponse<ReplayDto> {
+        val period = MatchDatePeriod(startDate, endDate)
         val normalizedReporterIds = reporterIds.map(String::trim).filter(String::isNotEmpty).map(String::uppercase).distinct()
         val sortProperty = replaySortProperty(sort)
         val sortDirection = if (direction == "asc") Sort.Direction.ASC else Sort.Direction.DESC
@@ -40,7 +57,7 @@ class ReplayQueryService(
             size.coerceIn(1, settings.console().maxPageSize),
             Sort.by(order, Sort.Order.asc("id")),
         )
-        val result = if (q.isNullOrBlank() && normalizedReporterIds.isEmpty() && replayId == null) {
+        val result = if (q.isNullOrBlank() && normalizedReporterIds.isEmpty() && replayId == null && !period.active) {
             replayRepository.findAll(pageable)
         } else {
             replayRepository.search(
@@ -50,6 +67,9 @@ class ReplayQueryService(
                 reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
                 filterReporterIds = normalizedReporterIds.isNotEmpty(),
                 replayId = replayId,
+                exact = exact && !q.isNullOrBlank(),
+                fromDate = period.from,
+                untilDate = period.until,
             )
         }
         val replayIds = result.content.mapNotNull { it.id }

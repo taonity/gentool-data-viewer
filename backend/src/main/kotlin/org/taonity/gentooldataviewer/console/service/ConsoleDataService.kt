@@ -14,13 +14,13 @@ class ConsoleDataService(
     private val accessGuard: AccessGuard,
     private val settings: AppSettings,
 ) {
-    fun listAuditLogs(principal: GoogleUserPrincipal, q: String?, field: String?, page: Int, size: Int): PageResponse<AuditLogDto> {
+    fun listAuditLogs(principal: GoogleUserPrincipal, q: String?, field: String?, page: Int, size: Int, exact: Boolean = false): PageResponse<AuditLogDto> {
         accessGuard.requireAdmin(principal)
         val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, settings.console().maxPageSize))
         val result = if (q.isNullOrBlank()) {
             auditLogRepository.findAllByOrderByOccurredAtDesc(pageable)
         } else {
-            auditLogRepository.search(q.trim(), field.orAllField(), pageable)
+            auditLogRepository.search(q.trim(), field.orAllField(), pageable, exact)
         }
         return PageResponse.of(result, AuditLogDto::from)
     }

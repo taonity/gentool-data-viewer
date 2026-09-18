@@ -6,6 +6,7 @@ import org.taonity.gentooldataviewer.replay.parser.ParsedReplay
 import org.taonity.gentooldataviewer.replay.parser.ParsedAssociatedFile
 import org.taonity.gentooldataviewer.replay.parser.ParsedTeam
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
+import org.taonity.gentooldataviewer.replay.entity.ReplayEntity
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.cpu.entity.CpuBenchmarkEntity
@@ -174,6 +175,29 @@ class ReplayImportServiceTest {
     }
 
     @Test
+    fun `repairs players missing from previously imported no team replay`() {
+        replayRepository.save(
+            ReplayEntity(
+                sourceUrl = "https://gentool.net/data/zh/no-team.txt",
+                sourceDate = LocalDate.parse("2026-09-08"),
+                reporterId = "8313DCDFD572",
+                reporterName = "tao",
+                playerNames = "",
+                matchAt = Instant.parse("2026-09-08T20:16:25Z"),
+                fieldsJson = "{}",
+                rawText = NO_TEAM_RAW_TEXT,
+            ),
+        )
+
+        assertThat(importService.repairMissingPlayers()).isEqualTo(1)
+        assertThat(importService.repairMissingPlayers()).isZero()
+        assertThat(replayRepository.findAll().single().playerNames).isEqualTo("tao, gla, cnc")
+        assertThat(replayPlayerRepository.findAll())
+            .extracting<String> { it.name }
+            .containsExactly("tao", "gla", "cnc")
+    }
+
+    @Test
     fun `rates imported hardware and sorts unresolved scores last`() {
         val benchmarkName = "Intel Core i7-13700K"
         benchmarkRepository.save(
@@ -249,3 +273,32 @@ class ReplayImportServiceTest {
         replaySizeBytes = 1000,
     )
 }
+
+private val NO_TEAM_RAW_TEXT = """
+    GenTool Replay Information
+
+    Windows (Compat): 6.2.9200 SP 0.0
+    System:           13th Gen Intel(R) Core(TM) i7-13700K
+
+    GenTool Version:  8.9
+    Player Name:      tao
+    Player Id:        8313DCDFD572
+    Match Date (UTC): 2026 Sep 08, 20:16:25
+    Game Version:     Generals: Zero Hour
+    Install Type:     Unknown
+    RepInfo in use:   no
+
+    Map Name:         maps/highlands
+    Start Cash:       30000
+    Match Type:       1v1v1
+    Match Length:     00:31:59
+    Match Mode:       LAN
+
+    No Team
+       1AB53000 tao (GLA)
+       1AEE1000 gla (USA)
+       1ACB9000 cnc (USA Superweapon)
+
+
+    Associated files: 20-16-25_1v1v1_tao_gla_cnc.rep [246358 bytes]
+""".trimIndent()

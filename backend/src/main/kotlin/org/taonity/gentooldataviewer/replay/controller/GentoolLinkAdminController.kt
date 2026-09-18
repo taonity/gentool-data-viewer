@@ -1,5 +1,6 @@
 package org.taonity.gentooldataviewer.replay.controller
 
+import org.taonity.gentooldataviewer.console.dto.PageResponse
 import org.taonity.gentooldataviewer.replay.dto.AdminAssignGentoolLinkBody
 import org.taonity.gentooldataviewer.replay.dto.AdminDiscordUserOptionDto
 import org.taonity.gentooldataviewer.replay.dto.AdminGentoolLinkDto
@@ -30,7 +31,8 @@ class GentoolLinkAdminController(
         @AuthenticationPrincipal principal: GoogleUserPrincipal,
         @RequestParam(required = false) q: String?,
         @RequestParam(defaultValue = "20") size: Int,
-    ): List<AdminDiscordUserOptionDto> = service.searchUsers(principal, q, size)
+        @RequestParam(defaultValue = "false") exact: Boolean,
+    ): List<AdminDiscordUserOptionDto> = service.searchUsers(principal, q, size, exact)
 
     @PostMapping("/users/resolve")
     fun resolveUser(
@@ -43,7 +45,8 @@ class GentoolLinkAdminController(
         @AuthenticationPrincipal principal: GoogleUserPrincipal,
         @RequestParam(required = false) q: String?,
         @RequestParam(defaultValue = "20") size: Int,
-    ): List<AdminGentoolPlayerOptionDto> = service.searchPlayers(principal, q, size)
+        @RequestParam(defaultValue = "false") exact: Boolean,
+    ): PageResponse<AdminGentoolPlayerOptionDto> = service.searchPlayers(principal, q, size, exact)
 
     @PutMapping
     fun assign(

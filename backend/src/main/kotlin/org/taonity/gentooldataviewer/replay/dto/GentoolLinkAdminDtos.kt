@@ -1,5 +1,6 @@
 package org.taonity.gentooldataviewer.replay.dto
 
+import org.taonity.gentooldataviewer.cpu.dto.CpuPlayerLatestMatchDto
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 
 data class AdminDiscordUserOptionDto(
@@ -24,6 +25,7 @@ data class AdminGentoolPlayerOptionDto(
     val linkedDiscordUserId: String?,
     val linkedDisplayName: String?,
     val linkStatus: GentoolLinkStatus?,
+    val latestMatch: CpuPlayerLatestMatchDto?,
 )
 
 data class AdminGentoolLinkDto(
