@@ -11,8 +11,11 @@ import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
 import org.taonity.gentooldataviewer.replay.entity.GentoolUserLinkEntity
 import org.taonity.gentooldataviewer.cpu.entity.CpuBenchmarkEntity
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
+import org.taonity.gentooldataviewer.cpu.service.CpuBenchmarkCatalogService
 import org.taonity.gentooldataviewer.cpu.service.CpuBenchmarkMatcher
+import org.taonity.gentooldataviewer.cpu.service.CpuBenchmarkRecord
 import org.taonity.gentooldataviewer.cpu.service.CpuMatchStatus
+import org.taonity.gentooldataviewer.cpu.service.CpuRatingService
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayAssociatedFileRepository
@@ -60,6 +63,12 @@ class ReplayImportServiceTest {
 
     @Autowired
     lateinit var benchmarkMatcher: CpuBenchmarkMatcher
+
+    @Autowired
+    lateinit var catalogService: CpuBenchmarkCatalogService
+
+    @Autowired
+    lateinit var ratingService: CpuRatingService
 
     @BeforeEach
     fun prepare() = cleanUp()
@@ -244,6 +253,73 @@ class ReplayImportServiceTest {
         ).content
             .map { it.playerId }
         assertThat(sortedPlayerIds.indexOf("8313DCDFD572")).isLessThan(sortedPlayerIds.indexOf("NO_CPU"))
+    }
+
+    @Test
+    fun `catalog replacement rebuilds old keys and rerates unmatched hardware`() {
+        val namePairs = listOf(
+            "AMD Ryzen 5 3500U w/ Radeon Vega Mobile Gfx" to "AMD Ryzen 5 3500U with Radeon Vega Mobile Gfx",
+            "AMD Ryzen 5 1600 Six-Core Processor" to "AMD Ryzen 5 1600",
+            "Intel(R) Core(TM)2 CPU E8400 @ 3.00GHz" to "Intel Core2 Duo E8400 @ 3.00GHz",
+            "Intel(R) Core(TM) i7-2600 CPU @ 3.40GH" to "Intel Core i7-2600 @ 3.40GHz",
+            "Intel(R) Core(TM) i5 CPU M 430 @ 2.27GHz" to "Intel Core i5-430M @ 2.27GHz",
+            "Intel(R) Xeon(R) CPU E31220 @ 3.10GHz" to "Intel Xeon E3-1220 @ 3.10GHz",
+            "Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz" to "Intel Xeon E5-2670 @ 2.60GHz",
+        )
+        val records = namePairs.mapIndexed { index, (_, name) ->
+            CpuBenchmarkRecord("benchmark-$index", name, 1000 + index, "https://example/benchmark-$index")
+        }
+        val oldRecord = records.first()
+        benchmarkRepository.save(
+            CpuBenchmarkEntity(
+                sourceId = oldRecord.sourceId,
+                modelName = oldRecord.modelName,
+                normalizedName = "amd ryzen 5 3500u with radeon vega mobile gfx",
+                normalizedModel = "amd ryzen 5 3500u with radeon vega mobile gfx",
+                singleThreadScore = oldRecord.singleThreadScore,
+                sourceUrl = oldRecord.sourceUrl,
+                fetchedAt = Instant.parse("2026-09-01T00:00:00Z"),
+            ),
+        )
+        val rawNames = namePairs.map { it.first } + listOf("Intel(R) Core i7 processor", "AMD Ryzen AI 5 330 w/ Radeon 820M", null)
+        rawNames.forEachIndexed { index, cpu ->
+            importService.import(
+                "https://gentool.net/data/zh/cpu-$index.txt",
+                LocalDate.parse("2026-09-02"),
+                replay().copy(reporterId = "CPU-$index", cpu = cpu),
+            )
+        }
+        assertThat(hardwareRepository.findAll()).allSatisfy { assertThat(it.cpuScore).isNull() }
+
+        val fetchedAt = Instant.parse("2026-09-03T00:00:00Z")
+        catalogService.replace(
+            records + listOf(
+                CpuBenchmarkRecord("ai-330", "AMD Ryzen AI 5 330", 2000, "https://example/ai-330"),
+                CpuBenchmarkRecord("ai-330-other", "AMD Ryzen AI 5 330 with Radeon 890M", 2100, "https://example/ai-330-other"),
+            ),
+            fetchedAt,
+        )
+        val summary = ratingService.rateAll()
+
+        assertThat(summary.total).isEqualTo(rawNames.size)
+        assertThat(summary.rated).isEqualTo(records.size)
+        assertThat(summary.unmatched).isEqualTo(1)
+        assertThat(summary.ambiguous).isEqualTo(1)
+        assertThat(summary.noCpu).isEqualTo(1)
+        records.forEachIndexed { index, record ->
+            val hardware = hardwareRepository.findById("CPU-$index").orElseThrow()
+            assertThat(hardware.cpu).isEqualTo(rawNames[index])
+            assertThat(hardware.cpuScore).isEqualTo(record.singleThreadScore)
+            assertThat(hardware.cpuBenchmarkId).isEqualTo(record.sourceId)
+            assertThat(hardware.cpuBenchmarkName).isEqualTo(record.modelName)
+            assertThat(hardware.cpuBenchmarkUrl).isEqualTo(record.sourceUrl)
+            assertThat(hardware.cpuScoreUpdatedAt).isNotNull()
+            assertThat(hardware.cpuMatchStatus).isIn(CpuMatchStatus.EXACT, CpuMatchStatus.MODEL)
+        }
+        val reindexed = benchmarkRepository.findById(oldRecord.sourceId).orElseThrow()
+        assertThat(reindexed.normalizedName).isEqualTo("amd ryzen 5 3500u")
+        assertThat(reindexed.normalizedModel).isEqualTo("amd ryzen 5 3500u")
+        assertThat(reindexed.fetchedAt).isEqualTo(fetchedAt)
     }
 
     private fun replay() = ParsedReplay(

@@ -42,6 +42,12 @@ Local development uses `h2,stub-discord,local`. Stage and production use only `s
 
 Authenticated VIEWER users claim or replace their linked GenTool identity directly from a Players row; no admin approval is required. Players rows provide targeted refresh actions, and Replays rows can refresh that replay reporter. The linked player does not consume the daily count quota; other-player refreshes are limited to 20 per UTC day. All refreshes use the same serial, throttled collector queue, scan the configured seven-day lookback, enforce a five-minute per-target cooldown, and are recorded in the rescan ledger and audit log.
 
+## CPU ratings
+
+CPU ratings use PassMark single-thread scores. Matching normalizes known brand-string formatting, including AMD Radeon and core-count suffixes, Intel Core 2 names, legacy Intel mobile names, compact Xeon names, and truncated clock suffixes. Model variants such as PRO, G/GE, H/HS/HX, X3D, and Xeon versions remain distinct. Multiple matching catalog records remain ambiguous; incomplete model names and motherboard/chipset descriptions are not guessed.
+
+After deploying changes to CPU matching, an administrator must use **Refresh benchmarks** in the CPU players view (or wait for the configured scheduled refresh). This rebuilds the stored catalog keys and rerates existing player hardware; restarting alone does not update stored scores. Compare rated, unmatched, ambiguous, and missing-CPU counts after the refresh before treating remaining unrated CPUs as missing benchmarks. No secondary benchmark scores or estimates are mixed into the ranking.
+
 ## Run locally
 
 Run each command from the repository root.
