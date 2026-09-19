@@ -125,7 +125,7 @@ export function MyGentoolTab({
             </Badge>
           )}
         </div>
-        {forceLoading || dashboardLoading ? (
+        {forceLoading || (dashboardLoading && dashboard === null) ? (
           <div className="space-y-3">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-4 w-28" />

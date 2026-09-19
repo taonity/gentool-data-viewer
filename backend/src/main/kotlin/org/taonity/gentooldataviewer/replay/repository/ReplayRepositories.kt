@@ -55,8 +55,8 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         LEFT JOIN ReplayPlayerEntity p ON p.replayId = r.id
                     WHERE (:replayId IS NULL OR r.id = :replayId)
                         AND (:filterReporterIds = false OR r.reporterId IN :reporterIds)
-                        AND (:fromDate IS NULL OR r.matchAt >= :fromDate)
-                        AND (:untilDate IS NULL OR r.matchAt < :untilDate)
+                        AND (cast(:fromDate as Instant) IS NULL OR r.matchAt >= :fromDate)
+                        AND (cast(:untilDate as Instant) IS NULL OR r.matchAt < :untilDate)
                         AND ((:field = 'all' AND (
                         LOWER(cast(r.matchAt as String)) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                       OR LOWER(r.reporterName) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
