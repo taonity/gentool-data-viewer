@@ -48,7 +48,8 @@ class CpuPlayerPeriodServiceTest {
         val cpu = "Intel Core i7-13700K"
         benchmarks.saveAndFlush(CpuBenchmarkEntity("old-cpu", cpu, matcher.normalize(cpu), matcher.normalizeModel(cpu), 4326,
             "https://example.invalid/cpu", Instant.parse("2026-09-01T00:00:00Z")))
-        report("before", "A", "Outside", "2026-09-07T23:59:59Z")
+        report("before-cutoff", "A", "Outside", "2026-09-03T23:59:59Z")
+        report("at-cutoff", "A", "At cutoff", "2026-09-04T00:00:00Z")
         report("start", "A", "Alpha", "2026-09-08T00:00:00Z", cpu)
         report("middle", "A", "Alpha", "2026-09-08T12:00:00Z", cpu)
         report("end", "A", "Alias", "2026-09-08T23:59:59.999Z", cpu)
@@ -108,7 +109,7 @@ class CpuPlayerPeriodServiceTest {
     @Test
     fun `available date range uses all replay match dates in UTC`() {
         val range = replayQuery.dateRange()
-        assertThat(range.startDate).isEqualTo(day.minusDays(1))
+        assertThat(range.startDate).isEqualTo(LocalDate.parse("2026-09-04"))
         assertThat(range.endDate).isEqualTo(day.plusDays(1))
     }
 

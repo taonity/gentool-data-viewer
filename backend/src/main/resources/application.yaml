@@ -7,6 +7,7 @@ server:
 
 app:
   minimised-http-servlet-logging: true
+  replay-min-match-date: 2026-09-04
   cookie:
     secure: true
     same-site: Lax

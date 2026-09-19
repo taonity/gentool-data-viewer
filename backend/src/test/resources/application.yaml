@@ -36,6 +36,7 @@ spring:
 
 app:
   minimised-http-servlet-logging: false
+  replay-min-match-date: 2026-09-04
   default-success-url: /
   login-url: /
   csrf-cookie-name: XSRF-TOKEN-TEST

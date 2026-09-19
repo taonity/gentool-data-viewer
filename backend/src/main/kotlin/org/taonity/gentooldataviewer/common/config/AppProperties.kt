@@ -1,6 +1,7 @@
 package org.taonity.gentooldataviewer.common.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
+import java.time.LocalDate
 
 @ConfigurationProperties(prefix = "app")
 data class AppProperties(
@@ -8,6 +9,7 @@ data class AppProperties(
     val csrfCookieName: String,
     val defaultSuccessUrl: String,
     val loginUrl: String,
+    val replayMinMatchDate: LocalDate,
     val cookie: Cookie
 ) {
     data class Cookie(
