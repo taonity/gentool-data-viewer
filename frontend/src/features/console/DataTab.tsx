@@ -157,6 +157,7 @@ export function DataTab<T>({
   onError,
 }: DataTabProps<T>) {
   const [page, setPage] = useState(0)
+  const [pageInput, setPageInput] = useState('1')
   const [size, setSize] = useState(DEFAULT_PAGE_SIZE)
   const [data, setData] = useState<PageResponse<T> | null>(null)
   const [pinnedRows, setPinnedRows] = useState<Array<{ rank: number; row: T }>>([])
@@ -175,7 +176,6 @@ export function DataTab<T>({
     () => new Set(columns.filter((column) => column.defaultVisible !== false).map((column) => column.key)),
   )
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
-  const [columnWidthDrafts, setColumnWidthDrafts] = useState<Record<string, string>>({})
   const [hasCustomColumnWidths, setHasCustomColumnWidths] = useState(false)
   const [resizingColumn, setResizingColumn] = useState<string | null>(null)
   const [overflowPreviewHandle] = useState(() => PreviewCard.createHandle<OverflowPreviewPayload>())
@@ -255,7 +255,6 @@ export function DataTab<T>({
     customColumnKeysRef.current.clear()
     columnWidthsRef.current = defaults
     setColumnWidths(defaults)
-    setColumnWidthDrafts({})
     setHasCustomColumnWidths(false)
     try {
       localStorage.removeItem(columnWidthsStorageKey)
@@ -263,37 +262,6 @@ export function DataTab<T>({
       // The in-memory reset still applies when storage is unavailable.
     }
   }, [columnWidthsStorageKey])
-
-  const setExactColumnWidth = (column: Column<T>) => {
-    const draft = columnWidthDrafts[column.key]
-    const requestedWidth = draft?.trim() ? Number(draft) : Number.NaN
-    const currentWidth = columnWidthsRef.current[column.key] ?? column.defaultWidth
-    if (!Number.isFinite(requestedWidth) || currentWidth === undefined) {
-      setColumnWidthDrafts((previous) => {
-        const next = { ...previous }
-        delete next[column.key]
-        return next
-      })
-      return
-    }
-    const width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, Math.round(requestedWidth)))
-    const next = { ...columnWidthsRef.current, [column.key]: width }
-    const defaultWidth = defaultColumnWidthsRef.current[column.key] ?? column.defaultWidth
-    if (defaultWidth !== undefined && Math.abs(width - defaultWidth) < 1) {
-      customColumnKeysRef.current.delete(column.key)
-    } else {
-      customColumnKeysRef.current.add(column.key)
-    }
-    columnWidthsRef.current = next
-    setColumnWidths(next)
-    setColumnWidthDrafts((previous) => {
-      const nextDrafts = { ...previous }
-      delete nextDrafts[column.key]
-      return nextDrafts
-    })
-    setHasCustomColumnWidths(customColumnKeysRef.current.size > 0)
-    persistColumnWidths(next)
-  }
 
   useEffect(() => {
     try {
@@ -464,6 +432,7 @@ export function DataTab<T>({
         setData(result)
         setPinnedRows(nextPinnedRows)
         setPage(result.page)
+        setPageInput(String(result.page + 1))
       } catch {
         onError('Failed to load data.')
       } finally {
@@ -543,6 +512,17 @@ export function DataTab<T>({
       if (searchTimer.current) clearTimeout(searchTimer.current)
       setActiveQuery(query)
       void reload(0, size, query, field, sortKey, direction, checked, { silent: true })
+    }
+  }
+
+  const onPageSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const totalPages = Math.max(data?.totalPages ?? 1, 1)
+    const requestedPage = Number.parseInt(pageInput, 10)
+    const nextPage = Math.min(Math.max(Number.isNaN(requestedPage) ? page + 1 : requestedPage, 1), totalPages)
+    setPageInput(String(nextPage))
+    if (nextPage !== page + 1) {
+      void reload(nextPage - 1, size, activeQuery, field, sortKey, direction, exactMatch)
     }
   }
 
@@ -704,65 +684,43 @@ export function DataTab<T>({
           {toolbarFilters}
         </div>
         <div className="flex items-center gap-1">
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button variant="ghost" size="sm">
-                  <Columns3 />
-                  Columns
-                </Button>
-              }
-            />
-            <PopoverContent side="bottom" align="end" className="w-72 p-2">
-              <div className="grid gap-1">
-                {columns.map((column) => {
-                  const checked = visibleColumnKeys.has(column.key)
-                  const width = columnWidths[column.key] ?? column.defaultWidth
-                  return (
-                    <div
-                      key={column.key}
-                      className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                    >
-                      <span className="min-w-0 flex-1 truncate">{column.label}</span>
-                      <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                        <Input
-                          type="number"
-                          min={MIN_COLUMN_WIDTH}
-                          max={MAX_COLUMN_WIDTH}
-                          step={1}
-                          className="h-7 w-20 text-right text-foreground"
-                          aria-label={`${column.label} width in pixels`}
-                          value={columnWidthDrafts[column.key] ?? (width === undefined ? '' : Math.round(width).toString())}
-                          onChange={(event) => setColumnWidthDrafts((previous) => ({
-                            ...previous,
-                            [column.key]: event.target.value,
-                          }))}
-                          onBlur={() => setExactColumnWidth(column)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') event.currentTarget.blur()
-                          }}
-                        />
-                        px
-                      </label>
-                      {columnSelection && (
+          {columnSelection && (
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button variant="ghost" size="sm">
+                    <Columns3 />
+                    Columns
+                  </Button>
+                }
+              />
+              <PopoverContent side="bottom" align="end" className="w-56 p-2">
+                <div className="grid gap-1">
+                  {columns.map((column) => {
+                    const checked = visibleColumnKeys.has(column.key)
+                    return (
+                      <label
+                        key={column.key}
+                        className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                      >
+                        <span>{column.label}</span>
                         <Switch
                           checked={checked}
                           disabled={checked && visibleColumnKeys.size === 1}
-                          aria-label={`Show ${column.label} column`}
                           onCheckedChange={() => toggleColumn(column.key)}
                         />
-                      )}
-                    </div>
-                  )
-                })}
-                {hasCustomColumnWidths && (
-                  <Button variant="ghost" size="sm" className="mt-1 justify-start" onClick={resetColumnWidths}>
-                    Reset column widths
-                  </Button>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+                      </label>
+                    )
+                  })}
+                  {hasCustomColumnWidths && (
+                    <Button variant="ghost" size="sm" className="mt-1 justify-start" onClick={resetColumnWidths}>
+                      Reset column widths
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           {!hasSortableColumns && (
             <Button
               variant="ghost"
@@ -1076,7 +1034,22 @@ export function DataTab<T>({
           >
             Previous
           </Button>
-          <span>Page {page + 1} of {Math.max(data?.totalPages ?? 1, 1)}</span>
+          <form className="flex items-center gap-1" onSubmit={onPageSubmit}>
+            <label htmlFor="page-number">Page</label>
+            <Input
+              id="page-number"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={Math.max(data?.totalPages ?? 1, 1)}
+              value={pageInput}
+              disabled={showLoading || !data}
+              onChange={(event) => setPageInput(event.target.value)}
+              onBlur={() => setPageInput(String(page + 1))}
+              className="h-7 w-16 px-2 text-center text-xs"
+            />
+            <span>of {Math.max(data?.totalPages ?? 1, 1)}</span>
+          </form>
           <Button
             variant="outline"
             size="sm"
