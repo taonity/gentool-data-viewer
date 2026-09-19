@@ -175,6 +175,7 @@ export function DataTab<T>({
     () => new Set(columns.filter((column) => column.defaultVisible !== false).map((column) => column.key)),
   )
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [columnWidthDrafts, setColumnWidthDrafts] = useState<Record<string, string>>({})
   const [hasCustomColumnWidths, setHasCustomColumnWidths] = useState(false)
   const [resizingColumn, setResizingColumn] = useState<string | null>(null)
   const [overflowPreviewHandle] = useState(() => PreviewCard.createHandle<OverflowPreviewPayload>())
@@ -254,6 +255,7 @@ export function DataTab<T>({
     customColumnKeysRef.current.clear()
     columnWidthsRef.current = defaults
     setColumnWidths(defaults)
+    setColumnWidthDrafts({})
     setHasCustomColumnWidths(false)
     try {
       localStorage.removeItem(columnWidthsStorageKey)
@@ -261,6 +263,37 @@ export function DataTab<T>({
       // The in-memory reset still applies when storage is unavailable.
     }
   }, [columnWidthsStorageKey])
+
+  const setExactColumnWidth = (column: Column<T>) => {
+    const draft = columnWidthDrafts[column.key]
+    const requestedWidth = draft?.trim() ? Number(draft) : Number.NaN
+    const currentWidth = columnWidthsRef.current[column.key] ?? column.defaultWidth
+    if (!Number.isFinite(requestedWidth) || currentWidth === undefined) {
+      setColumnWidthDrafts((previous) => {
+        const next = { ...previous }
+        delete next[column.key]
+        return next
+      })
+      return
+    }
+    const width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, Math.round(requestedWidth)))
+    const next = { ...columnWidthsRef.current, [column.key]: width }
+    const defaultWidth = defaultColumnWidthsRef.current[column.key] ?? column.defaultWidth
+    if (defaultWidth !== undefined && Math.abs(width - defaultWidth) < 1) {
+      customColumnKeysRef.current.delete(column.key)
+    } else {
+      customColumnKeysRef.current.add(column.key)
+    }
+    columnWidthsRef.current = next
+    setColumnWidths(next)
+    setColumnWidthDrafts((previous) => {
+      const nextDrafts = { ...previous }
+      delete nextDrafts[column.key]
+      return nextDrafts
+    })
+    setHasCustomColumnWidths(customColumnKeysRef.current.size > 0)
+    persistColumnWidths(next)
+  }
 
   useEffect(() => {
     try {
@@ -671,43 +704,65 @@ export function DataTab<T>({
           {toolbarFilters}
         </div>
         <div className="flex items-center gap-1">
-          {columnSelection && (
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button variant="ghost" size="sm">
-                    <Columns3 />
-                    Columns
-                  </Button>
-                }
-              />
-              <PopoverContent side="bottom" align="end" className="w-56 p-2">
-                <div className="grid gap-1">
-                  {columns.map((column) => {
-                    const checked = visibleColumnKeys.has(column.key)
-                    return (
-                      <label
-                        key={column.key}
-                        className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                      >
-                        <span>{column.label}</span>
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button variant="ghost" size="sm">
+                  <Columns3 />
+                  Columns
+                </Button>
+              }
+            />
+            <PopoverContent side="bottom" align="end" className="w-72 p-2">
+              <div className="grid gap-1">
+                {columns.map((column) => {
+                  const checked = visibleColumnKeys.has(column.key)
+                  const width = columnWidths[column.key] ?? column.defaultWidth
+                  return (
+                    <div
+                      key={column.key}
+                      className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                    >
+                      <span className="min-w-0 flex-1 truncate">{column.label}</span>
+                      <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        <Input
+                          type="number"
+                          min={MIN_COLUMN_WIDTH}
+                          max={MAX_COLUMN_WIDTH}
+                          step={1}
+                          className="h-7 w-20 text-right text-foreground"
+                          aria-label={`${column.label} width in pixels`}
+                          value={columnWidthDrafts[column.key] ?? (width === undefined ? '' : Math.round(width).toString())}
+                          onChange={(event) => setColumnWidthDrafts((previous) => ({
+                            ...previous,
+                            [column.key]: event.target.value,
+                          }))}
+                          onBlur={() => setExactColumnWidth(column)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') event.currentTarget.blur()
+                          }}
+                        />
+                        px
+                      </label>
+                      {columnSelection && (
                         <Switch
                           checked={checked}
                           disabled={checked && visibleColumnKeys.size === 1}
+                          aria-label={`Show ${column.label} column`}
                           onCheckedChange={() => toggleColumn(column.key)}
                         />
-                      </label>
-                    )
-                  })}
-                  {hasCustomColumnWidths && (
-                    <Button variant="ghost" size="sm" className="mt-1 justify-start" onClick={resetColumnWidths}>
-                      Reset column widths
-                    </Button>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
+                      )}
+                    </div>
+                  )
+                })}
+                {hasCustomColumnWidths && (
+                  <Button variant="ghost" size="sm" className="mt-1 justify-start" onClick={resetColumnWidths}>
+                    Reset column widths
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           {!hasSortableColumns && (
             <Button
               variant="ghost"
