@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, Play, RotateCw } from 'lucide-react'
+import { DatabaseZap, Loader2, Play, RotateCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { consoleApi } from './api'
-import type { ReplayCollectionJob, ReplayCollectionStatus } from './types'
+import { formatTime } from './format'
+import type { CpuPlayerSummary, ReplayCollectionJob, ReplayCollectionStatus } from './types'
 
 const STATUS_VARIANT: Record<ReplayCollectionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   QUEUED: 'secondary',
@@ -48,6 +49,10 @@ export function ReplayCollectionTab({
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [summary, setSummary] = useState<CpuPlayerSummary | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(true)
+  const [summaryError, setSummaryError] = useState(false)
+  const [refreshingCatalog, setRefreshingCatalog] = useState(false)
   const hasLoaded = useRef(false)
   const wasActive = useRef(false)
 
@@ -64,6 +69,18 @@ export function ReplayCollectionTab({
     }
   }, [onError])
 
+  const loadCpuStatus = useCallback(async () => {
+    setSummaryLoading(true)
+    try {
+      setSummary(await consoleApi.getCpuPlayerSummary())
+      setSummaryError(false)
+    } catch {
+      setSummaryError(true)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (forceLoading || !active) {
       wasActive.current = false
@@ -71,10 +88,11 @@ export function ReplayCollectionTab({
     }
     if (!wasActive.current) {
       void load(hasLoaded.current)
+      void loadCpuStatus()
       hasLoaded.current = true
     }
     wasActive.current = true
-  }, [active, forceLoading, load])
+  }, [active, forceLoading, load, loadCpuStatus])
 
   const jobActive = jobs.some((job) => job.status === 'QUEUED' || job.status === 'RUNNING')
   useEffect(() => {
@@ -99,6 +117,18 @@ export function ReplayCollectionTab({
     }
   }
 
+  const refreshCatalog = async () => {
+    setRefreshingCatalog(true)
+    try {
+      await consoleApi.refreshCpuBenchmarks()
+      await loadCpuStatus()
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Failed to refresh CPU benchmarks.')
+    } finally {
+      setRefreshingCatalog(false)
+    }
+  }
+
   const showLoading = forceLoading || loading
   const invalidUserLimit = userLimit !== '' && Number.parseInt(userLimit, 10) < 1
 
@@ -106,6 +136,20 @@ export function ReplayCollectionTab({
     <div className="flex flex-col gap-4">
       {canRun && (
         <>
+          <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <CpuSummary
+                summary={forceLoading ? null : summary}
+                loading={forceLoading || summaryLoading}
+                error={summaryError}
+                onRetry={() => void loadCpuStatus()}
+              />
+            </div>
+            <Button variant="outline" size="sm" disabled={refreshingCatalog} onClick={refreshCatalog}>
+              {refreshingCatalog ? <Loader2 className="animate-spin" /> : <DatabaseZap />}
+              Refresh benchmarks
+            </Button>
+          </div>
           <div className="flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-wrap items-end gap-2">
             <label className="grid gap-1 text-xs text-muted-foreground">
@@ -219,4 +263,48 @@ export function ReplayCollectionTab({
       )}
     </div>
   )
+}
+
+function CpuSummary({
+  summary,
+  loading,
+  error,
+  onRetry,
+}: {
+  summary: CpuPlayerSummary | null
+  loading: boolean
+  error: boolean
+  onRetry: () => void
+}) {
+  if (summary) {
+    const coverage = summary.totalPlayers ? Math.round((summary.ratedPlayers / summary.totalPlayers) * 100) : 0
+    return (
+      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+        <Stat label="Rated" value={`${summary.ratedPlayers.toLocaleString()} / ${summary.totalPlayers.toLocaleString()} (${coverage}%)`} />
+        <Stat label="Unmatched" value={summary.unmatchedPlayers.toLocaleString()} />
+        <Stat label="Ambiguous" value={summary.ambiguousPlayers.toLocaleString()} />
+        <Stat label="No CPU" value={summary.playersWithoutCpu.toLocaleString()} />
+        <Stat label="CPU benchmarks" value={summary.catalogEntries ? `${summary.catalogEntries.toLocaleString()} · ${summary.catalogFetchedAt ? formatTime(summary.catalogFetchedAt) : ''}` : 'Not loaded'} />
+      </dl>
+    )
+  }
+  if (error && !loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>CPU summary unavailable.</span>
+        <Button variant="ghost" size="xs" onClick={onRetry}>
+          <RotateCw />
+          Retry
+        </Button>
+      </div>
+    )
+  }
+  if (loading) {
+    return <div className="flex flex-wrap gap-4">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-9 w-28" />)}</div>
+  }
+  return null
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return <div><dt className="text-muted-foreground">{label}</dt><dd className="mt-0.5 font-medium tabular-nums">{value}</dd></div>
 }

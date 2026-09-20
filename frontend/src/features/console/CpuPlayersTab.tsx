@@ -2,17 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Clapperboard, DatabaseZap, ExternalLink, Loader2, RefreshCw, RotateCw, X } from 'lucide-react'
+import { Clapperboard, ExternalLink, Loader2, RefreshCw, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { DataTab, type Column } from './DataTab'
 import { consoleApi } from './api'
 import { DatePeriodFilter, type DatePeriod } from './DatePeriodFilter'
 import { formatExactTime, formatTime } from './format'
 import { formatRelativeAge } from '@/lib/appInfo'
-import type { CpuMatchStatus, CpuPlayer, CpuPlayerSummary, DiscordUser, ReplayRescanDashboard } from './types'
+import type { CpuMatchStatus, CpuPlayer, DiscordUser, ReplayRescanDashboard } from './types'
 
 const STATUS_VARIANT: Record<CpuMatchStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   EXACT: 'default',
@@ -242,7 +241,6 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
 export function CpuPlayersTab({
   active = true,
   canManage,
-  canRefresh,
   targetPlayerId,
   onClearPlayer,
   onNavigateToPlayer,
@@ -252,7 +250,6 @@ export function CpuPlayersTab({
 }: {
   active?: boolean
   canManage: boolean
-  canRefresh: boolean
   targetPlayerId: string | null
   onClearPlayer: () => void
   onNavigateToPlayer: (playerId: string) => void
@@ -260,29 +257,13 @@ export function CpuPlayersTab({
   forceLoading: boolean
   onError: (message: string) => void
 }) {
-  const [summary, setSummary] = useState<CpuPlayerSummary | null>(null)
-  const [summaryLoading, setSummaryLoading] = useState(true)
-  const [summaryError, setSummaryError] = useState(false)
   const [rescanDashboard, setRescanDashboard] = useState<ReplayRescanDashboard | null>(null)
   const [busyActions, setBusyActions] = useState<Record<string, 'refresh'>>({})
-  const [refreshingCatalog, setRefreshingCatalog] = useState(false)
   const [tableRefreshToken, setTableRefreshToken] = useState(0)
   const [linkedOnly, setLinkedOnly] = useState(false)
   const [period, setPeriod] = useState<DatePeriod>({ startDate: '', endDate: '' })
   const [cooldownClock, setCooldownClock] = useState(() => Date.now())
   const hadActiveRescan = useRef(false)
-
-  const loadSummary = useCallback(async () => {
-    setSummaryLoading(true)
-    try {
-      setSummary(await consoleApi.getCpuPlayerSummary(period.startDate, period.endDate))
-      setSummaryError(false)
-    } catch {
-      setSummaryError(true)
-    } finally {
-      setSummaryLoading(false)
-    }
-  }, [period.startDate, period.endDate])
 
   const loadRescanDashboard = useCallback(async () => {
     if (!canManage) return
@@ -291,7 +272,6 @@ export function CpuPlayersTab({
       const activeRescan = next.history.some((item) => item.status === 'QUEUED' || item.status === 'RUNNING')
       if (hadActiveRescan.current && !activeRescan) {
         setTableRefreshToken((value) => value + 1)
-        void loadSummary()
       }
       hadActiveRescan.current = activeRescan
       setCooldownClock(Date.now())
@@ -299,11 +279,7 @@ export function CpuPlayersTab({
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to load rescan status.')
     }
-  }, [canManage, loadSummary, onError])
-
-  useEffect(() => {
-    if (active && !forceLoading) void loadSummary()
-  }, [active, forceLoading, loadSummary])
+  }, [canManage, onError])
 
   useEffect(() => {
     if (active && canManage && !forceLoading) void loadRescanDashboard()
@@ -345,44 +321,14 @@ export function CpuPlayersTab({
     }
   }
 
-  const refreshCatalog = async () => {
-    setRefreshingCatalog(true)
-    try {
-      await consoleApi.refreshCpuBenchmarks()
-      await loadSummary()
-      setTableRefreshToken((value) => value + 1)
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'Failed to refresh CPU benchmarks.')
-    } finally {
-      setRefreshingCatalog(false)
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4">
-      {canRefresh && (
-        <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <Summary
-            summary={forceLoading ? null : summary}
-            loading={forceLoading || summaryLoading}
-            error={summaryError}
-            onRetry={() => void loadSummary()}
-          />
-          <Button variant="outline" size="sm" disabled={refreshingCatalog} onClick={refreshCatalog}>
-            {refreshingCatalog ? <Loader2 className="animate-spin" /> : <DatabaseZap />}
-            Refresh benchmarks
-          </Button>
-        </div>
-      )}
-      {canManage && rescanDashboard && (
-        <PlayerRescanStatus dashboard={rescanDashboard} />
-      )}
       <DatePeriodFilter value={period} onChange={setPeriod} active={active} forceLoading={forceLoading}
         refreshToken={tableRefreshToken} onError={onError} />
       <DataTab<CpuPlayer>
         active={active}
         refreshToken={tableRefreshToken}
-        filterKey={`${linkedOnly}:${targetPlayerId ?? ''}:${period.startDate}:${period.endDate}`}
+        filterKey={`${canManage}:${linkedOnly}:${targetPlayerId ?? ''}:${period.startDate}:${period.endDate}`}
         toolbarFilters={(
           <>
             {targetPlayerId && (
@@ -484,61 +430,6 @@ export function CpuPlayersTab({
         forceLoading={forceLoading}
         onError={onError}
       />
-    </div>
-  )
-}
-
-function Summary({
-  summary,
-  loading,
-  error,
-  onRetry,
-}: {
-  summary: CpuPlayerSummary | null
-  loading: boolean
-  error: boolean
-  onRetry: () => void
-}) {
-  if (summary) {
-    const coverage = summary.totalPlayers ? Math.round((summary.ratedPlayers / summary.totalPlayers) * 100) : 0
-    return (
-      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-        <Stat label="Rated" value={`${summary.ratedPlayers.toLocaleString()} / ${summary.totalPlayers.toLocaleString()} (${coverage}%)`} />
-        <Stat label="Unmatched" value={summary.unmatchedPlayers.toLocaleString()} />
-        <Stat label="Ambiguous" value={summary.ambiguousPlayers.toLocaleString()} />
-        <Stat label="No CPU" value={summary.playersWithoutCpu.toLocaleString()} />
-        <Stat label="CPU benchmarks" value={summary.catalogEntries ? `${summary.catalogEntries.toLocaleString()} · ${summary.catalogFetchedAt ? formatTime(summary.catalogFetchedAt) : ''}` : 'Not loaded'} />
-      </dl>
-    )
-  }
-  if (error && !loading) {
-    return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>CPU summary unavailable.</span>
-        <Button variant="ghost" size="xs" onClick={onRetry}>
-          <RotateCw />
-          Retry
-        </Button>
-      </div>
-    )
-  }
-  if (loading) {
-    return <div className="flex flex-wrap gap-4">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-9 w-28" />)}</div>
-  }
-  return null
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return <div><dt className="text-muted-foreground">{label}</dt><dd className="mt-0.5 font-medium tabular-nums">{value}</dd></div>
-}
-
-function PlayerRescanStatus({ dashboard }: { dashboard: ReplayRescanDashboard }) {
-  const remaining = Math.max(0, dashboard.otherDailyLimit - dashboard.otherUsedToday)
-  const latest = dashboard.history[0]
-  return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <span>{remaining} of {dashboard.otherDailyLimit} other-player refreshes left</span>
-      {latest && <Badge variant="outline" title={latest.errorMessage ?? undefined}>Latest: {latest.status}</Badge>}
     </div>
   )
 }

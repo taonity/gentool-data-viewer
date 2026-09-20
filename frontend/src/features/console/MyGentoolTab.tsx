@@ -116,13 +116,18 @@ export function MyGentoolTab({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(260px,0.75fr)_minmax(360px,1.25fr)]">
       <section className="min-w-0 border-b pb-6 lg:border-r lg:border-b-0 lg:pr-6">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Link2 className="size-4 text-muted-foreground" />
           <h2 className="font-heading text-base font-medium">Your linked players</h2>
           {dashboard && (
-            <Badge variant={atCapacity ? 'secondary' : 'outline'}>
-              {currentLinks.length} / {maxLinkedPlayers}
-            </Badge>
+            <>
+              <Badge variant={atCapacity ? 'secondary' : 'outline'}>
+                {currentLinks.length} / {maxLinkedPlayers}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {Math.max(0, dashboard.otherDailyLimit - dashboard.otherUsedToday)} of {dashboard.otherDailyLimit} other-player refreshes left
+              </span>
+            </>
           )}
         </div>
         {forceLoading || (dashboardLoading && dashboard === null) ? (

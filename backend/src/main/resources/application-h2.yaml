@@ -13,8 +13,8 @@ spring:
 #    enabled: false
     clean-disabled: false
     locations:
-      - filesystem:templates/docker/flyway/sql/tables
-      - filesystem:templates/docker/flyway/sql/conflicts/h2
+      - filesystem:../templates/docker/flyway/sql/tables
+      - filesystem:../templates/docker/flyway/sql/conflicts/h2
 
   sql:
     init:

@@ -365,7 +365,6 @@ export default function DataConsole({
             <CpuPlayersTab
               active={selectedTab === 'players'}
               canManage={authenticated && canView}
-              canRefresh={access?.isAdmin === true}
               targetPlayerId={playerId}
               onClearPlayer={() => navigate('players')}
               onNavigateToPlayer={(targetPlayerId) => navigate('players', targetPlayerId)}
