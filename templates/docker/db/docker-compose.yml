@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    shm_size: ${POSTGRES_SHM_SIZE:-1gb}
     environment:
       POSTGRES_DB: gentool_data_viewer_db
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
