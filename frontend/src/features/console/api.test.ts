@@ -1,11 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchWithTimeout } from '@/lib/clientApi'
+import { getRuntimeConfig } from '@/lib/runtimeConfig'
 import { consoleApi } from './api'
 
 vi.mock('@/lib/clientApi', () => ({ fetchWithTimeout: vi.fn() }))
+vi.mock('@/lib/runtimeConfig', () => ({ getRuntimeConfig: vi.fn() }))
 
 beforeEach(() => {
+  vi.mocked(fetchWithTimeout).mockClear()
   vi.mocked(fetchWithTimeout).mockResolvedValue(new Response('{}', { status: 200 }))
+  vi.mocked(getRuntimeConfig).mockResolvedValue({
+    profile: 'stage',
+    csrfCookieName: 'XSRF-TOKEN',
+    publicBackendUrl: 'https://api.example.com',
+    benchmarkRefreshClientTimeoutMs: 250_000,
+  })
 })
 
 function requestedUrl(): URL {
@@ -49,5 +58,14 @@ describe('match date period requests', () => {
     await consoleApi.getCpuPlayerSummary('', '')
     expect(requestedUrl().searchParams.has('startDate')).toBe(false)
     expect(requestedUrl().searchParams.has('endDate')).toBe(false)
+  })
+
+  it('allows benchmark refresh to outlive the backend proxy timeout', async () => {
+    await consoleApi.refreshCpuBenchmarks()
+
+    expect(fetchWithTimeout).toHaveBeenCalledWith(
+      '/api/console/cpu-players/benchmarks/refresh',
+      expect.objectContaining({ method: 'POST', timeoutMs: 250_000 }),
+    )
   })
 })

@@ -171,8 +171,15 @@ export const consoleApi = {
   getCpuPlayerSummary: (startDate?: string, endDate?: string) =>
     get<CpuPlayerSummary>(buildListQuery('/cpu-players/summary', 0, 1, undefined, undefined, undefined, undefined, { startDate, endDate })),
 
-  refreshCpuBenchmarks: () =>
-    mutate<CpuBenchmarkSync>('/cpu-players/benchmarks/refresh', 'POST', undefined, 120000),
+  refreshCpuBenchmarks: async () => {
+    const { benchmarkRefreshClientTimeoutMs } = await getRuntimeConfig()
+    return mutate<CpuBenchmarkSync>(
+      '/cpu-players/benchmarks/refresh',
+      'POST',
+      undefined,
+      benchmarkRefreshClientTimeoutMs,
+    )
+  },
 }
 
 function buildListQuery(

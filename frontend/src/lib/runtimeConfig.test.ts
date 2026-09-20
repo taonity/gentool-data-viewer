@@ -8,10 +8,12 @@ describe('runtime configuration', () => {
       profile: 'stage',
       csrfCookieName: 'XSRF-TOKEN',
       publicBackendUrl: 'https://api.example.com',
+      benchmarkRefreshClientTimeoutMs: 250_000,
     })).toEqual({
       profile: 'stage',
       csrfCookieName: 'XSRF-TOKEN',
       publicBackendUrl: 'https://api.example.com',
+      benchmarkRefreshClientTimeoutMs: 250_000,
     })
   })
 

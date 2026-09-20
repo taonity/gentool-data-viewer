@@ -9,6 +9,9 @@ export interface ServerEnv {
   localBackendUrl: string
   publicBackendUrl: string
   csrfCookieName: string
+  backendRequestTimeoutMs: number
+  benchmarkRefreshTimeoutMs: number
+  benchmarkRefreshClientTimeoutMs: number
 }
 
 function required(name: string): string {

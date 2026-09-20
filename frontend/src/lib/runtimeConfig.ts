@@ -4,6 +4,7 @@ export interface RuntimeConfig {
   profile: FrontendProfile
   csrfCookieName: string
   publicBackendUrl: string
+  benchmarkRefreshClientTimeoutMs: number
 }
 
 let configCache: RuntimeConfig | null = null
@@ -22,10 +23,14 @@ export function parseRuntimeConfig(value: unknown): RuntimeConfig {
   if (typeof config.publicBackendUrl !== 'string' || !config.publicBackendUrl) {
     throw new Error('Runtime configuration is missing publicBackendUrl')
   }
+  if (typeof config.benchmarkRefreshClientTimeoutMs !== 'number' || config.benchmarkRefreshClientTimeoutMs <= 0) {
+    throw new Error('Runtime configuration is missing benchmarkRefreshClientTimeoutMs')
+  }
   return {
     profile: config.profile,
     csrfCookieName: config.csrfCookieName,
     publicBackendUrl: config.publicBackendUrl,
+    benchmarkRefreshClientTimeoutMs: config.benchmarkRefreshClientTimeoutMs,
   }
 }
 

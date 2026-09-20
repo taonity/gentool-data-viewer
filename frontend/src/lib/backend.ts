@@ -1,14 +1,13 @@
 import type { NextRequest } from 'next/server'
 import { getServerEnv } from '@/lib/env'
 
-const TIMEOUT = 60000
-
 export async function fetchFromBackend(
   req: NextRequest,
   path: string,
   init: RequestInit = {},
+  timeoutMs?: number,
 ) {
-  const { localBackendUrl } = getServerEnv()
+  const { backendRequestTimeoutMs, localBackendUrl } = getServerEnv()
   const headers = new Headers(init.headers)
   const cookie = req.headers.get('cookie')
   if (cookie) {
@@ -16,7 +15,7 @@ export async function fetchFromBackend(
   }
 
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT)
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs ?? backendRequestTimeoutMs)
 
   try {
     return await fetch(`${localBackendUrl}${path}`, {

@@ -19,6 +19,9 @@ describe('server environment', () => {
       localBackendUrl: backendUrl,
       publicBackendUrl: backendUrl,
       csrfCookieName,
+      backendRequestTimeoutMs: 60_000,
+      benchmarkRefreshTimeoutMs: 240_000,
+      benchmarkRefreshClientTimeoutMs: 250_000,
     })
   })
 

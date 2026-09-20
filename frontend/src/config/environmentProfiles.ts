@@ -6,6 +6,9 @@ interface FrontendProfileConfig {
   localBackendUrl: string
   publicBackendUrl: string
   csrfCookieName: string
+  backendRequestTimeoutMs: number
+  benchmarkRefreshTimeoutMs: number
+  benchmarkRefreshClientTimeoutMs: number
 }
 
 export const FRONTEND_PROFILE_CONFIG: Record<FrontendProfile, FrontendProfileConfig> = {
@@ -13,16 +16,25 @@ export const FRONTEND_PROFILE_CONFIG: Record<FrontendProfile, FrontendProfileCon
     localBackendUrl: 'http://127.0.0.1:8080',
     publicBackendUrl: 'http://127.0.0.1:8080',
     csrfCookieName: 'XSRF-TOKEN-LOCAL',
+    backendRequestTimeoutMs: 60_000,
+    benchmarkRefreshTimeoutMs: 240_000,
+    benchmarkRefreshClientTimeoutMs: 250_000,
   },
   stage: {
     localBackendUrl: 'https://gentool-data-viewer-api-stage.taonity.org',
     publicBackendUrl: 'https://gentool-data-viewer-api-stage.taonity.org',
     csrfCookieName: 'XSRF-TOKEN-GENTOOL-DATA-VIEWER-STAGE',
+    backendRequestTimeoutMs: 60_000,
+    benchmarkRefreshTimeoutMs: 240_000,
+    benchmarkRefreshClientTimeoutMs: 250_000,
   },
   prod: {
     localBackendUrl: 'https://gentool-data-viewer-api.taonity.org',
     publicBackendUrl: 'https://gentool-data-viewer-api.taonity.org',
     csrfCookieName: 'XSRF-TOKEN-GENTOOL-DATA-VIEWER-PROD',
+    backendRequestTimeoutMs: 60_000,
+    benchmarkRefreshTimeoutMs: 240_000,
+    benchmarkRefreshClientTimeoutMs: 250_000,
   },
 }
 

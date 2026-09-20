@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { fetchFromBackend } from '@/lib/backend'
+import { getServerEnv } from '@/lib/env'
 
 /**
  * Catch-all proxy for the data console. Forwards every /api/console/* request to the backend
@@ -28,7 +29,10 @@ async function proxy(req: NextRequest, path: string[]) {
     }
   }
 
-  const res = await fetchFromBackend(req, backendPath, { method, headers, body })
+  const timeoutMs = segments === 'cpu-players/benchmarks/refresh'
+    ? getServerEnv().benchmarkRefreshTimeoutMs
+    : undefined
+  const res = await fetchFromBackend(req, backendPath, { method, headers, body }, timeoutMs)
   return new NextResponse(res.body, { status: res.status, headers: res.headers })
 }
 

@@ -10,5 +10,6 @@ export async function GET() {
     profile: env.profile,
     csrfCookieName: env.csrfCookieName,
     publicBackendUrl: env.publicBackendUrl,
+    benchmarkRefreshClientTimeoutMs: env.benchmarkRefreshClientTimeoutMs,
   })
 }
