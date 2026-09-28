@@ -25,7 +25,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 
-@SpringBootTest(properties = ["spring.datasource.url=jdbc:h2:mem:demo-data-profile;MODE=PostgreSQL"])
+@SpringBootTest
 @ActiveProfiles("h2", "demo-data")
 class DemoDataProfileTest {
     @Autowired

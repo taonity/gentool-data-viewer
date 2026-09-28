@@ -3,7 +3,7 @@ spring:
     hibernate:
       ddl-auto: none
   datasource:
-    url: jdbc:h2:mem:db;MODE=PostgreSQL
+    url: jdbc:h2:mem:${random.uuid};MODE=PostgreSQL
     username: sa
     password: sa
     driver-class-name: org.h2.Driver
