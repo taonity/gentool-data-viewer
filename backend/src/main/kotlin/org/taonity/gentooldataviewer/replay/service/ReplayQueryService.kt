@@ -68,17 +68,29 @@ class ReplayQueryService(
             size.coerceIn(1, settings.console().maxPageSize),
             Sort.by(order, Sort.Order.asc("id")),
         )
-        val result = replayRepository.search(
-            q = q?.trim().orEmpty(),
-            field = field?.takeIf(String::isNotBlank) ?: "all",
-            pageable = pageable,
-            reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
-            filterReporterIds = normalizedReporterIds.isNotEmpty(),
-            replayId = replayId,
-            exact = exact && !q.isNullOrBlank(),
-            fromDate = fromDate,
-            untilDate = requestedPeriod.until,
-        )
+        val normalizedQuery = q?.trim().orEmpty()
+        val result = if (normalizedQuery.isEmpty()) {
+            replayRepository.browse(
+                pageable = pageable,
+                reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
+                filterReporterIds = normalizedReporterIds.isNotEmpty(),
+                replayId = replayId,
+                fromDate = fromDate,
+                untilDate = requestedPeriod.until,
+            )
+        } else {
+            replayRepository.search(
+                q = normalizedQuery,
+                field = field?.takeIf(String::isNotBlank) ?: "all",
+                pageable = pageable,
+                reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
+                filterReporterIds = normalizedReporterIds.isNotEmpty(),
+                replayId = replayId,
+                exact = exact,
+                fromDate = fromDate,
+                untilDate = requestedPeriod.until,
+            )
+        }
         val replayIds = result.content.mapNotNull { it.id }
         val players = replayPlayerRepository.findByReplayIdIn(replayIds).groupBy { it.replayId }
         val files = replayAssociatedFileRepository.findByReplayIdIn(replayIds).groupBy { it.replayId }

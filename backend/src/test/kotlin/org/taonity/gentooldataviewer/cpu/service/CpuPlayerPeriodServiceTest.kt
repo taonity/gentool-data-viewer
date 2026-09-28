@@ -127,6 +127,9 @@ class CpuPlayerPeriodServiceTest {
 
     @Test
     fun `replay range includes both day boundaries and intersects other filters`() {
+        val aliasReplay = replays.findAll().single { it.sourceUrl.endsWith("/end") }
+        participants.saveAndFlush(ReplayPlayerEntity(replayId = requireNotNull(aliasReplay.id), teamNumber = 2,
+            slotNumber = 1, address = "2A", name = "Alias"))
         val page = replayQuery.list(null, null, 0, 10, "matchAt", "asc", startDate = day, endDate = day)
         assertThat(page.totalElements).isEqualTo(4)
         assertThat(page.content.first().matchAt).isEqualTo(Instant.parse("2026-09-08T00:00:00Z"))

@@ -51,8 +51,25 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
 
     @Query(
         """
-        SELECT DISTINCT r FROM ReplayEntity r
-        LEFT JOIN ReplayPlayerEntity p ON p.replayId = r.id
+        SELECT r FROM ReplayEntity r
+        WHERE (:replayId IS NULL OR r.id = :replayId)
+          AND (:filterReporterIds = false OR r.reporterId IN :reporterIds)
+          AND r.matchAt >= :fromDate
+          AND (cast(:untilDate as Instant) IS NULL OR r.matchAt < :untilDate)
+        """,
+    )
+    fun browse(
+        pageable: Pageable,
+        reporterIds: Collection<String> = listOf(""),
+        filterReporterIds: Boolean = false,
+        replayId: String? = null,
+        fromDate: Instant,
+        untilDate: Instant? = null,
+    ): Page<ReplayEntity>
+
+    @Query(
+        """
+        SELECT r FROM ReplayEntity r
                     WHERE (:replayId IS NULL OR r.id = :replayId)
                         AND (:filterReporterIds = false OR r.reporterId IN :reporterIds)
                         AND (cast(:fromDate as Instant) IS NULL OR r.matchAt >= :fromDate)
@@ -61,7 +78,11 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
                         LOWER(cast(r.matchAt as String)) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                       OR LOWER(r.reporterName) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                       OR LOWER(r.reporterId) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
-                      OR LOWER(p.name) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
+                      OR EXISTS (
+                          SELECT p.id FROM ReplayPlayerEntity p
+                          WHERE p.replayId = r.id
+                            AND LOWER(p.name) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
+                      )
                       OR LOWER(COALESCE(r.mapName, '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                       OR LOWER(COALESCE(r.matchType, '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                      OR LOWER(COALESCE(cast(r.matchLengthSeconds as String), '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
@@ -81,7 +102,11 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
                           LOWER(r.reporterName) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                       OR LOWER(r.reporterId) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
                  ))
-              OR (:field = 'players' AND LOWER(p.name) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
+              OR (:field = 'players' AND EXISTS (
+                  SELECT p.id FROM ReplayPlayerEntity p
+                  WHERE p.replayId = r.id
+                    AND LOWER(p.name) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
+              ))
            OR (:field = 'mapName' AND LOWER(COALESCE(r.mapName, '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
            OR (:field = 'matchType' AND LOWER(COALESCE(r.matchType, '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
                OR (:field = 'duration' AND LOWER(COALESCE(cast(r.matchLengthSeconds as String), '')) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END))
