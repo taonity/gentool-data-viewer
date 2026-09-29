@@ -1,7 +1,6 @@
 services:
   backend:
     image: generaltao725/gentool-data-viewer-backend:latest
-    mem_limit: ${BACKEND_MEMORY_LIMIT:-768m}
     environment:
       JDK_JAVA_OPTIONS: --add-opens java.base/java.lang=ALL-UNNAMED
       JAVA_TOOL_OPTIONS: >-
