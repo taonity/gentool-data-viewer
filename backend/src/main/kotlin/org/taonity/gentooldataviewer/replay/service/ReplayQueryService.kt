@@ -89,6 +89,7 @@ class ReplayQueryService(
                     replayId = replayId,
                     fromDate = fromDate,
                     untilDate = requestedPeriod.until,
+                    asOf = requestedPeriod.asOf,
                 )
             } else {
                 replayRepository.search(
@@ -101,6 +102,7 @@ class ReplayQueryService(
                     exact = exact,
                     fromDate = fromDate,
                     untilDate = requestedPeriod.until,
+                    asOf = requestedPeriod.asOf,
                 )
             }
             val replayIds = result.content.mapNotNull { it.id }

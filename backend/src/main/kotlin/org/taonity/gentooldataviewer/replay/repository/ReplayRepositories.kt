@@ -27,6 +27,8 @@ interface ReplayMatchDateBounds {
 interface ReplayRepository : JpaRepository<ReplayEntity, String> {
     fun existsBySourceUrl(sourceUrl: String): Boolean
 
+    fun existsByMatchAtGreaterThan(matchAt: Instant): Boolean
+
     fun findByPlayerNames(playerNames: String): List<ReplayEntity>
 
     fun findByReporterId(reporterId: String): List<ReplayEntity>
@@ -38,15 +40,16 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
           AND r.matchAt = (
               SELECT MAX(latest.matchAt) FROM ReplayEntity latest
               WHERE latest.reporterId = r.reporterId
+                AND latest.matchAt <= CURRENT_TIMESTAMP
           )
         """,
     )
     fun findLatestByReporterIds(reporterIds: Collection<String>): List<ReplayEntity>
 
-    @Query("SELECT MIN(r.collectedAt) FROM ReplayEntity r")
+    @Query("SELECT MIN(r.collectedAt) FROM ReplayEntity r WHERE r.matchAt <= CURRENT_TIMESTAMP")
     fun findEarliestCollectedAt(): Instant?
 
-    @Query("SELECT MIN(r.matchAt) AS firstMatchAt, MAX(r.matchAt) AS lastMatchAt FROM ReplayEntity r")
+    @Query("SELECT MIN(r.matchAt) AS firstMatchAt, MAX(r.matchAt) AS lastMatchAt FROM ReplayEntity r WHERE r.matchAt <= CURRENT_TIMESTAMP")
     fun findMatchDateBounds(): ReplayMatchDateBounds
 
     @Query(
@@ -55,6 +58,7 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         WHERE (:replayId IS NULL OR r.id = :replayId)
           AND (:filterReporterIds = false OR r.reporterId IN :reporterIds)
           AND r.matchAt >= :fromDate
+          AND r.matchAt <= :asOf
           AND (cast(:untilDate as Instant) IS NULL OR r.matchAt < :untilDate)
         """,
     )
@@ -65,6 +69,7 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         replayId: String? = null,
         fromDate: Instant,
         untilDate: Instant? = null,
+        asOf: Instant = Instant.now(),
     ): Page<ReplayEntity>
 
     @Query(
@@ -73,6 +78,7 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
                     WHERE (:replayId IS NULL OR r.id = :replayId)
                         AND (:filterReporterIds = false OR r.reporterId IN :reporterIds)
                         AND (cast(:fromDate as Instant) IS NULL OR r.matchAt >= :fromDate)
+                        AND r.matchAt <= :asOf
                         AND (cast(:untilDate as Instant) IS NULL OR r.matchAt < :untilDate)
                         AND ((:field = 'all' AND (
                         LOWER(cast(r.matchAt as String)) LIKE LOWER(CASE WHEN :exact = true THEN :q ELSE CONCAT('%', :q, '%') END)
@@ -132,6 +138,7 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
         exact: Boolean = false,
         fromDate: Instant? = null,
         untilDate: Instant? = null,
+        asOf: Instant = Instant.now(),
     ): Page<ReplayEntity>
 }
 

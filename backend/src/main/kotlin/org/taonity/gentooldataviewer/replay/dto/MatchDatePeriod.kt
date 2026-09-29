@@ -6,7 +6,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-class MatchDatePeriod(startDate: LocalDate?, endDate: LocalDate?) {
+class MatchDatePeriod(startDate: LocalDate?, endDate: LocalDate?, val asOf: Instant = Instant.now()) {
     init {
         if (startDate != null && endDate != null && startDate > endDate) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date must not be after end date")

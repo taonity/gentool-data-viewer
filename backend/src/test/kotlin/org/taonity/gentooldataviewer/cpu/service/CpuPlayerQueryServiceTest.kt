@@ -51,6 +51,7 @@ class CpuPlayerQueryServiceTest {
         accessGuard,
         settings,
         ObjectMapper(),
+        mock(CpuPlayerPeriodService::class.java),
     )
 
     @Test

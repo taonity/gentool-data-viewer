@@ -24,6 +24,7 @@ import java.time.LocalDate
 class CpuPlayerPeriodServiceTest {
     @Autowired lateinit var service: CpuPlayerPeriodService
     @Autowired lateinit var replayQuery: ReplayQueryService
+    @Autowired lateinit var allTimeQuery: CpuPlayerQueryService
     @Autowired lateinit var replays: ReplayRepository
     @Autowired lateinit var participants: ReplayPlayerRepository
     @Autowired lateinit var files: ReplayAssociatedFileRepository
@@ -104,6 +105,70 @@ class CpuPlayerPeriodServiceTest {
         assertThat(service.summary(emptyPeriod).totalPlayers).isZero()
         assertThat(hardware.findById("A").orElseThrow().mainName).isEqualTo("All time")
         assertThat(hardware.findById("A").orElseThrow().cpu).isEqualTo("New CPU")
+    }
+
+    @Test
+    fun `future replays are excluded from browsing search date bounds and player statistics`() {
+        val future = report("malformed", "A", "Malformed future", "2099-01-01T00:00:00Z", "Future CPU")
+        val onlyFuture = report("future-only", "Z", "Future-only player", "2099-01-01T00:00:00Z")
+        // Simulate lifetime summaries already polluted by earlier imports.
+        val existing = hardware.findById("A").orElseThrow()
+        existing.latestName = future.reporterName
+        existing.mainName = future.reporterName
+        existing.cpu = future.cpu
+        existing.observedAt = future.matchAt
+        existing.sourceReplayId = requireNotNull(future.id)
+        existing.replayCount = 99
+        hardware.saveAndFlush(existing)
+        hardware.saveAndFlush(PlayerHardwareEntity("Z", onlyFuture.reporterName,
+            observedAt = onlyFuture.matchAt, sourceReplayId = requireNotNull(onlyFuture.id)))
+
+        assertThat(replayQuery.list(null, null, 0, 1, null, null).totalElements).isEqualTo(6)
+        assertThat(replayQuery.list("Malformed", "reporter", 0, 1, null, null).totalElements).isZero()
+        assertThat(replayQuery.list(null, null, 0, 10, null, null, replayId = future.id).content).isEmpty()
+        assertThat(replayQuery.list(null, null, 0, 10, null, null,
+            startDate = LocalDate.parse("2099-01-01"), endDate = LocalDate.parse("2099-01-01")).content).isEmpty()
+        assertThat(replayQuery.dateRange().endDate).isEqualTo(day.plusDays(1))
+        assertThat(replays.findLatestByReporterIds(listOf("A", "Z")).map { it.reporterName })
+            .containsExactly("Future") // Fixture is 2026-09-09, already in the past.
+
+        val period = MatchDatePeriod(day, LocalDate.parse("2099-01-01"))
+        val periodPlayers = service.list(period, null, null, 0, 10, null, null, false, null, false)
+        assertThat(periodPlayers.totalElements).isEqualTo(2)
+        assertThat(periodPlayers.content.single { it.playerId == "A" }.replayCount).isEqualTo(4)
+        assertThat(service.summary(period).totalPlayers).isEqualTo(2)
+        assertThat(service.linked(period, "discord:period", "replayCount", "desc", false)
+            .single().player.latestMatch?.matchAt).isEqualTo(Instant.parse("2026-09-09T00:00:00Z"))
+
+        val lifetime = allTimeQuery.list(null, null, 0, 10, null, null)
+        assertThat(lifetime.totalElements).isEqualTo(2)
+        val player = lifetime.content.single { it.playerId == "A" }
+        assertThat(player.replayCount).isEqualTo(6)
+        assertThat(player.mainName).isEqualTo("Alpha")
+        assertThat(player.latestName).isEqualTo("Future")
+        assertThat(player.reportedCpu).isEqualTo("New CPU")
+        assertThat(allTimeQuery.summary().totalPlayers).isEqualTo(2)
+        users.saveAndFlush(users.findById("discord:period").orElseThrow().grantOwner())
+        val principal = org.taonity.gentooldataviewer.security.principal.AuthenticatedUserPrincipal(
+            emptyList(), emptyMap(),
+            org.taonity.gentooldataviewer.security.principal.AuthenticatedUserInfo("discord", "period", "Period user", null),
+        )
+        val pinned = allTimeQuery.listLinked(principal, "replayCount", "desc", false).single()
+        assertThat(pinned.rank).isEqualTo(1)
+        assertThat(pinned.player.replayCount).isEqualTo(6)
+    }
+
+    @Test
+    fun `now cutoff includes the boundary and excludes later times on the same day`() {
+        val now = Instant.parse("2026-09-08T12:00:00Z")
+        val pageable = org.springframework.data.domain.PageRequest.of(0, 1)
+        assertThat(replays.browse(pageable, fromDate = day.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
+            asOf = now).totalElements).isEqualTo(3)
+        assertThat(replays.search("Alpha", "reporter", pageable, fromDate = Instant.parse("2026-09-08T00:00:00Z"),
+            asOf = now).totalElements).isEqualTo(2)
+        val rows = periodRepository.aggregate(MatchDatePeriod(day, day, now))
+        assertThat(rows.sumOf { it.games }).isEqualTo(3)
+        assertThat(rows.map { it.observedAt }).allMatch { it <= now }
     }
 
     @Test

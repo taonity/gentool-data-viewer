@@ -23,8 +23,8 @@ data class PeriodPlayerName(
 @Repository
 class CpuPlayerPeriodRepository(private val jdbc: NamedParameterJdbcTemplate) {
     fun aggregate(period: MatchDatePeriod): List<PeriodPlayerName> {
-        val predicates = mutableListOf<String>()
-        val parameters = mutableMapOf<String, Any>()
+        val predicates = mutableListOf("match_at <= :asOf")
+        val parameters = mutableMapOf<String, Any>("asOf" to Timestamp.from(period.asOf))
         period.from?.let {
             predicates += "match_at >= :fromDate"
             parameters["fromDate"] = Timestamp.from(it)
