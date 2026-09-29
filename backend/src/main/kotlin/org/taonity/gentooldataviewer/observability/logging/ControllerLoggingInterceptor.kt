@@ -38,6 +38,12 @@ class ControllerLoggingInterceptor : HandlerInterceptor {
         val startTime = request.getAttribute(START_TIME_ATTRIBUTE) as? Long ?: return
         val elapsed = System.currentTimeMillis() - startTime
 
+        // Exception handlers can resolve an exception into a 5xx response, leaving ex null.
+        if (response.status >= 500) {
+            LOGGER.error { "${describe(request, handler)} failed with HTTP ${response.status} in ${elapsed}ms" }
+            return
+        }
+
         if (ex != null) {
             LOGGER.warn { "${describe(request, handler)} failed in ${elapsed}ms with ${ex.javaClass.simpleName}" }
             return

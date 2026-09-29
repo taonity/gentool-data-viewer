@@ -1,5 +1,6 @@
 package org.taonity.gentooldataviewer.replay.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.taonity.gentooldataviewer.common.config.AppProperties
 import org.taonity.gentooldataviewer.config.AppSettings
 import org.taonity.gentooldataviewer.console.dto.PageResponse
@@ -26,6 +27,10 @@ class ReplayQueryService(
     private val appProperties: AppProperties,
     private val objectMapper: ObjectMapper,
 ) {
+    companion object {
+        private val LOGGER = KotlinLogging.logger {}
+    }
+
     @Transactional(readOnly = true)
     fun dateRange(): ReplayDateRangeDto {
         val bounds = replayRepository.findMatchDateBounds()
@@ -69,34 +74,52 @@ class ReplayQueryService(
             Sort.by(order, Sort.Order.asc("id")),
         )
         val normalizedQuery = q?.trim().orEmpty()
-        val result = if (normalizedQuery.isEmpty()) {
-            replayRepository.browse(
-                pageable = pageable,
-                reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
-                filterReporterIds = normalizedReporterIds.isNotEmpty(),
-                replayId = replayId,
-                fromDate = fromDate,
-                untilDate = requestedPeriod.until,
-            )
-        } else {
-            replayRepository.search(
-                q = normalizedQuery,
-                field = field?.takeIf(String::isNotBlank) ?: "all",
-                pageable = pageable,
-                reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
-                filterReporterIds = normalizedReporterIds.isNotEmpty(),
-                replayId = replayId,
-                exact = exact,
-                fromDate = fromDate,
-                untilDate = requestedPeriod.until,
-            )
-        }
-        val replayIds = result.content.mapNotNull { it.id }
-        val players = replayPlayerRepository.findByReplayIdIn(replayIds).groupBy { it.replayId }
-        val files = replayAssociatedFileRepository.findByReplayIdIn(replayIds).groupBy { it.replayId }
-        return PageResponse.of(result) { replay ->
-            val replayId = requireNotNull(replay.id)
-            ReplayDto.from(replay, players[replayId].orEmpty(), files[replayId].orEmpty(), objectMapper)
+        val startedAt = System.nanoTime()
+        val operation = if (normalizedQuery.isEmpty()) "browse" else "search"
+        val loggedField = field?.takeIf { it in REPLAY_SORT_PROPERTIES || it == "all" } ?: "all"
+        val context = "field=$loggedField exact=$exact queryLength=${normalizedQuery.length} " +
+            "page=${pageable.pageNumber} size=${pageable.pageSize}"
+        LOGGER.info { "Replay $operation started $context" }
+        try {
+            val result = if (normalizedQuery.isEmpty()) {
+                replayRepository.browse(
+                    pageable = pageable,
+                    reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
+                    filterReporterIds = normalizedReporterIds.isNotEmpty(),
+                    replayId = replayId,
+                    fromDate = fromDate,
+                    untilDate = requestedPeriod.until,
+                )
+            } else {
+                replayRepository.search(
+                    q = normalizedQuery,
+                    field = field?.takeIf(String::isNotBlank) ?: "all",
+                    pageable = pageable,
+                    reporterIds = normalizedReporterIds.ifEmpty { listOf("") },
+                    filterReporterIds = normalizedReporterIds.isNotEmpty(),
+                    replayId = replayId,
+                    exact = exact,
+                    fromDate = fromDate,
+                    untilDate = requestedPeriod.until,
+                )
+            }
+            val replayIds = result.content.mapNotNull { it.id }
+            val players = replayPlayerRepository.findByReplayIdIn(replayIds).groupBy { it.replayId }
+            val files = replayAssociatedFileRepository.findByReplayIdIn(replayIds).groupBy { it.replayId }
+            val response = PageResponse.of(result) { replay ->
+                val replayId = requireNotNull(replay.id)
+                ReplayDto.from(replay, players[replayId].orEmpty(), files[replayId].orEmpty(), objectMapper)
+            }
+            val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+            LOGGER.info {
+                "Replay $operation completed $context results=${result.numberOfElements} " +
+                    "total=${result.totalElements} elapsedMs=$elapsedMs"
+            }
+            return response
+        } catch (e: Exception) {
+            val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+            LOGGER.error(e) { "Replay $operation failed $context elapsedMs=$elapsedMs" }
+            throw e
         }
     }
 

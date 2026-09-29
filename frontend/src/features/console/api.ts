@@ -53,7 +53,7 @@ async function errorMessage(res: Response): Promise<string> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetchWithTimeout(`${BASE}${path}`, { timeoutMs: 10000 })
+  const res = await fetchWithTimeout(`${BASE}${path}`, { timeoutMs: 60_000 })
   if (!res.ok) {
     throw new ApiError(res.status, `Request failed (${res.status})`)
   }

@@ -126,6 +126,24 @@ class CpuPlayerPeriodServiceTest {
     }
 
     @Test
+    fun `replay search matches individual players and never crosses field boundaries`() {
+        val replay = replays.findAll().single { it.sourceUrl.endsWith("/end") }
+        replay.playerNames = "Alias, Guest"
+        replays.saveAndFlush(replay)
+        participants.saveAndFlush(ReplayPlayerEntity(replayId = requireNotNull(replay.id), teamNumber = 2,
+            slotNumber = 1, address = "2A", name = "Guest"))
+
+        assertThat(replayQuery.list("Alias", "players", 0, 1, null, null, exact = true).totalElements)
+            .describedAs("Exact player search matches one player in a multi-player replay").isEqualTo(1)
+        assertThat(replayQuery.list("Guest", "all", 0, 1, null, null, exact = true).totalElements)
+            .describedAs("Exact all-fields search also matches an individual player").isEqualTo(1)
+        assertThat(replayQuery.list("Alias A", "all", 0, 1, null, null).totalElements)
+            .describedAs("Search must not concatenate reporter name and ID into a new match").isZero()
+        assertThat(replayQuery.list("Alpha", "all", 0, 1, null, null).totalElements)
+            .describedAs("Pagination counts all matching replays").isEqualTo(2)
+    }
+
+    @Test
     fun `replay range includes both day boundaries and intersects other filters`() {
         val aliasReplay = replays.findAll().single { it.sourceUrl.endsWith("/end") }
         participants.saveAndFlush(ReplayPlayerEntity(replayId = requireNotNull(aliasReplay.id), teamNumber = 2,
@@ -134,6 +152,8 @@ class CpuPlayerPeriodServiceTest {
         assertThat(page.totalElements).isEqualTo(4)
         assertThat(page.content.first().matchAt).isEqualTo(Instant.parse("2026-09-08T00:00:00Z"))
         assertThat(page.content.last().matchAt).isEqualTo(Instant.parse("2026-09-08T23:59:59.999Z"))
+        assertThat(replayQuery.list("Alpha", "all", 0, 10, null, null,
+            startDate = day, endDate = day).totalElements).isEqualTo(2)
         assertThat(replayQuery.list("Alias", "players", 0, 10, null, null, listOf("A"), exact = true,
             startDate = day, endDate = day).totalElements).isEqualTo(1)
         assertThat(replayQuery.list(null, null, 0, 10, null, null, startDate = day.plusDays(2)).content).isEmpty()
