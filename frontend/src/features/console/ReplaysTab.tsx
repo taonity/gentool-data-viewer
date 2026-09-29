@@ -259,6 +259,7 @@ export function ReplaysTab({
       columns={REPLAY_COLUMNS}
       columnWidthsKey="replays"
       defaultSortKey="matchAt"
+      defaultSearchField="reporter"
       defaultSortDirection="desc"
       active={active}
       filterKey={`${targetReplayId ?? targetPlayerId ?? (myReplaysOnly ? linkedPlayerIds.join(',') : '')}:${period.startDate}:${period.endDate}`}

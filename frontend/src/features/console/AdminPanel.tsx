@@ -317,9 +317,15 @@ function PlayerLinksCard({
 
   const loadUsers = useCallback(async (query: string, exact: boolean) => {
     const request = ++userRequest.current
+    const search = query.trim()
+    if (!search) {
+      setUsers([])
+      setUsersLoading(false)
+      return
+    }
     setUsersLoading(true)
     try {
-      const result = await consoleApi.searchDiscordUsersForLink(query, exact)
+      const result = await consoleApi.searchDiscordUsersForLink(search, exact)
       if (request === userRequest.current) setUsers(result)
     } catch {
       if (request === userRequest.current) onError('Failed to search Discord users.')
@@ -330,9 +336,16 @@ function PlayerLinksCard({
 
   const loadPlayers = useCallback(async (query: string, exact: boolean) => {
     const request = ++playerRequest.current
+    const search = query.trim()
+    if (!search) {
+      setPlayers([])
+      setPlayerTotal(0)
+      setPlayersLoading(false)
+      return
+    }
     setPlayersLoading(true)
     try {
-      const result = await consoleApi.searchGentoolPlayersForLink(query, exact)
+      const result = await consoleApi.searchGentoolPlayersForLink(search, exact)
       if (request === playerRequest.current) {
         setPlayers(result.content)
         setPlayerTotal(result.totalElements)
@@ -368,16 +381,18 @@ function PlayerLinksCard({
 
   const resolveUser = async (discordUserId = userQuery.trim()) => {
     if (!/^[0-9]{17,20}$/.test(discordUserId)) return
+    const request = ++userRequest.current
+    setUsersLoading(false)
     setResolvingUser(true)
     setResultMessage(null)
     try {
       const resolved = await consoleApi.resolveDiscordUserForLink(discordUserId)
-      if (!resolved) return
+      if (!resolved || request !== userRequest.current) return
       setUsers((current) => [resolved, ...(current ?? []).filter((user) => user.userId !== resolved.userId)])
       setSelectedUser(resolved)
       setResultMessage(`Verified ${resolved.displayName} with Discord.`)
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Failed to fetch Discord user.')
+      if (request === userRequest.current) onError(error instanceof Error ? error.message : 'Failed to fetch Discord user.')
     } finally {
       setResolvingUser(false)
     }
@@ -454,7 +469,13 @@ function PlayerLinksCard({
                 value={userQuery}
                 onChange={(event) => {
                   setUserQuery(event.target.value)
-                  if (!event.target.value.trim()) setExactUserMatch(false)
+                  if (!event.target.value.trim()) {
+                    ++userRequest.current
+                    setExactUserMatch(false)
+                    setUsers([])
+                    setUsersLoading(false)
+                    setSelectedUser(null)
+                  }
                 }}
                 placeholder="Display name or Discord user ID"
               />
@@ -482,8 +503,8 @@ function PlayerLinksCard({
             </div>
             <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={usersLoading}>
               {users === null && usersLoading && <LinkSearchSkeleton />}
-              {users === null && !usersLoading && <EmptySearchResult label="No Discord users found." />}
-              {users?.length === 0 && <EmptySearchResult label="No Discord users found." />}
+              {!userQuery.trim() && <EmptySearchResult label="Search by display name or Discord user ID." />}
+              {userQuery.trim() && !usersLoading && !users?.length && <EmptySearchResult label="No Discord users found." />}
               {users?.map((user) => (
                 <button
                   type="button"
@@ -543,7 +564,14 @@ function PlayerLinksCard({
                 value={playerQuery}
                 onChange={(event) => {
                   setPlayerQuery(event.target.value)
-                  if (!event.target.value.trim()) setExactPlayerMatch(false)
+                  if (!event.target.value.trim()) {
+                    ++playerRequest.current
+                    setExactPlayerMatch(false)
+                    setPlayers([])
+                    setPlayerTotal(0)
+                    setPlayersLoading(false)
+                    setSelectedPlayer(null)
+                  }
                 }}
                 placeholder="Player name or GenTool ID"
               />
@@ -561,8 +589,8 @@ function PlayerLinksCard({
             </div>
             <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
               {players === null && playersLoading && <LinkSearchSkeleton />}
-              {players === null && !playersLoading && <EmptySearchResult label="No GenTool players found." />}
-              {players?.length === 0 && <EmptySearchResult label="No GenTool players found." />}
+              {!playerQuery.trim() && <EmptySearchResult label="Search by player name or GenTool ID." />}
+              {playerQuery.trim() && !playersLoading && !players?.length && <EmptySearchResult label="No GenTool players found." />}
               {players?.map((player) => {
                 const latestLineup = player.latestMatch?.teams
                   .map((team) => team.join(' + '))

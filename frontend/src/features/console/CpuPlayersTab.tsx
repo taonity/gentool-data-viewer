@@ -355,6 +355,7 @@ export function CpuPlayersTab({
         columns={playerColumns(onNavigateToPlayer)}
         columnWidthsKey="players"
         defaultSortKey="replayCount"
+        defaultSearchField="mainName"
         defaultSortDirection="desc"
         showRowNumbers
         loadPinnedRows={canManage && !targetPlayerId

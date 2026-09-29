@@ -49,6 +49,12 @@ export function MyGentoolTab({
 
   const loadPlayers = useCallback(async (search: string, exact: boolean) => {
     const request = ++playerRequest.current
+    if (!search.trim()) {
+      setPlayers([])
+      setPlayerTotal(0)
+      setPlayersLoading(false)
+      return
+    }
     setPlayersLoading(true)
     try {
       const result = await consoleApi.listCpuPlayers(
@@ -186,7 +192,14 @@ export function MyGentoolTab({
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value)
-                if (!event.target.value.trim()) setExactMatch(false)
+                if (!event.target.value.trim()) {
+                  ++playerRequest.current
+                  setExactMatch(false)
+                  setPlayers([])
+                  setPlayerTotal(0)
+                  setPlayersLoading(false)
+                  setSelectedPlayer(null)
+                }
               }}
               placeholder="Player name or GenTool ID"
             />
@@ -207,8 +220,11 @@ export function MyGentoolTab({
           </label>
         </div>
         <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
-          {players === null && <div className="space-y-2 p-3">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-11 w-full" />)}</div>}
-          {players?.length === 0 && (
+          {players === null && playersLoading && <div className="space-y-2 p-3">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-11 w-full" />)}</div>}
+          {!query.trim() && (
+            <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">Search by player name or GenTool ID.</div>
+          )}
+          {query.trim() && !playersLoading && !players?.length && (
             <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">No players found.</div>
           )}
           {players?.map((player) => {

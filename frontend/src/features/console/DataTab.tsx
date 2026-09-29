@@ -86,6 +86,7 @@ type DataTabProps<T> = {
   sortAscendingLabel?: string
   defaultSortKey?: string
   defaultSortDirection?: 'asc' | 'desc'
+  defaultSearchField?: string
   forceLoading?: boolean
   columnSelection?: boolean
   active?: boolean
@@ -147,6 +148,7 @@ export function DataTab<T>({
   sortAscendingLabel = 'Oldest',
   defaultSortKey,
   defaultSortDirection = 'desc',
+  defaultSearchField = 'all',
   forceLoading = false,
   columnSelection = false,
   active = true,
@@ -166,7 +168,7 @@ export function DataTab<T>({
   const [query, setQuery] = useState('')
   const [activeQuery, setActiveQuery] = useState('')
   const [exactMatch, setExactMatch] = useState(false)
-  const [field, setField] = useState('all')
+  const [field, setField] = useState(defaultSearchField)
   const [sortKey, setSortKey] = useState(() => defaultSortKey ?? columns.find((column) => column.sortKey)?.sortKey ?? '')
   const [direction, setDirection] = useState<'desc' | 'asc'>(defaultSortDirection)
   const [highlightId, setHighlightId] = useState<string | null>(null)
@@ -462,7 +464,7 @@ export function DataTab<T>({
         void reload(page, size, activeQuery, field, sortKey, direction, exactMatch, { silent: true })
       } else {
         didInitialLoad.current = true
-        void reload(0, DEFAULT_PAGE_SIZE, '', 'all', sortKey, defaultSortDirection, false)
+        void reload(0, DEFAULT_PAGE_SIZE, '', field, sortKey, defaultSortDirection, false)
       }
     }
     wasActive.current = true
