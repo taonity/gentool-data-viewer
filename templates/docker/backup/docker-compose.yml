@@ -1,0 +1,23 @@
+services:
+  postgres-export:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      BACKUP_PROJECT: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set}
+      BACKUP_SCHEDULE_TIME: ${BACKUP_SCHEDULE_TIME:-01:00}
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      PGDATABASE: gentool_data_viewer_db
+    volumes:
+      - ./export-postgres.sh:/opt/backup/export-postgres.sh:ro
+      - ./run-scheduled.sh:/opt/backup/run-scheduled.sh:ro
+      - backup-staging:/backup-staging
+    entrypoint: ["sh", "/opt/backup/run-scheduled.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "marker=/backup-staging/$${BACKUP_PROJECT}/.last-success; test -f \"$$marker\" && export_time=$$(cat \"$$marker\") && test $$(( $$(date +%s) - export_time )) -le 93600"]
+      interval: 5m
+      timeout: 5s
+      retries: 3
+      start_period: 5m

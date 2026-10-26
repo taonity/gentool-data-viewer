@@ -28,6 +28,20 @@ services:
     memswap_limit: ${FLYWAY_MEMORY_SWAP_LIMIT:-512m}
     pids_limit: ${FLYWAY_PIDS_LIMIT:-256}
 
+  postgres-export:
+    extends:
+      file: backup/docker-compose.yml
+      service: postgres-export
+    cpus: "${EXPORT_CPU_LIMIT:-0.50}"
+    mem_limit: ${EXPORT_MEMORY_LIMIT:-256m}
+    memswap_limit: ${EXPORT_MEMORY_SWAP_LIMIT:-384m}
+    pids_limit: ${EXPORT_PIDS_LIMIT:-128}
+    networks:
+      backend:
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     restart: unless-stopped
     cpus: "${BACKEND_CPU_LIMIT:-1.00}"
@@ -53,3 +67,10 @@ services:
 networks:
   prodenv-shared-internal:
     external: true
+
+  backend:
+
+volumes:
+  backup-staging:
+    external: true
+    name: prodenv-backup-staging
