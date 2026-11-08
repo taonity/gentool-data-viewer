@@ -18,6 +18,7 @@ import org.taonity.gentooldataviewer.cpu.service.CpuMatchStatus
 import org.taonity.gentooldataviewer.cpu.service.CPU_PLAYER_SORT_PROPERTIES
 import org.taonity.gentooldataviewer.cpu.service.CpuPlayerQueryService
 import org.taonity.gentooldataviewer.replay.service.REPLAY_SORT_PROPERTIES
+import org.taonity.gentooldataviewer.replay.service.ReplayRetentionPolicy
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -64,6 +65,9 @@ class DemoDataProfileTest {
     @Autowired
     private lateinit var appSettings: AppSettings
 
+    @Autowired
+    private lateinit var retentionPolicy: ReplayRetentionPolicy
+
     @Test
     fun `demo profile seeds feature data idempotently`() {
         val pending = userRepository.findByAccessStatusOrderByDisplayNameAsc(AccessRequestStatus.PENDING)
@@ -74,6 +78,7 @@ class DemoDataProfileTest {
         assertThat(auditLogRepository.existsByActorUserId("demo-data-owner")).isTrue()
 
         assertThat(replayRepository.count()).isEqualTo(50)
+        assertThat(replayRepository.findAll()).allMatch { it.matchAt >= retentionPolicy.cutoff() }
         assertThat(playerHardwareRepository.count()).isEqualTo(15)
         assertThat(replayPlayerRepository.count()).isEqualTo(166)
         assertThat(replayAssociatedFileRepository.count()).isEqualTo(100)

@@ -25,6 +25,7 @@ class ReplayCollector(
     private val sourceClient: GentoolSourceClient,
     private val textParser: ReplayTextParser,
     private val importService: ReplayImportService,
+    private val retentionPolicy: ReplayRetentionPolicy,
 ) {
     fun collect(
         startDate: LocalDate,
@@ -36,6 +37,10 @@ class ReplayCollector(
         val progress = CollectionProgress()
         var date = startDate
         while (!date.isAfter(endDate) && !limitReached(progress, userLimit)) {
+            // Recheck queued/long-running jobs against the current policy and UTC date.
+            val window = retentionPolicy.window()
+            date = maxOf(date, window.startDate)
+            if (date > endDate || date > window.endDate) break
             collectDate(date, userLimit, targetPlayerId, progress, onProgress)
             date = date.plusDays(1)
         }

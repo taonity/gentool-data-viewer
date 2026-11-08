@@ -6,7 +6,6 @@ import org.taonity.gentooldataviewer.replay.entity.CollectionTrigger
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
-import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ExecutorService
@@ -17,21 +16,19 @@ class ReplayCollectionCoordinator(
     private val collector: ReplayCollector,
     private val jobService: ReplayCollectionJobService,
     private val replayCollectorExecutor: ExecutorService,
+    private val retentionPolicy: ReplayRetentionPolicy,
 ) {
-    private val clock = Clock.systemUTC()
-
     fun startManual(startDate: LocalDate, endDate: LocalDate, requestedBy: String, userLimit: Int?): String {
-        validateRange(startDate, endDate, userLimit)
         return start(CollectionTrigger.MANUAL, startDate, endDate, requestedBy, userLimit, null)
     }
 
     fun startUserRescan(startDate: LocalDate, endDate: LocalDate, requestedBy: String, targetPlayerId: String): String {
-        validateRange(startDate, endDate, null)
         return start(CollectionTrigger.USER_RESCAN, startDate, endDate, requestedBy, null, targetPlayerId)
     }
 
     fun startScheduledYesterday() {
-        val yesterday = LocalDate.now(clock).minusDays(1)
+        val window = retentionPolicy.window()
+        val yesterday = maxOf(window.endDate.minusDays(1), window.startDate)
         try {
             start(
                 CollectionTrigger.SCHEDULED,
@@ -54,6 +51,7 @@ class ReplayCollectionCoordinator(
         userLimit: Int?,
         targetPlayerId: String?,
     ): String {
+        validateRange(startDate, endDate, userLimit)
         val jobId = jobService.create(trigger, startDate, endDate, requestedBy, userLimit, targetPlayerId)
         replayCollectorExecutor.submit { run(jobId, startDate, endDate, userLimit, targetPlayerId) }
         return jobId
@@ -88,8 +86,13 @@ class ReplayCollectionCoordinator(
         if (days > properties.maxDaysPerJob) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "A job can collect at most ${properties.maxDaysPerJob} days")
         }
-        if (endDate.isAfter(LocalDate.now(clock))) {
+        val window = retentionPolicy.window()
+        if (endDate > window.endDate) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Future dates cannot be collected")
+        }
+        if (startDate < window.startDate) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Scans must be within the ${window.retentionDays}-day retention period (${window.startDate} to ${window.endDate}, UTC)")
         }
         if (userLimit != null && userLimit < 1) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "userLimit must be greater than zero")

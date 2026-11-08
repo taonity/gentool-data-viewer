@@ -105,6 +105,42 @@ The `(reporter_id, match_at)` index supports player history access; `match_at` i
 also indexed for date-range scans. Benchmark larger production datasets before
 adding caching or precomputed daily aggregates.
 
+## Replay and Player Retention
+
+`app.retention.replays.retention-days` defaults to **30** and controls both replay
+details and inactive player hardware. It can be changed at runtime in Console
+configuration (range: 1–3650 days). `app.retention.replays.cron` defaults to
+`0 0 4 * * *`: cleanup runs daily at **04:00 UTC**, including when collection is
+disabled. Both settings can also be supplied through application configuration.
+
+The window includes today and the preceding `retention-days - 1` UTC calendar
+days. Replays expire by `match_at`; hardware expires by `observed_at`, not the
+last scan timestamp. Cleanup uses committed batches of at most 500 records,
+deletes hardware before its source replay, and relies on existing foreign-key
+cascades for participants and associated file metadata. Migration V100016 adds
+hardware date/source indexes and a singleton database lock shared by import,
+cleanup, rescan completion and CPU rerating transactions. This prevents cleanup
+and hardware updates from racing over source
+references or player summaries, including across application instances.
+
+Surviving player counts, main names and aliases are refreshed from retained
+replays using the existing frequency/latest-use/name tie breakers. These are
+retained-history statistics, not lifetime statistics. Discord accounts and player
+links, collection jobs, rescan history, and the benchmark catalog are preserved;
+audit logs retain their separate policy. A linked player without retained hardware
+appears as inactive and can still be rescanned by their linked account.
+
+`GET /console/replay-collection/window` exposes the current inclusive scan dates
+to the collection form. Manual scans outside this window are rejected; rescan
+lookbacks are capped to it. Queued and running scans recheck the window before
+each day. Imports independently reject expired directory dates, expired match
+dates, and future match timestamps, so rescanning cannot restore expired history.
+
+Changing retention updates scan validation immediately; deletion occurs on the
+next scheduled cleanup. Increasing retention does not restore previously deleted
+data. The first cleanup can process a large backlog; PostgreSQL vacuuming then
+makes deleted storage reusable and does not necessarily shrink database files.
+
 ## Tips
 
 - Keep migrations small and focused

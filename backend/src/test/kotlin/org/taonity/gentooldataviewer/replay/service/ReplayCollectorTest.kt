@@ -14,12 +14,16 @@ import org.springframework.util.unit.DataSize
 import java.net.URI
 import java.time.Duration
 import java.time.LocalDate
+import org.taonity.gentooldataviewer.replay.dto.ReplayCollectionWindowDto
 
 class ReplayCollectorTest {
     private val sourceClient = mock(GentoolSourceClient::class.java)
     private val textParser = mock(ReplayTextParser::class.java)
     private val importService = mock(ReplayImportService::class.java)
-    private val collector = ReplayCollector(properties(), sourceClient, textParser, importService)
+    private val retentionPolicy = mock(ReplayRetentionPolicy::class.java).apply {
+        `when`(window()).thenReturn(ReplayCollectionWindowDto(30, LocalDate.parse("2026-08-04"), LocalDate.parse("2026-09-02")))
+    }
+    private val collector = ReplayCollector(properties(), sourceClient, textParser, importService, retentionPolicy)
 
     @Test
     fun `stops after optional user limit`() {
@@ -59,6 +63,20 @@ class ReplayCollectorTest {
         verify(sourceClient).list(target.uri)
         verify(sourceClient, never()).list(other.uri)
         verify(importService).markGentoolUpdated("ABCDEF123456")
+    }
+
+    @Test
+    fun `queued scan skips expired days and future days`() {
+        val retained = LocalDate.parse("2026-09-02")
+        `when`(retentionPolicy.window()).thenReturn(ReplayCollectionWindowDto(1, retained, retained))
+        val day = URI.create("https://gentool.net/data/zh/2026_09_September/02_Wednesday/")
+        `when`(sourceClient.list(day)).thenReturn(emptyList())
+
+        collector.collect(retained.minusDays(2), retained.plusDays(1), null) {}
+
+        verify(sourceClient).list(day)
+        verify(sourceClient, never()).list(URI.create("https://gentool.net/data/zh/2026_09_September/01_Tuesday/"))
+        verify(sourceClient, never()).list(URI.create("https://gentool.net/data/zh/2026_09_September/03_Thursday/"))
     }
 
     private fun properties() = ReplayCollectorProperties(

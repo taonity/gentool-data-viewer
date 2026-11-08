@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.context.annotation.Import
 import org.taonity.gentooldataviewer.user.entity.UserEntity
 import org.taonity.gentooldataviewer.user.repository.UserRepository
 import java.time.Duration
@@ -36,6 +37,7 @@ import java.time.LocalDate
 
 @SpringBootTest
 @ActiveProfiles("h2")
+@Import(ReplayRetentionTestClock::class)
 class ReplayImportServiceTest {
     @Autowired
     lateinit var importService: ReplayImportService

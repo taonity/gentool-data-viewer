@@ -229,6 +229,34 @@ class ReplayRescanServiceTest {
         }
     }
 
+    @Test
+    fun `rescan lookback is capped by runtime retention`() {
+        configOverrideRepository.save(ConfigOverrideEntity(configKey = "app.retention.replays.retention-days",
+            valueJson = "2", updatedBy = userId))
+        appSettings.reload()
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val jobId = queuedJob(playerId)
+        Mockito.doReturn(jobId).`when`(coordinator).startUserRescan(today.minusDays(1), today, userId, playerId)
+
+        assertThat(service.requestRescan(principal(), playerId).jobId).isEqualTo(jobId)
+        assertThat(service.dashboard(principal()).lookbackDays).isEqualTo(2)
+        Mockito.verify(coordinator).startUserRescan(today.minusDays(1), today, userId, playerId)
+    }
+
+    @Test
+    fun `linked inactive players can be rescanned without hardware while unknown players cannot`() {
+        service.requestLink(principal(), playerId)
+        hardwareRepository.deleteById(playerId)
+        hardwareRepository.deleteById(otherPlayerId)
+        val jobId = queuedJob(playerId)
+        stubCoordinator(playerId, jobId)
+
+        assertThat(service.dashboard(principal()).links.single().playerName).isNull()
+        assertThat(service.requestRescan(principal(), playerId).ownTarget).isTrue()
+        assertThatThrownBy { service.requestRescan(principal(), otherPlayerId) }
+            .hasMessageContaining("GenTool player not found")
+    }
+
     private fun queuedJob(targetPlayerId: String): String = requireNotNull(
         jobRepository.save(
             ReplayCollectionJobEntity(

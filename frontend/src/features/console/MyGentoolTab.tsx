@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
-import { Clapperboard, Link2, Loader2, Search, Unlink, UserRoundSearch } from 'lucide-react'
+import { Clapperboard, Link2, Loader2, RotateCw, Search, Unlink, UserRoundSearch } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,12 +13,14 @@ import type { CpuPlayer, GentoolLink, ReplayRescanDashboard } from './types'
 export function MyGentoolTab({
   active,
   forceLoading,
+  canRefresh,
   onNavigateToPlayer,
   onNavigateToReplays,
   onError,
 }: {
   active: boolean
   forceLoading: boolean
+  canRefresh: boolean
   onNavigateToPlayer: (playerId: string) => void
   onNavigateToReplays: (playerId: string) => void
   onError: (message: string) => void
@@ -34,6 +36,7 @@ export function MyGentoolTab({
   const [selectedPlayer, setSelectedPlayer] = useState<CpuPlayer | null>(null)
   const [linking, setLinking] = useState(false)
   const [unlinkingPlayerId, setUnlinkingPlayerId] = useState<string | null>(null)
+  const [refreshingPlayerId, setRefreshingPlayerId] = useState<string | null>(null)
   const playerRequest = useRef(0)
 
   const loadDashboard = useCallback(async () => {
@@ -86,6 +89,25 @@ export function MyGentoolTab({
   useEffect(() => {
     if (active && !forceLoading) void loadPlayers(deferredQuery.trim(), exactMatch)
   }, [active, deferredQuery, exactMatch, forceLoading, loadPlayers])
+
+  const hasActiveScans = dashboard?.history.some((job) => job.status === 'QUEUED' || job.status === 'RUNNING') ?? false
+  useEffect(() => {
+    if (!active || forceLoading || !hasActiveScans) return
+    const timer = window.setInterval(() => void loadDashboard(), 3000)
+    return () => window.clearInterval(timer)
+  }, [active, forceLoading, hasActiveScans, loadDashboard])
+
+  const refreshInactivePlayer = async (playerId: string) => {
+    setRefreshingPlayerId(playerId)
+    try {
+      await consoleApi.requestReplayRescan(playerId)
+      await loadDashboard()
+    } catch (error) {
+      onError(error instanceof Error ? error.message : 'Failed to refresh player data.')
+    } finally {
+      setRefreshingPlayerId(null)
+    }
+  }
 
   const linkPlayer = async () => {
     if (!selectedPlayer) return
@@ -149,8 +171,18 @@ export function MyGentoolTab({
                 <div>
                   <div className="truncate font-medium">{link.playerName ?? link.playerId}</div>
                   <div className="mt-0.5 font-mono text-xs text-muted-foreground">{link.playerId}</div>
+                  {link.playerName === null && (
+                    <p className="mt-1 text-xs text-muted-foreground">Inactive: no player data within the retention period. Your link is preserved.</p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1">
+                  {link.playerName === null && canRefresh && link.status === 'APPROVED' && (
+                    <Button variant="ghost" size="xs" disabled={refreshingPlayerId !== null || hasActiveScans}
+                      onClick={() => void refreshInactivePlayer(link.playerId)}>
+                      {refreshingPlayerId === link.playerId ? <Loader2 className="animate-spin" /> : <RotateCw />}
+                      Scan recent replays
+                    </Button>
+                  )}
                   <Button variant="ghost" size="xs" onClick={() => onNavigateToPlayer(link.playerId)}>
                     <UserRoundSearch />
                     Player

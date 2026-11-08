@@ -17,6 +17,9 @@ app:
     max-page-size: 100
     access-requests-enabled: false
   retention:
+    replays:
+      retention-days: 30
+      cron: "0 0 4 * * *"
     audit:
       retention-days: 14
       cron: "0 30 3 * * *"

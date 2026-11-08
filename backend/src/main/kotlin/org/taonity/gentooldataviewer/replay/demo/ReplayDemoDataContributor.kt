@@ -9,6 +9,7 @@ import org.taonity.gentooldataviewer.replay.parser.ParsedPlayer
 import org.taonity.gentooldataviewer.replay.parser.ParsedReplay
 import org.taonity.gentooldataviewer.replay.parser.ParsedTeam
 import org.taonity.gentooldataviewer.replay.service.ReplayImportService
+import org.taonity.gentooldataviewer.replay.service.ReplayRetentionPolicy
 import org.springframework.context.annotation.Profile
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -26,6 +28,7 @@ class ReplayDemoDataContributor(
     private val replayImportService: ReplayImportService,
     private val benchmarkRepository: CpuBenchmarkRepository,
     private val benchmarkMatcher: CpuBenchmarkMatcher,
+    private val retentionPolicy: ReplayRetentionPolicy,
 ) : DemoDataContributor {
     override val feature: String = "replays"
 
@@ -53,7 +56,7 @@ class ReplayDemoDataContributor(
             val reporterName = reporter.nameForOccurrence(index / PLAYERS.size)
             replayImportService.import(
                 sourceUrl(index),
-                DEMO_DATE.minusDays((index / 10).toLong()),
+                maxOf(DEMO_DATE.minusDays((index / 10).toLong()), retentionPolicy.window().startDate),
                 replay(index, reporter, reporterName),
             )
         }
@@ -66,7 +69,7 @@ class ReplayDemoDataContributor(
         val participantNames = participants.mapIndexed { offset, player ->
             if (offset == 0) reporterName else player.nameForReplay(index + offset)
         }
-        val matchAt = DEMO_START.minusSeconds(index * 2_137L)
+        val matchAt = maxOf(DEMO_START.minusSeconds(index * 2_137L), retentionPolicy.cutoff())
         val map = MAPS[index % MAPS.size]
         val matchType = if (index % 3 == 0) "1v1" else "2v2"
         val duration = Duration.ofMinutes((8 + index % 34).toLong()).plusSeconds((index * 17 % 60).toLong())
@@ -186,8 +189,8 @@ class ReplayDemoDataContributor(
 
     private companion object {
         const val REPLAY_COUNT = 50
-        val DEMO_DATE: LocalDate = LocalDate.parse("2026-09-02")
-        val DEMO_START: Instant = Instant.parse("2026-09-02T22:45:00Z")
+        val DEMO_DATE: LocalDate = LocalDate.now(ZoneOffset.UTC).minusDays(1)
+        val DEMO_START: Instant = DEMO_DATE.atTime(22, 45).toInstant(ZoneOffset.UTC)
         val PLAYERS = listOf(
             DemoPlayer("D3A000000001", "Atlas", listOf("Atlas_GT", "Atlas2v2"), "Intel Core i7-13700K", 4326, "5060"),
             DemoPlayer("D3A000000002", "Birch", listOf("BirchLeaf", "B1rch"), "AMD Ryzen 7 7800X3D", 3759, "5299"),

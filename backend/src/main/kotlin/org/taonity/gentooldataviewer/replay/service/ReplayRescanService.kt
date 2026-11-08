@@ -39,6 +39,7 @@ class ReplayRescanService(
     private val jobRepository: ReplayCollectionJobRepository,
     private val coordinator: ReplayCollectionCoordinator,
     private val auditService: AuditService,
+    private val retentionPolicy: ReplayRetentionPolicy,
 ) {
     private val clock = Clock.systemUTC()
 
@@ -54,7 +55,7 @@ class ReplayRescanService(
             otherDailyLimit = limits.otherDailyLimit,
             quotaResetsAt = dayStart.plusSeconds(86_400),
             targetCooldownSeconds = limits.targetCooldown.seconds,
-            lookbackDays = properties.lookbackDays,
+            lookbackDays = minOf(properties.lookbackDays, retentionPolicy.window().retentionDays),
             history = requestRepository.findTop10ByRequestedByUserIdOrderByRequestedAtDesc(user.userId).map { request ->
                 val job = jobRepository.findById(request.jobId).orElseThrow()
                 ReplayRescanHistoryDto(
@@ -125,10 +126,12 @@ class ReplayRescanService(
         val user = accessGuard.requireView(principal)
         val limits = limitsFor(user)
         val playerId = normalizePlayerId(rawPlayerId)
-        if (!hardwareRepository.existsById(playerId)) throw ConsoleNotFoundException("GenTool player not found")
         val ownPlayerIds = linkRepository.findByUserId(user.userId)
             .filter { it.status == GentoolLinkStatus.APPROVED }
             .mapTo(mutableSetOf()) { it.playerId }
+        if (playerId !in ownPlayerIds && !hardwareRepository.existsById(playerId)) {
+            throw ConsoleNotFoundException("GenTool player not found")
+        }
         val ownTarget = playerId in ownPlayerIds
         val now = Instant.now(clock)
         val latest = requestRepository
@@ -145,7 +148,7 @@ class ReplayRescanService(
             }
         }
         val endDate = LocalDate.now(clock)
-        val startDate = endDate.minusDays(properties.lookbackDays - 1)
+        val startDate = maxOf(endDate.minusDays(properties.lookbackDays - 1), retentionPolicy.window().startDate)
         val jobId = coordinator.startUserRescan(startDate, endDate, user.userId, playerId)
         requestRepository.save(
             ReplayRescanRequestEntity(

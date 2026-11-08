@@ -3,6 +3,7 @@ package org.taonity.gentooldataviewer.config
 import org.taonity.gentooldataviewer.console.service.AuditLogCleanupService
 import org.taonity.gentooldataviewer.replay.config.ReplayCollectorProperties
 import org.taonity.gentooldataviewer.replay.service.ReplayCollectionCoordinator
+import org.taonity.gentooldataviewer.replay.service.ReplayRetentionService
 import org.taonity.gentooldataviewer.cpu.config.CpuBenchmarkProperties
 import org.taonity.gentooldataviewer.cpu.service.CpuBenchmarkSyncService
 import org.springframework.context.annotation.Configuration
@@ -22,8 +23,13 @@ class DynamicSchedulingConfig(
     private val replayCollectionCoordinator: ReplayCollectionCoordinator,
     private val cpuBenchmarkProperties: CpuBenchmarkProperties,
     private val cpuBenchmarkSyncService: CpuBenchmarkSyncService,
+    private val replayRetentionService: ReplayRetentionService,
 ) : SchedulingConfigurer {
     override fun configureTasks(taskRegistrar: ScheduledTaskRegistrar) {
+        taskRegistrar.addTriggerTask(
+            { replayRetentionService.cleanup() },
+            Trigger { ctx -> CronTrigger(settings.retention().replays.cron, ZoneId.of("UTC")).nextExecution(ctx) },
+        )
         taskRegistrar.addTriggerTask(
             { auditLogCleanupService.cleanupOldAuditLogs() },
             Trigger { ctx -> CronTrigger(settings.retention().audit.cron).nextExecution(ctx) },

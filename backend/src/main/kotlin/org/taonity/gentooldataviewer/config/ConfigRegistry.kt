@@ -79,6 +79,18 @@ class ConfigRegistry(
             validate = { v -> requireValidCron(v as String) },
         )
 
+        fields += ConfigField(
+            key = "app.retention.replays.retention-days", group = "Retention", type = ConfigType.LONG, min = 1.0, max = 3650.0,
+            read = { it.retention.replays.retentionDays },
+            apply = { c, v -> c.copy(retention = c.retention.copy(replays = c.retention.replays.copy(retentionDays = v as Long))) },
+        )
+        fields += ConfigField(
+            key = "app.retention.replays.cron", group = "Retention", type = ConfigType.STRING,
+            read = { it.retention.replays.cron },
+            apply = { c, v -> c.copy(retention = c.retention.copy(replays = c.retention.replays.copy(cron = v as String))) },
+            validate = { v -> requireValidCron(v as String) },
+        )
+
         // ---- Console ----
         fields += ConfigField(
             key = "app.console.max-page-size", group = "Console", type = ConfigType.INT, min = 10.0, max = 1000.0,

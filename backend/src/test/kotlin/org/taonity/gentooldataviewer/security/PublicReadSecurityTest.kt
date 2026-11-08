@@ -34,6 +34,7 @@ class PublicReadSecurityTest {
     fun `management reads require authentication`() {
         listOf(
             "/console/replay-collection/jobs",
+            "/console/replay-collection/window",
             "/console/config",
             "/console/users"
         ).forEach { path ->

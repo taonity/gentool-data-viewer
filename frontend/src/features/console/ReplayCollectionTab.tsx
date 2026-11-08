@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table'
 import { consoleApi } from './api'
 import { formatTime } from './format'
-import type { CpuPlayerSummary, ReplayCollectionJob, ReplayCollectionStatus } from './types'
+import type { CpuPlayerSummary, ReplayCollectionJob, ReplayCollectionStatus, ReplayCollectionWindow } from './types'
 
 const STATUS_VARIANT: Record<ReplayCollectionStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   QUEUED: 'secondary',
@@ -43,6 +43,7 @@ export function ReplayCollectionTab({
   onError: (message: string) => void
 }) {
   const [jobs, setJobs] = useState<ReplayCollectionJob[]>([])
+  const [scanWindow, setScanWindow] = useState<ReplayCollectionWindow | null>(null)
   const [startDate, setStartDate] = useState(() => utcDate(1))
   const [endDate, setEndDate] = useState(() => utcDate(1))
   const [userLimit, setUserLimit] = useState('')
@@ -60,7 +61,14 @@ export function ReplayCollectionTab({
     if (silent) setRefreshing(true)
     else setLoading(true)
     try {
-      setJobs(await consoleApi.listReplayCollectionJobs())
+      const [jobs, window] = await Promise.all([
+        consoleApi.listReplayCollectionJobs(),
+        consoleApi.getReplayCollectionWindow(),
+      ])
+      setJobs(jobs)
+      setScanWindow(window)
+      setStartDate((date) => date < window.startDate ? window.startDate : date)
+      setEndDate((date) => date < window.startDate ? window.startDate : date)
     } catch {
       onError('Failed to load replay collection jobs.')
     } finally {
@@ -104,6 +112,12 @@ export function ReplayCollectionTab({
   const start = async () => {
     setStarting(true)
     try {
+      const window = await consoleApi.getReplayCollectionWindow()
+      setScanWindow(window)
+      if (startDate < window.startDate || endDate > window.endDate) {
+        onError(`Scans must be between ${window.startDate} and ${window.endDate} (UTC).`)
+        return
+      }
       await consoleApi.startReplayCollection(
         startDate,
         endDate,
@@ -158,7 +172,8 @@ export function ReplayCollectionTab({
                 type="date"
                 className="h-8 w-40 text-foreground"
                 value={startDate}
-                max={utcDate(0)}
+                min={scanWindow?.startDate}
+                max={scanWindow?.endDate ?? utcDate(0)}
                 onChange={(event) => setStartDate(event.target.value)}
               />
             </label>
@@ -180,20 +195,26 @@ export function ReplayCollectionTab({
                 type="date"
                 className="h-8 w-40 text-foreground"
                 value={endDate}
-                min={startDate}
-                max={utcDate(0)}
+                min={startDate > (scanWindow?.startDate ?? '') ? startDate : scanWindow?.startDate}
+                max={scanWindow?.endDate ?? utcDate(0)}
                 onChange={(event) => setEndDate(event.target.value)}
               />
             </label>
             <Button
               size="sm"
               className="h-8"
-              disabled={starting || jobActive || !startDate || !endDate || endDate < startDate || invalidUserLimit}
+              disabled={starting || jobActive || !scanWindow || !startDate || !endDate || endDate < startDate ||
+                startDate < scanWindow.startDate || endDate > scanWindow.endDate || invalidUserLimit}
               onClick={start}
             >
               {starting ? <Loader2 className="animate-spin" /> : <Play />}
               Run
             </Button>
+            {scanWindow && (
+              <p className="basis-full text-xs text-muted-foreground">
+                Replay and player data is retained for {scanWindow.retentionDays} days. Scans are available from {scanWindow.startDate} to {scanWindow.endDate} (UTC).
+              </p>
+            )}
           </div>
             <Button
               variant="ghost"

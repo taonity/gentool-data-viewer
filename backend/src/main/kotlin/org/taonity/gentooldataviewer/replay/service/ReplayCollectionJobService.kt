@@ -6,6 +6,7 @@ import org.taonity.gentooldataviewer.replay.entity.CollectionTrigger
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayCollectionJobRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayRetentionRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -15,6 +16,7 @@ import java.time.LocalDate
 class ReplayCollectionJobService(
     private val repository: ReplayCollectionJobRepository,
     private val playerHardwareRepository: PlayerHardwareRepository,
+    private val retentionRepository: ReplayRetentionRepository,
 ) {
     @Transactional
     fun create(
@@ -58,6 +60,7 @@ class ReplayCollectionJobService(
 
     @Transactional
     fun complete(id: String, progress: CollectionProgress) {
+        retentionRepository.lock()
         updateProgress(id, progress)
         val job = repository.getReferenceById(id)
         val finishedAt = Instant.now()

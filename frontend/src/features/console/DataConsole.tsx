@@ -353,6 +353,7 @@ export default function DataConsole({
             <MyGentoolTab
               active={selectedTab === 'gentool'}
               forceLoading={forceLoading}
+              canRefresh={canView}
               onNavigateToPlayer={(targetPlayerId) => navigate('players', targetPlayerId)}
               onNavigateToReplays={(targetPlayerId) => navigate('replays', targetPlayerId)}
               onError={setError}

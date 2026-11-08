@@ -13,6 +13,7 @@ import type {
   PendingRequest,
   GentoolLink,
   ReplayCollectionJob,
+  ReplayCollectionWindow,
   ReplayRescanAccepted,
   ReplayRescanDashboard,
   Replay,
@@ -135,6 +136,8 @@ export const consoleApi = {
     mutate<ConfigSchema>(`/config/${encodeURIComponent(key)}`, 'DELETE'),
 
   listReplayCollectionJobs: () => get<ReplayCollectionJob[]>('/replay-collection/jobs'),
+
+  getReplayCollectionWindow: () => get<ReplayCollectionWindow>('/replay-collection/window'),
 
   startReplayCollection: (startDate: string, endDate: string, userLimit?: number) =>
     mutate<{ jobId: string }>('/replay-collection/jobs', 'POST', { startDate, endDate, userLimit }),

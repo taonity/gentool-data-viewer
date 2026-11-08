@@ -11,6 +11,7 @@ import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayCollectionJobRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayRetentionRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Optional
@@ -18,7 +19,8 @@ import java.util.Optional
 class ReplayCollectionJobServiceTest {
     private val jobRepository = mock(ReplayCollectionJobRepository::class.java)
     private val playerRepository = mock(PlayerHardwareRepository::class.java)
-    private val service = ReplayCollectionJobService(jobRepository, playerRepository)
+    private val retentionRepository = mock(ReplayRetentionRepository::class.java)
+    private val service = ReplayCollectionJobService(jobRepository, playerRepository, retentionRepository)
 
     @Test
     fun `completed user rescan records player refresh time`() {

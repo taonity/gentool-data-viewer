@@ -6,6 +6,8 @@ import org.taonity.gentooldataviewer.replay.entity.ReplayCollectionJobEntity
 import java.time.Instant
 import java.time.LocalDate
 
+data class ReplayCollectionWindowDto(val retentionDays: Long, val startDate: LocalDate, val endDate: LocalDate)
+
 data class StartReplayCollectionRequest(
     val startDate: LocalDate,
     val endDate: LocalDate,

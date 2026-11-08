@@ -138,6 +138,12 @@ export interface ReplayCollectionJob {
   errorMessage: string | null
 }
 
+export interface ReplayCollectionWindow {
+  retentionDays: number
+  startDate: string
+  endDate: string
+}
+
 export type GentoolLinkStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface GentoolLink {

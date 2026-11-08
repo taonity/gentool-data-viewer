@@ -4,6 +4,7 @@ import org.taonity.gentooldataviewer.cpu.entity.CpuBenchmarkEntity
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayRetentionRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -13,6 +14,7 @@ class CpuRatingService(
     private val benchmarkRepository: CpuBenchmarkRepository,
     private val hardwareRepository: PlayerHardwareRepository,
     private val matcher: CpuBenchmarkMatcher,
+    private val retentionRepository: ReplayRetentionRepository,
 ) {
     @Transactional(readOnly = true)
     fun preview(cpu: String?): CpuMatch = findMatch(cpu)
@@ -24,6 +26,7 @@ class CpuRatingService(
 
     @Transactional
     fun rateAll(): RatingSummary {
+        retentionRepository.lock()
         val hardware = hardwareRepository.findAll()
         hardware.forEach { apply(it, findMatch(it.cpu)) }
         hardwareRepository.saveAll(hardware)

@@ -10,6 +10,7 @@ import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayAssociatedFileRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayPlayerRepository
 import org.taonity.gentooldataviewer.replay.repository.ReplayRepository
+import org.taonity.gentooldataviewer.replay.repository.ReplayRetentionRepository
 import org.taonity.gentooldataviewer.cpu.service.CpuRatingService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,11 +27,14 @@ class ReplayImportService(
     private val cpuRatingService: CpuRatingService,
     private val objectMapper: ObjectMapper,
     private val textParser: ReplayTextParser,
+    private val retentionPolicy: ReplayRetentionPolicy,
+    private val retentionRepository: ReplayRetentionRepository,
 ) {
     fun exists(sourceUrl: String): Boolean = replayRepository.existsBySourceUrl(sourceUrl)
 
     @Transactional
     fun markGentoolUpdated(playerId: String) {
+        retentionRepository.lock()
         playerHardwareRepository.findById(playerId).ifPresent { player ->
             player.gentoolUpdatedAt = Instant.now()
         }
@@ -38,6 +42,8 @@ class ReplayImportService(
 
     @Transactional
     fun import(sourceUrl: String, sourceDate: LocalDate, parsed: ParsedReplay): Boolean {
+        retentionRepository.lock()
+        if (!retentionPolicy.accepts(sourceDate, parsed.matchDate)) return false
         if (replayRepository.existsBySourceUrl(sourceUrl)) return false
 
         val replay = replayRepository.save(
@@ -96,6 +102,7 @@ class ReplayImportService(
 
     @Transactional
     fun repairMissingPlayers(): Int {
+        retentionRepository.lock()
         var repaired = 0
         replayRepository.findByPlayerNames("").forEach { replay ->
             val parsed = runCatching { textParser.parse(replay.rawText) }.getOrNull() ?: return@forEach
@@ -155,7 +162,7 @@ class ReplayImportService(
     }
 
     private fun updateIdentitySummary(hardware: PlayerHardwareEntity) {
-        val replays = replayRepository.findByReporterId(hardware.playerId)
+        val replays = replayRepository.findByReporterIdAndMatchAtGreaterThanEqual(hardware.playerId, retentionPolicy.cutoff())
         val namesByFrequency = replays
             .groupBy(ReplayEntity::reporterName)
             .map { (name, occurrences) ->

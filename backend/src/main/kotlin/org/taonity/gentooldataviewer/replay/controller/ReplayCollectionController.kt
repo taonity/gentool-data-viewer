@@ -3,6 +3,8 @@ package org.taonity.gentooldataviewer.replay.controller
 import org.taonity.gentooldataviewer.console.service.AccessGuard
 import org.taonity.gentooldataviewer.replay.dto.ReplayCollectionJobDto
 import org.taonity.gentooldataviewer.replay.dto.StartReplayCollectionRequest
+import org.taonity.gentooldataviewer.replay.dto.ReplayCollectionWindowDto
+import org.taonity.gentooldataviewer.replay.service.ReplayRetentionPolicy
 import org.taonity.gentooldataviewer.replay.service.ReplayCollectionCoordinator
 import org.taonity.gentooldataviewer.replay.service.ReplayCollectionJobService
 import org.taonity.gentooldataviewer.security.principal.GoogleUserPrincipal
@@ -21,7 +23,14 @@ class ReplayCollectionController(
     private val accessGuard: AccessGuard,
     private val coordinator: ReplayCollectionCoordinator,
     private val jobService: ReplayCollectionJobService,
+    private val retentionPolicy: ReplayRetentionPolicy,
 ) {
+    @GetMapping("/window")
+    fun window(@AuthenticationPrincipal principal: GoogleUserPrincipal): ReplayCollectionWindowDto {
+        accessGuard.requireView(principal)
+        return retentionPolicy.window()
+    }
+
     @GetMapping("/jobs")
     fun jobs(@AuthenticationPrincipal principal: GoogleUserPrincipal): List<ReplayCollectionJobDto> {
         accessGuard.requireView(principal)

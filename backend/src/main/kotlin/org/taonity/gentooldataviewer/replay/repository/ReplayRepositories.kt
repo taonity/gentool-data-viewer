@@ -33,6 +33,8 @@ interface ReplayRepository : JpaRepository<ReplayEntity, String> {
 
     fun findByReporterId(reporterId: String): List<ReplayEntity>
 
+    fun findByReporterIdAndMatchAtGreaterThanEqual(reporterId: String, matchAt: Instant): List<ReplayEntity>
+
     @Query(
         """
         SELECT r FROM ReplayEntity r
