@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "demo:build": "node scripts/build-demo.mjs",
+    "demo:screenshots": "npm run demo:build && npm run demo:capture",
     "demo:capture": "playwright test --config playwright.demo.config.ts"
   },
   "dependencies": {

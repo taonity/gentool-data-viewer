@@ -6,8 +6,7 @@ Requires Java 17, Maven, Node.js 24+, and Python 3. Use a Linux checkout in WSL 
 cd frontend
 npm ci
 npx playwright install --with-deps chromium
-npm run demo:build
-npm run demo:capture
+npm run demo:screenshots
 ```
 
 Open `screenshots/index.html` from the repository root. Captures include full-page desktop and phone views in light and dark, at 4× pixel density.
