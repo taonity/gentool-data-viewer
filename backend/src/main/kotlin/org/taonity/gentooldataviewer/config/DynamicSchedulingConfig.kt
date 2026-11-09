@@ -7,6 +7,7 @@ import org.taonity.gentooldataviewer.replay.service.ReplayRetentionService
 import org.taonity.gentooldataviewer.cpu.config.CpuBenchmarkProperties
 import org.taonity.gentooldataviewer.cpu.service.CpuBenchmarkSyncService
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.Trigger
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.SchedulingConfigurer
@@ -15,6 +16,7 @@ import org.springframework.scheduling.support.CronTrigger
 import java.time.ZoneId
 
 @Configuration
+@Profile("!demo")
 @EnableScheduling
 class DynamicSchedulingConfig(
     private val settings: AppSettings,

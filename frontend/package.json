@@ -10,7 +10,9 @@
     "prod": "next build && next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo:build": "node scripts/build-demo.mjs",
+    "demo:capture": "playwright test --config playwright.demo.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -39,6 +41,8 @@
     "postcss": "^8.5.16",
     "tailwindcss": "^4.3.2",
     "typescript": "6.0.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "@playwright/test": "1.64.1",
+    "@taonity/demo-screenshots": "https://github.com/taonity/demo-screenshots/archive/refs/tags/v0.1.1.tar.gz"
   }
 }

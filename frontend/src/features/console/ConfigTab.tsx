@@ -523,7 +523,7 @@ function FieldRow({
         field.overridden && 'border-l-2 border-l-amber-500/60',
       )}
     >
-      <div className="flex-1">{meta}</div>
+      <div className="min-w-0 flex-1">{meta}</div>
       {resetBtn}
       <FieldControl field={field} value={value} disabled={disabled} onChange={onChange} />
     </div>

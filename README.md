@@ -92,6 +92,8 @@ docker compose --env-file templates/docker/.env.test -f templates/docker/docker-
 
 See [Deployment](docs/DEPLOYMENT.md) for production configuration and Compose requirements. See [Database](docs/DATABASE.md) for schema and migration management.
 
+See [Demo screenshots](docs/DEMO_SCREENSHOTS.md) for portfolio captures and release bundles.
+
 ## Database Schema
 
 <!-- mermerd-start -->

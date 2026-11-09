@@ -9,6 +9,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.time.Clock
 import java.time.temporal.ChronoUnit
 
 @Component
@@ -16,6 +17,7 @@ import java.time.temporal.ChronoUnit
 @Order(200)
 class AuditDemoDataContributor(
     private val auditLogRepository: AuditLogRepository,
+    private val clock: Clock,
 ) : DemoDataContributor {
     override val feature: String = "audit-log"
 
@@ -28,7 +30,7 @@ class AuditDemoDataContributor(
     }
 
     private fun fixtures(): List<AuditLogEntity> {
-        val now = Instant.now()
+        val now = clock.instant()
         return listOf(
             record(AuditAction.REQUEST_ACCESS, "access_request", "google-user-alice", now.minus(55, ChronoUnit.MINUTES)),
             record(AuditAction.REQUEST_ACCESS, "access_request", "google-user-bob", now.minus(42, ChronoUnit.MINUTES)),

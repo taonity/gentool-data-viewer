@@ -15,7 +15,7 @@ const nextConfig = {
   output: 'standalone',
   env: {
     APP_VERSION: packageJson.version,
-    BUILD_TIME: new Date().toISOString(),
+    BUILD_TIME: process.env.BUILD_TIME || new Date().toISOString(),
     GIT_COMMIT_SHA: process.env.GIT_COMMIT_SHA || git('rev-parse HEAD'),
     GIT_BRANCH: process.env.GIT_BRANCH || git('rev-parse --abbrev-ref HEAD'),
     NEXT_PUBLIC_GITHUB_REPO_URL:

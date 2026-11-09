@@ -15,6 +15,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -29,6 +30,7 @@ class ReplayDemoDataContributor(
     private val benchmarkRepository: CpuBenchmarkRepository,
     private val benchmarkMatcher: CpuBenchmarkMatcher,
     private val retentionPolicy: ReplayRetentionPolicy,
+    private val clock: Clock,
 ) : DemoDataContributor {
     override val feature: String = "replays"
 
@@ -56,7 +58,7 @@ class ReplayDemoDataContributor(
             val reporterName = reporter.nameForOccurrence(index / PLAYERS.size)
             replayImportService.import(
                 sourceUrl(index),
-                maxOf(DEMO_DATE.minusDays((index / 10).toLong()), retentionPolicy.window().startDate),
+                maxOf(LocalDate.now(clock).minusDays(1 + (index / 10).toLong()), retentionPolicy.window().startDate),
                 replay(index, reporter, reporterName),
             )
         }
@@ -69,7 +71,8 @@ class ReplayDemoDataContributor(
         val participantNames = participants.mapIndexed { offset, player ->
             if (offset == 0) reporterName else player.nameForReplay(index + offset)
         }
-        val matchAt = maxOf(DEMO_START.minusSeconds(index * 2_137L), retentionPolicy.cutoff())
+        val start = LocalDate.now(clock).minusDays(1).atTime(22, 45).toInstant(ZoneOffset.UTC)
+        val matchAt = maxOf(start.minusSeconds(index * 2_137L), retentionPolicy.cutoff())
         val map = MAPS[index % MAPS.size]
         val matchType = if (index % 3 == 0) "1v1" else "2v2"
         val duration = Duration.ofMinutes((8 + index % 34).toLong()).plusSeconds((index * 17 % 60).toLong())
@@ -189,8 +192,6 @@ class ReplayDemoDataContributor(
 
     private companion object {
         const val REPLAY_COUNT = 50
-        val DEMO_DATE: LocalDate = LocalDate.now(ZoneOffset.UTC).minusDays(1)
-        val DEMO_START: Instant = DEMO_DATE.atTime(22, 45).toInstant(ZoneOffset.UTC)
         val PLAYERS = listOf(
             DemoPlayer("D3A000000001", "Atlas", listOf("Atlas_GT", "Atlas2v2"), "Intel Core i7-13700K", 4326, "5060"),
             DemoPlayer("D3A000000002", "Birch", listOf("BirchLeaf", "B1rch"), "AMD Ryzen 7 7800X3D", 3759, "5299"),

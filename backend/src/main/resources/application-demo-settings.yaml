@@ -1,0 +1,36 @@
+server:
+  servlet:
+    session:
+      cookie:
+        domain: 127.0.0.1
+        name: JSESSIONID-DEMO
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:gentool-demo;DB_CLOSE_DELAY=-1
+  flyway:
+    clean-disabled: true
+
+app:
+  additional-profiles: ""
+  demo:
+    instant: 2026-11-08T10:30:00Z
+  csrf-cookie-name: XSRF-TOKEN-LOCAL
+  cookie:
+    secure: false
+  default-success-url: http://127.0.0.1:3000
+  login-url: http://127.0.0.1:3000
+  console:
+    access-requests-enabled: true
+  retention:
+    replays:
+      retention-days: 30
+      cron: "0 0 4 * * *"
+  replay-collector:
+    base-url: http://127.0.0.1:9561/demo-replays/
+    schedule-enabled: false
+  cpu-benchmark:
+    base-url: http://127.0.0.1:9561/demo-benchmarks/
+    schedule-enabled: false
+  discord:
+    cdn-base-url: http://127.0.0.1:9561
