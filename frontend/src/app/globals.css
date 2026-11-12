@@ -407,7 +407,7 @@ html {
   }
 
   .mobile-records .record-row:nth-of-type(even) {
-    background: color-mix(in oklab, var(--muted) 65%, transparent);
+    background: color-mix(in oklab, var(--muted) 25%, transparent);
   }
 
   .mobile-records .record-row > td {
