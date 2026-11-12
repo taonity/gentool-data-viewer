@@ -37,7 +37,7 @@ export function DatePicker({ id, label, value, onChange, min, max, invalid, desc
         aria-label={`${label}: ${value || 'Not set'}`}
         aria-invalid={invalid}
         aria-describedby={describedBy}
-        className={cn('h-8 w-40 justify-start gap-2 text-xs font-normal', !value && 'text-muted-foreground')}>
+        className={cn('h-8 w-full min-w-0 justify-start gap-1.5 px-2 text-xs font-normal sm:w-40', !value && 'text-muted-foreground')}>
         <CalendarDays className="size-3.5 text-muted-foreground" />
         <span className="tabular-nums">
           {selected ? selected.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : 'Select date'}

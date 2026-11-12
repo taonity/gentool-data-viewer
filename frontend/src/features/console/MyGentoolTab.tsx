@@ -142,9 +142,9 @@ export function MyGentoolTab({
   const additionalPlayers = Math.max(playerTotal - (players?.length ?? 0), 0)
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(260px,0.75fr)_minmax(360px,1.25fr)]">
-      <section className="min-w-0 border-b pb-6 lg:border-r lg:border-b-0 lg:pr-6">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+    <div className="gentool-panel console-inset grid gap-4 sm:gap-6 lg:grid-cols-[minmax(260px,0.75fr)_minmax(360px,1.25fr)]">
+      <section className="gentool-section min-w-0 border-b pb-6 lg:border-r lg:border-b-0 lg:pr-6">
+        <div className="gentool-heading mb-4 flex flex-wrap items-center gap-2">
           <Link2 className="size-4 text-muted-foreground" />
           <h2 className="font-heading text-base font-medium">Your linked players</h2>
           {dashboard && (
@@ -165,58 +165,60 @@ export function MyGentoolTab({
             <Skeleton className="h-8 w-56" />
           </div>
         ) : currentLinks.length > 0 ? (
-          <div className="divide-y rounded-lg border">
+          <div className="linked-players divide-y rounded-lg border">
             {currentLinks.map((link) => (
-              <div key={link.playerId} className="space-y-3 p-3">
-                <div>
+              <div key={link.playerId} className="linked-player space-y-3 p-3">
+                <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{link.playerName ?? link.playerId}</div>
                   <div className="mt-0.5 font-mono text-xs text-muted-foreground">{link.playerId}</div>
                   {link.playerName === null && (
                     <p className="mt-1 text-xs text-muted-foreground">Inactive: no player data within the retention period. Your link is preserved.</p>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="linked-player-actions flex flex-wrap gap-1">
                   {link.playerName === null && canRefresh && link.status === 'APPROVED' && (
-                    <Button variant="ghost" size="xs" disabled={refreshingPlayerId !== null || hasActiveScans}
+                    <Button variant="ghost" size="xs" disabled={refreshingPlayerId !== null || hasActiveScans} aria-label={`Scan recent replays for ${link.playerId}`} title="Scan recent replays"
                       onClick={() => void refreshInactivePlayer(link.playerId)}>
                       {refreshingPlayerId === link.playerId ? <Loader2 className="animate-spin" /> : <RotateCw />}
-                      Scan recent replays
+                      <span className="linked-action-label">Scan recent replays</span>
                     </Button>
                   )}
-                  <Button variant="ghost" size="xs" onClick={() => onNavigateToPlayer(link.playerId)}>
+                  <Button variant="ghost" size="xs" aria-label={`View player ${link.playerName ?? link.playerId}`} title="View player" onClick={() => onNavigateToPlayer(link.playerId)}>
                     <UserRoundSearch />
-                    Player
+                    <span className="linked-action-label">Player</span>
                   </Button>
-                  <Button variant="ghost" size="xs" onClick={() => onNavigateToReplays(link.playerId)}>
+                  <Button variant="ghost" size="xs" aria-label={`View replays for ${link.playerName ?? link.playerId}`} title="View replays" onClick={() => onNavigateToReplays(link.playerId)}>
                     <Clapperboard />
-                    Replays
+                    <span className="linked-action-label">Replays</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="xs"
+                    aria-label={`Remove link to ${link.playerName ?? link.playerId}`}
+                    title="Remove link"
                     disabled={linking || unlinkingPlayerId !== null}
                     onClick={() => void unlinkPlayer(link)}
                   >
                     {unlinkingPlayerId === link.playerId ? <Loader2 className="animate-spin" /> : <Unlink />}
-                    Remove
+                    <span className="linked-action-label">Remove</span>
                   </Button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="space-y-2 text-sm text-muted-foreground">
+          <div className="gentool-message space-y-2 text-sm text-muted-foreground">
             <p>No GenTool players are linked to your Discord account.</p>
             <p>Choose your player from the search results.</p>
           </div>
         )}
       </section>
 
-      <section className="min-w-0">
-        <div className="mb-4">
+      <section className="gentool-section min-w-0">
+        <div className="gentool-heading mb-4">
           <h2 className="font-heading text-base font-medium">Find your GenTool player</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="gentool-search-controls flex gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -251,13 +253,13 @@ export function MyGentoolTab({
             Exact
           </label>
         </div>
-        <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
+        <div className="profile-search-results mt-3 max-h-72 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
           {players === null && playersLoading && <div className="space-y-2 p-3">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-11 w-full" />)}</div>}
           {!query.trim() && (
-            <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">Search by player name or GenTool ID.</div>
+            <div className="profile-search-empty flex h-24 items-center justify-center text-sm text-muted-foreground">Search by player name or GenTool ID.</div>
           )}
           {query.trim() && !playersLoading && !players?.length && (
-            <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">No players found.</div>
+            <div className="profile-search-empty flex h-24 items-center justify-center text-sm text-muted-foreground">No players found.</div>
           )}
           {players?.map((player) => {
             const isCurrent = currentLinks.some((link) => link.playerId === player.playerId)
@@ -270,7 +272,8 @@ export function MyGentoolTab({
                 type="button"
                 key={player.playerId}
                 disabled={unavailable || isCurrent}
-                className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50 ${selectedPlayer?.playerId === player.playerId ? 'bg-muted' : ''}`}
+                aria-pressed={selectedPlayer?.playerId === player.playerId}
+                className={`profile-search-option flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50 ${selectedPlayer?.playerId === player.playerId ? 'bg-muted' : ''}`}
                 onClick={() => setSelectedPlayer(player)}
               >
                 <span className="min-w-0 flex-1">
@@ -293,11 +296,11 @@ export function MyGentoolTab({
           })}
         </div>
         {players && players.length > 0 && (
-          <p className="mt-1.5 text-xs text-muted-foreground" aria-live="polite">
+          <p className="gentool-message mt-1.5 text-xs text-muted-foreground" aria-live="polite">
             {players.length} shown · {additionalPlayers} more {additionalPlayers === 1 ? 'match' : 'matches'}
           </p>
         )}
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t pt-4">
+        <div className="profile-search-footer mt-4 flex flex-wrap items-center gap-3 border-t pt-4">
           <Button disabled={!selectedPlayer || linking || unlinkingPlayerId !== null || atCapacity} onClick={() => void linkPlayer()}>
             {linking ? <Loader2 className="animate-spin" /> : <Link2 />}
             Link player

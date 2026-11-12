@@ -72,6 +72,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   return [
   {
     key: 'mainName',
+    mobilePrimary: true,
     label: 'Main name',
     sortKey: 'mainName',
     value: (player) => player.mainName,
@@ -115,6 +116,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'aliases',
+    mobileContent: true,
     label: 'Aliases',
     sortKey: 'aliases',
     value: (player) => player.aliases.join(', '),
@@ -125,6 +127,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'replayCount',
+    mobileCompact: true,
     label: 'Games',
     sortKey: 'replayCount',
     initialSortDirection: 'desc',
@@ -147,6 +150,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'score',
+    mobileCompact: true,
     label: 'CPU score',
     sortKey: 'score',
     initialSortDirection: 'desc',
@@ -186,6 +190,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'status',
+    mobileCompact: true,
     label: 'Match',
     sortKey: 'status',
     value: (player) => player.matchStatus,
@@ -196,6 +201,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'gentoolUpdatedAt',
+    mobileCompact: true,
     label: 'GenTool update',
     sortKey: 'gentoolUpdatedAt',
     initialSortDirection: 'desc',
@@ -211,6 +217,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'observedAt',
+    mobileCompact: true,
     label: 'Last played',
     sortKey: 'observedAt',
     initialSortDirection: 'desc',
@@ -225,6 +232,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'scoreUpdatedAt',
+    mobileCompact: true,
     label: 'Score updated',
     sortKey: 'scoreUpdatedAt',
     initialSortDirection: 'desc',

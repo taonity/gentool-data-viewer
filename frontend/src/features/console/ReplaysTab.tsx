@@ -50,6 +50,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'reporter',
+    mobilePrimary: true,
     label: 'Reporter',
     sortKey: 'reporter',
     value: (replay) => replay.reporterName,
@@ -65,6 +66,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'players',
+    mobileContent: true,
     label: 'Players',
     sortKey: 'players',
     value: playerMatchup,
@@ -84,6 +86,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'matchType',
+    mobileCompact: true,
     label: 'Type',
     sortKey: 'matchType',
     value: (replay) => replay.matchType ?? '',
@@ -93,6 +96,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'duration',
+    mobileCompact: true,
     label: 'Duration',
     sortKey: 'duration',
     initialSortDirection: 'desc',
@@ -113,6 +117,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'matchMode',
+    mobileCompact: true,
     label: 'Mode',
     sortKey: 'matchMode',
     value: (replay) => replay.matchMode ?? '',
@@ -121,6 +126,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'startCash',
+    mobileCompact: true,
     label: 'Start cash',
     sortKey: 'startCash',
     initialSortDirection: 'desc',
@@ -130,6 +136,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'gentoolVersion',
+    mobileCompact: true,
     label: 'GenTool',
     sortKey: 'gentoolVersion',
     value: (replay) => replay.gentoolVersion ?? '',
@@ -155,6 +162,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'repInfoInUse',
+    mobileCompact: true,
     label: 'RepInfo',
     sortKey: 'repInfoInUse',
     value: (replay) => replay.repInfoInUse ?? '',
@@ -163,6 +171,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'replaySize',
+    mobileCompact: true,
     label: 'Replay size',
     sortKey: 'replaySize',
     initialSortDirection: 'desc',
@@ -266,8 +275,8 @@ export function ReplaysTab({
       toolbarFilters={(
         <>
           {targetReplayId && (
-            <Badge variant="outline" className="h-7 gap-1 pl-2 font-mono font-normal">
-              Replay: {targetReplayId}
+            <Badge variant="outline" className="h-auto max-w-full gap-1 py-0 pl-2 font-mono font-normal sm:h-7">
+              <span className="min-w-0 truncate" title={`Replay: ${targetReplayId}`}>Replay: {targetReplayId}</span>
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -344,73 +353,88 @@ export function ReplaysTab({
   )
 }
 
+const COMPACT_REPLAY_FIELDS = new Set([
+  'GenTool Version', 'RepInfo in use', 'Start Cash', 'Match Type', 'Match Length', 'Match Mode',
+])
+
+function replayFieldSize(label: string, value: string): 'normal' | 'compact' | 'wide' {
+  if (value.includes('\n') || value.length > 72) return 'wide'
+  return COMPACT_REPLAY_FIELDS.has(label) ? 'compact' : 'normal'
+}
+
 function ReplayDetails({ replay }: { replay: Replay }) {
   const teams = Map.groupBy(replay.players, (player) => player.teamNumber)
   const parsedFields = Object.entries(replay.fields)
     .filter(([label]) => label !== 'Associated files')
+  const systemInFields = parsedFields.some(([label, value]) => label === 'System' && value === replay.systemInfo)
+  const firstCompactField = parsedFields.find(([label, value]) => replayFieldSize(label, value) === 'compact')?.[0]
+
   return (
-    <div className="grid gap-5 bg-muted/20 p-4 text-sm">
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="grid content-start gap-2">
+    <div className="replay-details grid min-w-0 gap-2 text-sm lg:gap-5 lg:bg-muted/20 lg:p-4">
+      <div className="grid gap-2 lg:grid-cols-3 lg:gap-4">
+        <section className="grid min-w-0 content-start gap-1">
           <h3 className="font-medium">Teams</h3>
-          {[...teams.entries()].map(([team, players]) => (
-            <div key={team} className="grid grid-cols-[4rem_1fr] gap-2 border-t pt-2 first:border-0 first:pt-0">
-              <span className="text-muted-foreground">Team {team}</span>
-              <div className="grid gap-1">
-                {players.map((player) => (
-                  <div key={`${player.teamNumber}-${player.slotNumber}`}>
-                    <span className="font-medium">{player.name}</span>
-                    <span className="text-muted-foreground"> · {player.army ?? 'Unknown army'} · {player.address}</span>
-                  </div>
-                ))}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 lg:grid-cols-1">
+            {[...teams.entries()].map(([team, players]) => (
+              <div key={team} className="grid min-w-0 content-start gap-0.5 lg:grid-cols-[4rem_minmax(0,1fr)] lg:gap-2 lg:border-t lg:pt-2 first:lg:border-0 first:lg:pt-0">
+                <h4 className="text-xs text-muted-foreground">Team {team}</h4>
+                <div className="grid min-w-0 gap-1">
+                  {players.map((player) => (
+                    <div key={`${player.teamNumber}-${player.slotNumber}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-1">
+                      <span className="wrap-anywhere font-medium">{player.name}</span>
+                      <span className="max-w-24 wrap-anywhere text-right text-xs text-muted-foreground">{player.army ?? 'Unknown army'}</span>
+                      <span className="col-span-2 font-mono text-[11px] text-muted-foreground">{player.address}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </section>
 
-        <section className="grid content-start gap-2 lg:col-span-2">
+        <section className="replay-system-summary grid min-w-0 content-start gap-1 lg:col-span-2" data-duplicated={systemInFields || undefined}>
           <h3 className="font-medium">System</h3>
-          <pre className="whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">{replay.systemInfo ?? 'Not reported'}</pre>
+          <pre className="whitespace-pre-wrap wrap-anywhere font-mono text-xs text-muted-foreground">{replay.systemInfo ?? 'Not reported'}</pre>
         </section>
       </div>
 
-      <section className="grid gap-2">
+      <section className="grid min-w-0 gap-1">
         <h3 className="font-medium">All parsed fields</h3>
-        <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[max-content_1fr]">
+        <dl className="replay-fields grid grid-cols-12 gap-x-3 gap-y-1.5 lg:grid-cols-[max-content_minmax(0,1fr)] lg:gap-y-2">
           {parsedFields.map(([label, value]) => (
-            <div key={label} className="contents">
+            <div key={label} className="min-w-0 lg:contents"
+              data-field-size={replayFieldSize(label, value)} data-group-start={label === firstCompactField || undefined}>
               <dt className="text-muted-foreground">{label}</dt>
-              <dd className="whitespace-pre-wrap break-words">{value || '—'}</dd>
+              <dd className="min-w-0 whitespace-pre-wrap wrap-anywhere">{value || '\u2014'}</dd>
             </div>
           ))}
         </dl>
       </section>
 
-      <section className="grid gap-2">
+      <section className="grid min-w-0 gap-1">
         <h3 className="font-medium">Associated files</h3>
-        <div className="grid gap-1">
+        <div className="grid min-w-0 gap-x-4 lg:grid-cols-2">
           {replay.associatedFiles.map((file) => (
-            <a
-              key={file.name}
-              href={associatedFileUrl(replay.sourceUrl, file)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex w-fit items-center gap-1 text-primary hover:underline"
-            >
-              {file.name} <span className="text-muted-foreground">({formatBytes(file.sizeBytes)})</span><ExternalLink className="size-3" />
+            <a key={file.name} href={associatedFileUrl(replay.sourceUrl, file)} target="_blank" rel="noreferrer"
+              className="replay-file flex min-w-0 items-center gap-2 text-primary hover:underline">
+              <span className="min-w-0 flex-1 wrap-anywhere">{file.name}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(file.sizeBytes)}</span>
+              <ExternalLink className="size-3 shrink-0" />
             </a>
           ))}
         </div>
       </section>
 
-      <details>
-        <summary className="cursor-pointer font-medium">Raw replay text</summary>
-        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md border bg-background p-3 font-mono text-xs">{replay.rawText}</pre>
-      </details>
-
-      <a href={replay.sourceUrl} target="_blank" rel="noreferrer" className="flex w-fit items-center gap-1 text-primary hover:underline">
-        Open source text <ExternalLink className="size-3" />
-      </a>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+        <details className="col-start-1 col-end-3 row-start-1 min-w-0">
+          <summary className="replay-raw-summary cursor-pointer pr-32 font-medium">Raw replay text</summary>
+          <pre className="replay-raw-text mt-1 max-h-96 overflow-y-auto whitespace-pre-wrap wrap-anywhere rounded-md border bg-background p-3 font-mono text-xs">{replay.rawText}</pre>
+        </details>
+        <a href={replay.sourceUrl} target="_blank" rel="noreferrer"
+          className="replay-source-link col-start-2 row-start-1 flex w-fit items-center gap-1 self-start text-primary hover:underline">
+          Open source text <ExternalLink className="size-3 shrink-0" />
+        </a>
+      </div>
     </div>
   )
 }

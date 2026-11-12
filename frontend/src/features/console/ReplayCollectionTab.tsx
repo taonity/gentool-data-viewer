@@ -150,7 +150,7 @@ export function ReplayCollectionTab({
     <div className="flex flex-col gap-4">
       {canRun && (
         <>
-          <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="collection-toolbar flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2">
               <CpuSummary
                 summary={forceLoading ? null : summary}
@@ -164,13 +164,13 @@ export function ReplayCollectionTab({
               Refresh benchmarks
             </Button>
           </div>
-          <div className="flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="collection-toolbar flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap">
             <label className="grid gap-1 text-xs text-muted-foreground">
               Start date (UTC)
               <Input
                 type="date"
-                className="h-8 w-40 text-foreground"
+                className="h-8 w-full text-foreground sm:w-40"
                 value={startDate}
                 min={scanWindow?.startDate}
                 max={scanWindow?.endDate ?? utcDate(0)}
@@ -181,7 +181,7 @@ export function ReplayCollectionTab({
               User limit (optional)
               <Input
                 type="number"
-                className="h-8 w-36 text-foreground"
+                className="h-8 w-full text-foreground sm:w-36"
                 value={userLimit}
                 min={1}
                 step={1}
@@ -193,7 +193,7 @@ export function ReplayCollectionTab({
               End date (UTC)
               <Input
                 type="date"
-                className="h-8 w-40 text-foreground"
+                className="h-8 w-full text-foreground sm:w-40"
                 value={endDate}
                 min={startDate > (scanWindow?.startDate ?? '') ? startDate : scanWindow?.startDate}
                 max={scanWindow?.endDate ?? utcDate(0)}
@@ -211,7 +211,7 @@ export function ReplayCollectionTab({
               Run
             </Button>
             {scanWindow && (
-              <p className="basis-full text-xs text-muted-foreground">
+              <p className="col-span-2 basis-full text-xs text-muted-foreground">
                 Replay and player data is retained for {scanWindow.retentionDays} days. Scans are available from {scanWindow.startDate} to {scanWindow.endDate} (UTC).
               </p>
             )}
@@ -228,8 +228,8 @@ export function ReplayCollectionTab({
             </Button>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border">
-        <Table className="min-w-[900px] table-fixed">
+          <div className="data-table-frame overflow-x-auto rounded-lg border">
+        <Table className="mobile-records min-w-[900px] table-fixed">
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead className="w-28">Status</TableHead>
@@ -246,36 +246,36 @@ export function ReplayCollectionTab({
           </TableHeader>
           <TableBody>
             {showLoading && Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index}>
+              <TableRow key={index} className="record-row">
                 {Array.from({ length: 10 }).map((__, cell) => (
                   <TableCell key={cell}><Skeleton className="h-4 w-4/5" /></TableCell>
                 ))}
               </TableRow>
             ))}
             {!showLoading && jobs.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell>
+              <TableRow key={job.id} className="record-row">
+                <TableCell data-label="Status">
                   <Badge variant={STATUS_VARIANT[job.status]} title={job.errorMessage ?? undefined}>
                     {job.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-xs">
+                <TableCell data-label="Date range" className="font-mono text-xs">
                   {job.startDate === job.endDate ? job.startDate : `${job.startDate} to ${job.endDate}`}
                 </TableCell>
-                <TableCell className="font-mono text-xs">{job.targetPlayerId ?? 'All users'}</TableCell>
-                <TableCell>{job.directoriesScanned.toLocaleString()} / {job.directoriesDiscovered.toLocaleString()}</TableCell>
-                <TableCell>{job.userLimit?.toLocaleString() ?? 'All'}</TableCell>
-                <TableCell>{job.filesDiscovered.toLocaleString()}</TableCell>
-                <TableCell>{job.filesImported.toLocaleString()}</TableCell>
-                <TableCell>{job.filesSkipped.toLocaleString()}</TableCell>
-                <TableCell className={job.failures ? 'text-destructive' : undefined}>{job.failures.toLocaleString()}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
+                <TableCell data-label="Target" className="font-mono text-xs">{job.targetPlayerId ?? 'All users'}</TableCell>
+                <TableCell data-label="Directories" data-compact>{job.directoriesScanned.toLocaleString()} / {job.directoriesDiscovered.toLocaleString()}</TableCell>
+                <TableCell data-label="Limit" data-compact>{job.userLimit?.toLocaleString() ?? 'All'}</TableCell>
+                <TableCell data-label="Discovered" data-compact>{job.filesDiscovered.toLocaleString()}</TableCell>
+                <TableCell data-label="Imported" data-compact>{job.filesImported.toLocaleString()}</TableCell>
+                <TableCell data-label="Skipped" data-compact>{job.filesSkipped.toLocaleString()}</TableCell>
+                <TableCell data-label="Failed" data-compact className={job.failures ? 'text-destructive' : undefined}>{job.failures.toLocaleString()}</TableCell>
+                <TableCell data-label="Started" className="text-xs text-muted-foreground">
                   {job.startedAt ? new Date(job.startedAt).toLocaleString() : job.triggerType}
                 </TableCell>
               </TableRow>
             ))}
             {!showLoading && jobs.length === 0 && (
-              <TableRow><TableCell colSpan={10} className="h-24 text-center text-muted-foreground">No collection jobs</TableCell></TableRow>
+              <TableRow className="record-empty"><TableCell colSpan={10} className="h-24 text-center text-muted-foreground">No collection jobs</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

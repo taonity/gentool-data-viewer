@@ -34,20 +34,15 @@ for (const scene of scenes) {
       await expect(page.getByText('OWNER', { exact: true })).toBeVisible()
       if (scene.tab !== 'players') {
         const label = { replays: 'Replays', gentool: 'My GenTool', collection: 'Collection', config: 'Config', admin: 'Admin', about: 'About' }[scene.tab]
-        if (testInfo.project.name.startsWith('phone')) {
-          await page.getByRole('combobox').filter({ hasText: /^Players/ }).click()
-          await page.getByRole('option', { name: label, exact: true }).click()
-        } else {
-          await page.getByRole('tab', { name: new RegExp(`^${label}`) }).click()
-        }
+        await page.getByRole('tab', { name: new RegExp(`^${label}`) }).click()
       }
       await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; }' })
       if (scene.name === 'config') await expect(page.locator('input[placeholder^="Search settings"]:visible')).toBeVisible()
       else if (scene.name === 'collection') await expect(page.getByRole('button', { name: scene.ready, exact: true })).toBeVisible()
-      else await expect(page.getByText(scene.ready, { exact: true }).first()).toBeVisible()
+      else await expect(page.getByText(scene.ready, { exact: true }).filter({ visible: true }).first()).toBeVisible()
 
       if (scene.tab === 'replays') {
-        await page.getByRole('combobox').filter({ hasText: /^50/ }).click()
+        await page.getByRole('combobox', { name: 'Rows per page', exact: true }).first().click()
         await page.getByRole('option', { name: '20', exact: true }).click()
         await expect(page.getByRole('button', { name: 'Expand row', exact: true })).toHaveCount(20)
         await page.evaluate(() => scrollTo(0, 0))
@@ -62,6 +57,52 @@ for (const scene of scenes) {
       const text = await page.locator('main, .login-card').allInnerTexts()
       expect(text.join('\n')).not.toMatch(/\p{Script=Cyrillic}|\p{Script=Han}|\p{Script=Arabic}/u)
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(testInfo.project.use.viewport!.width)
+      if (testInfo.project.use.viewport!.width < 1024) {
+        const overflowingTables = await page.locator('[data-slot="table-container"]:visible').evaluateAll(elements =>
+          elements.filter(element => element.scrollWidth > element.clientWidth + 1).length,
+        )
+        expect(overflowingTables).toBe(0)
+        const framedTables = await page.locator('.data-table-frame:visible').evaluateAll(elements =>
+          elements.filter(element => {
+            const style = getComputedStyle(element)
+            return [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth].some(width => width !== '0px')
+          }).length,
+        )
+        expect(framedTables).toBe(0)
+        const framedCards = await page.locator('[role="tabpanel"]:visible [data-slot="card"]').evaluateAll(elements =>
+          elements.filter(element => {
+            const style = getComputedStyle(element)
+            return style.borderRadius !== '0px' || style.boxShadow !== 'none'
+          }).length,
+        )
+        expect(framedCards).toBe(0)
+        const detachedActions = await page.locator('.record-heading:visible').evaluateAll(elements =>
+          elements.flatMap(element => {
+            const heading = element.getBoundingClientRect()
+            return [...element.querySelectorAll('.record-tools button, .record-tools a')].filter(action => {
+              const bounds = action.getBoundingClientRect()
+              return bounds.width > 0 && (bounds.top < heading.top - 1 || bounds.bottom > heading.bottom + 1)
+            })
+          }).length,
+        )
+        expect(detachedActions).toBe(0)
+        if (scene.name === 'replay-details') {
+          const detailLayout = await page.locator('.replay-details:visible').evaluate(element => {
+            const bounds = element.getBoundingClientRect()
+            const row = element.closest('.record-detail')!.getBoundingClientRect()
+            const raw = element.querySelector('summary')!.getBoundingClientRect()
+            const source = element.querySelector('.replay-source-link')!.getBoundingClientRect()
+            return {
+              leftInset: bounds.left - row.left,
+              rightInset: row.right - bounds.right,
+              sourceSharesRawHeader: Math.abs(raw.top - source.top) < 1,
+            }
+          })
+          expect(detailLayout.leftInset).toBeLessThanOrEqual(8)
+          expect(detailLayout.rightInset).toBeLessThanOrEqual(8)
+          expect(detailLayout.sourceSharesRawHeader).toBe(true)
+        }
+      }
       expect(failures).toEqual([])
       if (testInfo.project.name.startsWith('desktop')) {
         const clip = await page.locator('main main').evaluate(element => {

@@ -232,84 +232,25 @@ export default function DataConsole({
       )}
 
       <Tabs value={selectedTab} onValueChange={(v) => selectTab((v ?? 'players') as TabKey)}>
-        <div className="flex items-center justify-between gap-2">
-          {/* Mobile: compact dropdown keeps every tab one tap away without hidden horizontal scroll. */}
-          <Select
-            items={tabItems}
-            value={selectedTab}
-            onValueChange={(v) => selectTab((v ?? 'players') as TabKey)}
-          >
-            <SelectTrigger size="sm" className="h-8 w-36 sm:hidden">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(tabItems).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {/* Tablet and up: full tab bar. */}
-          <TabsList variant="line" className="hidden h-9 min-w-48 justify-start sm:flex">
-            <TabsTrigger
-              value="players"
-              className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
-            >
-              Players
-            </TabsTrigger>
-            <TabsTrigger
-              value="replays"
-              className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
-            >
-              Replays
-            </TabsTrigger>
-            {showMyGentool && (
+        <div className="console-navigation flex flex-wrap items-center justify-between gap-2">
+          <TabsList aria-label="Console sections" className="console-tabs grid h-auto w-full grid-cols-[repeat(auto-fit,minmax(76px,1fr))] gap-1 bg-transparent p-0 group-data-horizontal/tabs:h-auto lg:flex lg:w-fit lg:justify-start">
+            {Object.entries(tabItems).map(([value, label]) => (
               <TabsTrigger
-                value="gentool"
-                className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
+                key={value}
+                value={value}
+                disabled={value === 'admin' && accessLoading && !forceLoading && !access?.isAdmin}
+                className={`relative h-9 flex-none border-border px-2 text-xs lg:h-8 lg:border-transparent lg:text-sm lg:data-active:bg-transparent lg:group-data-[variant=default]/tabs-list:data-active:shadow-none lg:data-active:after:opacity-100 dark:lg:data-active:border-transparent dark:lg:data-active:bg-transparent ${tabAnimationsReady ? '' : 'transition-none after:transition-none'}`}
               >
-                My GenTool
+                {label}
+                {value === 'admin' && (
+                  <span className={`absolute top-1 right-1 size-1.5 rounded-full bg-destructive ${hasPending ? '' : 'invisible'}`} aria-label={pendingLabel} />
+                )}
               </TabsTrigger>
-            )}
-            {showCollection && (
-                <TabsTrigger
-                  value="collection"
-                  className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
-                >
-                  Collection
-                </TabsTrigger>
-            )}
-            {showConfig && (
-                <TabsTrigger
-                  value="config"
-                  className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
-                >
-                  Config
-                </TabsTrigger>
-            )}
-            {showAdmin && (
-              <TabsTrigger
-                value="admin"
-                className={`${tabAnimationsReady ? '' : 'transition-none after:transition-none'} relative w-20 justify-center`}
-                disabled={accessLoading && !forceLoading && !access?.isAdmin}
-              >
-                <span className="text-center">Admin</span>
-                <span
-                  className={`pointer-events-none absolute -top-0.5 -right-0.5 size-2 rounded-full bg-destructive ${hasPending ? '' : 'invisible'}`}
-                  aria-label={pendingLabel}
-                />
-              </TabsTrigger>
-            )}
-            <TabsTrigger
-              value="about"
-              className={tabAnimationsReady ? undefined : 'transition-none after:transition-none'}
-            >
-              About
-            </TabsTrigger>
+            ))}
           </TabsList>
+
           {authenticated && (accessLoading || access) && (
-            <div className="flex items-center gap-2">
+            <div className="console-access flex items-center gap-2">
               {access ? (
                 <>
                   <UpgradeAccessControl access={access} onUpdated={setAccess} onError={setError} />
@@ -402,7 +343,7 @@ export default function DataConsole({
         )}
 
         <TabsContent value="about" className="pt-2" keepMounted>
-          {visited.has('about') && <AppInfoPanel active={selectedTab === 'about'} forceLoading={forceLoading} />}
+          {visited.has('about') && <AppInfoPanel className="console-inset" active={selectedTab === 'about'} forceLoading={forceLoading} />}
         </TabsContent>
       </Tabs>
     </div>

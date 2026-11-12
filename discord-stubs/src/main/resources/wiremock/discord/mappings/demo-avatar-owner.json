@@ -1,0 +1,13 @@
+{
+  "id": "d3a00000-0000-4000-8000-000000000004",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPath": "/avatars/100000000000000000/owner-avatar.png"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "image/svg+xml", "Cache-Control": "no-store" },
+    "bodyFileName": "demo/avatars/mountains.svg"
+  }
+}

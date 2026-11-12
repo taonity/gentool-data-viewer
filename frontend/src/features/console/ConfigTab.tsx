@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { RotateCcw, Search } from 'lucide-react'
+import { RotateCcw, Save, Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -183,9 +183,9 @@ export function ConfigTab({
 
   if (forceLoading || !schema) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="relative flex-1 basis-56">
+      <div className="config-panel console-inset flex flex-col gap-3">
+        <div className="config-toolbar sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="config-search relative flex-1 basis-56">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -210,12 +210,12 @@ export function ConfigTab({
             Applies live · no restart
           </span>
           {canEdit && (
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="ghost" className="h-8" disabled>
-                Discard
+            <div className="config-save-actions flex items-center gap-2">
+              <Button size="sm" variant="ghost" className="h-8" aria-label="Discard changes" title="Discard changes" disabled>
+                <RotateCcw className="lg:hidden" /><span className="hidden lg:inline">Discard</span>
               </Button>
-              <Button size="sm" className="h-8" disabled>
-                Save
+              <Button size="sm" className="h-8" aria-label="Save changes" title="Save changes" disabled>
+                <Save className="lg:hidden" /><span className="hidden lg:inline">Save</span>
               </Button>
             </div>
           )}
@@ -229,8 +229,8 @@ export function ConfigTab({
               </div>
             ))}
           </nav>
-          <section className="min-w-0 flex-1 overflow-hidden rounded-lg border">
-            <div className="divide-y">
+          <section className="config-section min-w-0 flex-1 overflow-hidden rounded-lg border">
+            <div className="config-fields divide-y">
               {Array.from({ length: 5 }).map((_, index) => (
                 <div key={index} className="flex min-h-12 items-center gap-3 px-3 py-2">
                   <div className="flex flex-1 flex-col gap-1.5">
@@ -250,10 +250,10 @@ export function ConfigTab({
   const overriddenByGroup = new Map(groups.map((g) => [g.name, g.fields.some((f) => f.overridden)]))
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="config-panel console-inset flex flex-col gap-3">
       {/* Sticky toolbar: search + live-apply hint + save/discard */}
-      <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="relative flex-1 basis-56">
+      <div className="config-toolbar sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="config-search relative flex-1 basis-56">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -280,9 +280,9 @@ export function ConfigTab({
           Applies live · no restart
         </span>
         {canEdit && (
-          <div className="flex items-center gap-2">
+          <div className="config-save-actions flex items-center gap-2">
             {dirtyKeys.length > 0 && (
-              <Badge variant="outline" className="font-normal text-amber-600">
+              <Badge variant="outline" className="sr-only font-normal text-amber-600 lg:not-sr-only">
                 {dirtyKeys.length} unsaved
               </Badge>
             )}
@@ -291,17 +291,23 @@ export function ConfigTab({
               variant="ghost"
               className="h-8"
               disabled={saving || dirtyKeys.length === 0}
+              aria-label="Discard changes"
+              title="Discard changes"
               onClick={discard}
             >
-              Discard
+              <RotateCcw className="lg:hidden" /><span className="hidden lg:inline">Discard</span>
             </Button>
             <Button
               size="sm"
               className="h-8"
               disabled={saving || dirtyKeys.length === 0}
+              aria-label="Save changes"
+              title={dirtyKeys.length > 0 ? `Save changes (${dirtyKeys.length} unsaved)` : 'Save changes'}
               onClick={save}
             >
-              {saving ? 'Saving…' : 'Save'}
+              <Save className="lg:hidden" />
+              {dirtyKeys.length > 0 && <span className="text-[10px] lg:hidden" aria-hidden="true">{dirtyKeys.length}</span>}
+              <span className="hidden lg:inline">{saving ? 'Saving…' : 'Save'}</span>
             </Button>
           </div>
         )}
@@ -310,20 +316,20 @@ export function ConfigTab({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
         {/* Group navigation (hidden while searching) */}
         {!q && (
-          <nav className="flex gap-1 overflow-x-auto pb-1 sm:sticky sm:top-14 sm:w-48 sm:shrink-0 sm:flex-col sm:overflow-visible sm:pb-0">
+          <nav className="config-groups flex flex-wrap gap-1 pb-1 sm:sticky sm:top-14 sm:w-48 sm:shrink-0 sm:flex-col sm:pb-0">
             {groups.map((g) => (
               <button
                 key={g.name}
                 type="button"
                 onClick={() => setActiveGroup(g.name)}
                 className={cn(
-                  'flex shrink-0 items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors sm:shrink',
+                  'flex min-w-0 items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-left text-xs transition-colors sm:border-transparent sm:text-sm',
                   g.name === activeGroup
                     ? 'bg-accent font-medium text-accent-foreground'
                     : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
                 )}
               >
-                <span className="whitespace-nowrap">{g.name}</span>
+                <span className="wrap-anywhere">{g.name}</span>
                 <span className="flex items-center gap-1.5">
                   {overriddenByGroup.get(g.name) && (
                     <span
@@ -343,19 +349,19 @@ export function ConfigTab({
         {/* Fields */}
         <div className="min-w-0 flex-1">
           {visibleGroups.length === 0 ? (
-            <div className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
+            <div className="config-empty rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
               No settings match “{query}”.
             </div>
           ) : (
             <div className="flex flex-col gap-4">
               {visibleGroups.map((group) => (
-                <section key={group.name} className="rounded-lg border">
+                <section key={group.name} className="config-section rounded-lg border">
                   {q && (
                     <div className="border-b bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                       {group.name}
                     </div>
                   )}
-                  <div className="divide-y">
+                  <div className="config-fields divide-y">
                     {group.fields.map((field) => (
                       <FieldRow
                         key={field.key}
@@ -503,7 +509,7 @@ function FieldRow({
     return (
       <div
         className={cn(
-          'flex flex-col gap-1.5 px-3 py-2.5',
+          'config-row config-stacked flex flex-col gap-1.5 px-3 py-2.5',
           field.overridden && 'border-l-2 border-l-amber-500/60',
         )}
       >
@@ -519,7 +525,7 @@ function FieldRow({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-3 py-2',
+        'config-row flex items-center gap-3 px-3 py-2',
         field.overridden && 'border-l-2 border-l-amber-500/60',
       )}
     >
@@ -586,7 +592,7 @@ function FieldControl({
   const hasRange = isNumber && (field.min !== null || field.max !== null)
 
   return (
-    <div className={cn('flex items-center gap-2', stacked ? 'w-full' : 'justify-end')}>
+    <div className={cn('config-control flex min-w-0 items-center gap-2', stacked ? 'w-full' : 'justify-end')}>
       <Input
         id={field.key}
         type={isNumber ? 'number' : 'text'}

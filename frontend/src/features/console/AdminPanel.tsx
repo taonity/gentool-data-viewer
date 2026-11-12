@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Link2, Loader2, Search, Unlink } from 'lucide-react'
+import { Check, Link2, Loader2, Search, Unlink, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/table'
 import { consoleApi } from './api'
 import { DataTab, type Column } from './DataTab'
+import { MobileRecordHeading } from './MobileRecordHeading'
 import { formatTime } from './format'
 import type {
   AccessInfo,
@@ -135,15 +136,28 @@ export function AdminPanel({
     }
   }
 
+  const decisionButtons = (request: PendingRequest) => (
+    <div className="flex justify-end gap-1">
+      <Button size="sm" disabled={busyId === request.googleId} onClick={() => void decide(request, true)}
+        aria-label={`Approve access for ${request.displayName}`} title="Approve access">
+        <Check className="lg:hidden" /><span className="hidden lg:inline">Approve</span>
+      </Button>
+      <Button size="sm" variant="destructive" disabled={busyId === request.googleId} onClick={() => void decide(request, false)}
+        aria-label={`Reject access for ${request.displayName}`} title="Reject access">
+        <X className="lg:hidden" /><span className="hidden lg:inline">Reject</span>
+      </Button>
+    </div>
+  )
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="admin-panel flex flex-col gap-4 sm:gap-6">
       {access.accessRequestsEnabled && <Card>
         <CardHeader>
           <CardTitle className="text-base">Pending access requests</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-lg border">
-            <Table className="min-w-[640px] table-fixed [&_td]:py-2 [&_tr]:h-12">
+          <div className="data-table-frame overflow-hidden rounded-lg border">
+            <Table className="mobile-records min-w-[640px] table-fixed [&_td]:py-2 [&_tr]:h-12">
               <colgroup>
                 <col className="w-[18%]" />
                 <col className="w-[26%]" />
@@ -163,7 +177,7 @@ export function AdminPanel({
               <TableBody>
                 {!visibleRequests &&
                   Array.from({ length: 2 }).map((_, index) => (
-                    <TableRow key={index} className="h-12 hover:bg-transparent">
+                    <TableRow key={index} className="record-row h-12 hover:bg-transparent">
                       <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
@@ -172,18 +186,19 @@ export function AdminPanel({
                     </TableRow>
                   ))}
                 {visibleRequests?.length === 0 && (
-                  <TableRow>
+                  <TableRow className="record-empty">
                     <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
                       No pending requests.
                     </TableCell>
                   </TableRow>
                 )}
                 {visibleRequests?.map((r) => (
-                    <TableRow key={r.googleId} className="h-12">
-                      <TableCell className="truncate font-medium">{r.displayName}</TableCell>
-                      <TableCell className="truncate font-mono text-xs text-muted-foreground">{r.discordUserId}</TableCell>
-                      <TableCell>{r.requestedRole ?? '—'}</TableCell>
-                      <TableCell>
+                    <TableRow key={r.googleId} className="record-row h-12">
+                      <MobileRecordHeading label="User" actions={decisionButtons(r)}>{r.displayName}</MobileRecordHeading>
+                      <TableCell data-label="User" data-primary className="truncate font-medium">{r.displayName}</TableCell>
+                      <TableCell data-label="Discord user ID" className="truncate font-mono text-xs text-muted-foreground">{r.discordUserId}</TableCell>
+                      <TableCell data-label="Requested">{r.requestedRole ?? '—'}</TableCell>
+                      <TableCell data-label="Grant">
                         <Select
                           items={{ VIEWER: 'Viewer', EDITOR: 'Editor' }}
                           value={grantRoles[r.googleId] ?? 'VIEWER'}
@@ -203,24 +218,8 @@ export function AdminPanel({
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            disabled={busyId === r.googleId}
-                            onClick={() => decide(r, true)}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={busyId === r.googleId}
-                            onClick={() => decide(r, false)}
-                          >
-                            Reject
-                          </Button>
-                        </div>
+                      <TableCell className="record-decision text-right">
+                        {decisionButtons(r)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -454,7 +453,7 @@ function PlayerLinksCard({
   }
 
   return (
-    <Card>
+    <Card className="profile-links-card">
       <CardHeader>
         <CardTitle className="text-base">Player links</CardTitle>
       </CardHeader>
@@ -501,7 +500,7 @@ function PlayerLinksCard({
                 Fetch
               </Button>
             </div>
-            <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={usersLoading}>
+            <div className="profile-search-results h-56 overflow-y-auto rounded-lg border" data-empty={!usersLoading && !users?.length || undefined} aria-busy={usersLoading}>
               {users === null && usersLoading && <LinkSearchSkeleton />}
               {!userQuery.trim() && <EmptySearchResult label="Search by display name or Discord user ID." />}
               {userQuery.trim() && !usersLoading && !users?.length && <EmptySearchResult label="No Discord users found." />}
@@ -509,7 +508,8 @@ function PlayerLinksCard({
                 <button
                   type="button"
                   key={user.userId}
-                  className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedUser?.userId === user.userId ? 'bg-muted' : ''}`}
+                  aria-pressed={selectedUser?.userId === user.userId}
+                  className={`profile-search-option flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedUser?.userId === user.userId ? 'bg-muted' : ''}`}
                   onClick={() => { setSelectedUser(user); setSelectedPlayer(null); setResultMessage(null) }}
                 >
                   <ProfileAvatar name={user.displayName} pictureUrl={user.pictureUrl} />
@@ -587,7 +587,7 @@ function PlayerLinksCard({
                 Exact
               </label>
             </div>
-            <div className="h-56 overflow-y-auto rounded-lg border" aria-busy={playersLoading}>
+            <div className="profile-search-results h-56 overflow-y-auto rounded-lg border" data-empty={!playersLoading && !players?.length || undefined} aria-busy={playersLoading}>
               {players === null && playersLoading && <LinkSearchSkeleton />}
               {!playerQuery.trim() && <EmptySearchResult label="Search by player name or GenTool ID." />}
               {playerQuery.trim() && !playersLoading && !players?.length && <EmptySearchResult label="No GenTool players found." />}
@@ -598,7 +598,8 @@ function PlayerLinksCard({
                 return <button
                   type="button"
                   key={player.playerId}
-                  className={`flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedPlayer?.playerId === player.playerId ? 'bg-muted' : ''}`}
+                  aria-pressed={selectedPlayer?.playerId === player.playerId}
+                  className={`profile-search-option flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-muted/50 ${selectedPlayer?.playerId === player.playerId ? 'bg-muted' : ''}`}
                   onClick={() => { setSelectedPlayer(player); setResultMessage(null) }}
                 >
                   <span className="min-w-0 flex-1">
@@ -640,7 +641,7 @@ function PlayerLinksCard({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+        <div className="profile-search-footer flex flex-wrap items-center gap-2 border-t pt-4">
           <Button disabled={!selectedUser || !selectedPlayer || busy !== null || userAtCapacity || Boolean(selectedLink)} onClick={() => void assign()}>
             {busy === 'link' ? <Loader2 className="animate-spin" /> : <Link2 />}
             Link profiles
@@ -673,7 +674,7 @@ function LinkSearchSkeleton() {
 }
 
 function EmptySearchResult({ label }: { label: string }) {
-  return <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">{label}</div>
+  return <div className="profile-search-empty flex h-full items-center justify-center px-4 text-sm text-muted-foreground">{label}</div>
 }
 
 const ROLE_LABELS: Record<ConsoleRole, string> = {
@@ -754,8 +755,8 @@ function UsersCard({
         </p>
       </CardHeader>
       <CardContent>
-        <div className="overflow-hidden rounded-lg border">
-          <Table className="min-w-[560px] table-fixed [&_td]:py-2 [&_tr]:h-12">
+        <div className="data-table-frame overflow-hidden rounded-lg border">
+          <Table className="mobile-records min-w-[560px] table-fixed [&_td]:py-2 [&_tr]:h-12">
             <colgroup>
               <col className="w-[24%]" />
               <col className="w-[34%]" />
@@ -773,7 +774,7 @@ function UsersCard({
             <TableBody>
               {!visibleUsers &&
                   Array.from({ length: 2 }).map((_, index) => (
-                  <TableRow key={index} className="h-12 hover:bg-transparent">
+                  <TableRow key={index} className="record-row h-12 hover:bg-transparent">
                     <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
@@ -781,7 +782,7 @@ function UsersCard({
                   </TableRow>
                 ))}
               {visibleUsers?.length === 0 && (
-                <TableRow>
+                <TableRow className="record-empty">
                   <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
                     No users yet.
                   </TableCell>
@@ -792,36 +793,32 @@ function UsersCard({
                   // Only the owner may change an existing admin/owner.
                   const targetIsAdmin = u.role === 'ADMIN' || u.role === 'OWNER'
                   const locked = isSelf || (targetIsAdmin && !access.isOwner)
+                  const roleControl = locked ? (
+                    <Badge variant="outline">{ROLE_LABELS[u.role]}</Badge>
+                  ) : (
+                    <Select items={roleItems} value={u.role} onValueChange={(v) => v && changeRole(u, v as ConsoleRole)}>
+                      <SelectTrigger size="sm" className="w-[160px]" aria-label={`Role for ${u.displayName}`} disabled={busyId === u.googleId}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignableRoles.map((r) => (
+                          <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )
                   return (
-                    <TableRow key={u.googleId} className="h-12">
-                      <TableCell className="truncate font-medium">{u.displayName}</TableCell>
-                      <TableCell className="truncate font-mono text-xs text-muted-foreground">{u.discordUserId}</TableCell>
-                      <TableCell>
+                    <TableRow key={u.googleId} className="record-row h-12">
+                      <MobileRecordHeading label="User" actions={roleControl}>{u.displayName}</MobileRecordHeading>
+                      <TableCell data-label="User" data-primary className="truncate font-medium">{u.displayName}</TableCell>
+                      <TableCell data-label="Discord user ID" className="truncate font-mono text-xs text-muted-foreground">{u.discordUserId}</TableCell>
+                      <TableCell data-label="Status">
                         <Badge variant="secondary" className="font-normal">
                           {u.accessStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {locked ? (
-                          <Badge variant="outline">{ROLE_LABELS[u.role]}</Badge>
-                        ) : (
-                          <Select
-                            items={roleItems}
-                            value={u.role}
-                            onValueChange={(v) => v && changeRole(u, v as ConsoleRole)}
-                          >
-                            <SelectTrigger size="sm" className="w-[160px]" disabled={busyId === u.googleId}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {assignableRoles.map((r) => (
-                                <SelectItem key={r} value={r}>
-                                  {ROLE_LABELS[r]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
+                      <TableCell data-label="Role" data-primary>
+                        {roleControl}
                       </TableCell>
                     </TableRow>
                   )

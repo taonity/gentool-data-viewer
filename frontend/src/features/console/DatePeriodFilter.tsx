@@ -49,10 +49,10 @@ export function DatePeriodFilter({ value, onChange, active, forceLoading, refres
   }, [active, forceLoading, refreshToken, onError])
 
   return (
-    <div role="group" aria-label="Match date period" className="flex max-w-full flex-wrap items-center gap-x-3 gap-y-2 border-b pb-3">
+    <div role="group" aria-label="Match date period" className="date-period flex max-w-full flex-wrap items-center gap-x-3 gap-y-2 border-b pb-2 sm:pb-3">
       <span className="text-xs font-medium text-muted-foreground">Match dates (UTC)</span>
-      <div className="flex max-w-full flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2">
+      <div className="date-controls flex max-w-full flex-wrap items-center gap-2">
+        <div className="date-field flex min-w-0 items-center gap-2">
           <label htmlFor={`${id}-start`} className="w-8 shrink-0 text-xs text-muted-foreground">From</label>
           {showLoading ? <Skeleton className="h-8 w-40" /> : <DatePicker
             id={`${id}-start`}
@@ -64,7 +64,7 @@ export function DatePeriodFilter({ value, onChange, active, forceLoading, refres
             onChange={(startDate) => setDraft({ ...draft, startDate })}
           />}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="date-field flex min-w-0 items-center gap-2">
           <label htmlFor={`${id}-end`} className="shrink-0 text-xs text-muted-foreground">To</label>
           {showLoading ? <Skeleton className="h-8 w-40" /> : <DatePicker
             id={`${id}-end`}

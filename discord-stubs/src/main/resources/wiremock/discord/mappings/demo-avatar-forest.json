@@ -1,0 +1,16 @@
+{
+  "id": "d3a00000-0000-4000-8000-000000000001",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPath": "/embed/avatars/0.png"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "no-store"
+    },
+    "bodyFileName": "demo/avatars/forest.svg"
+  }
+}

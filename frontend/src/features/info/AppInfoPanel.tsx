@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Clapperboard, Cpu, MessageSquare, ShieldCheck, type LucideIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -58,18 +59,21 @@ export function AppInfoPanel({ compact = false, className, forceLoading = false,
   const visibleSources = forceLoading ? null : sources
 
   return (
-    <div className={className}>
+    <div className={`info-panel ${className ?? ''}`}>
       {!compact && <ServiceGuide />}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {LABELS.map((label, index) => (
-          <InfoCard
-            key={label}
-            label={label}
-            source={visibleSources?.[index] ?? null}
-            compact={compact}
-          />
-        ))}
-      </div>
+      <section className="build-info space-y-3" aria-label="Build information">
+        {!compact && <h2 className="build-info-heading text-sm font-semibold">Build information</h2>}
+        <div className="info-sources grid gap-4 sm:grid-cols-2">
+          {LABELS.map((label, index) => (
+            <InfoCard
+              key={label}
+              label={label}
+              source={visibleSources?.[index] ?? null}
+              compact={compact}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
@@ -78,16 +82,16 @@ function ServiceGuide() {
   const issuesUrl = GITHUB_REPO_URL ? `${GITHUB_REPO_URL}/issues` : undefined
 
   return (
-    <Card className="mb-4 text-left">
-      <CardHeader className="border-b">
+    <Card className="about-guide mb-4 text-left">
+      <CardHeader className="about-intro border-b">
         <CardTitle>GenTool Data Viewer</CardTitle>
         <p className="max-w-3xl text-sm text-muted-foreground">
           A searchable view of public Command &amp; Conquer: Generals - Zero Hour replay reports,
           with match details, player hardware, and CPU comparisons.
         </p>
       </CardHeader>
-      <CardContent className="grid gap-x-8 gap-y-5 md:grid-cols-2">
-        <AboutSection title="Replays and scans">
+      <CardContent className="about-sections grid gap-x-8 gap-y-5 md:grid-cols-2">
+        <AboutSection title="Replays and scans" icon={Clapperboard}>
           <p>
             Replay data comes from GenTool&apos;s public Zero Hour archive. The service reads GenTool&apos;s
             uploaded text reports and links associated replay files back to their source; it does not
@@ -100,7 +104,7 @@ function ServiceGuide() {
           </p>
         </AboutSection>
 
-        <AboutSection title="CPU rating">
+        <AboutSection title="CPU rating" icon={Cpu}>
           <p>
             The score is PassMark&apos;s Single Thread Rating matched against the CPU name reported by
             GenTool. It is a reference score, not a benchmark run by this service.
@@ -111,22 +115,24 @@ function ServiceGuide() {
           </p>
         </AboutSection>
 
-        <AboutSection title="Roles">
-          <dl className="grid gap-2 sm:grid-cols-[7rem_1fr]">
-            <dt className="font-medium text-foreground">Public</dt>
-            <dd>Browse player, CPU, and replay data.</dd>
-            <dt className="font-medium text-foreground">Viewer (default)</dt>
-            <dd>Link a GenTool player and request recent rescans.</dd>
-            <dt className="font-medium text-foreground">Editor</dt>
-            <dd>Viewer access; no editor-only actions are currently available.</dd>
-            <dt className="font-medium text-foreground">Admin</dt>
-            <dd>Run collection jobs, refresh CPU data, and manage access and player links.</dd>
-            <dt className="font-medium text-foreground">Owner</dt>
-            <dd>Admin access plus runtime configuration and admin-role management.</dd>
+        <AboutSection title="Roles" icon={ShieldCheck}>
+          <dl className="grid gap-3">
+            {[
+              ['Public', 'Browse player, CPU, and replay data.'],
+              ['Viewer (default)', 'Link a GenTool player and request recent rescans.'],
+              ['Editor', 'Viewer access; no editor-only actions are currently available.'],
+              ['Admin', 'Run collection jobs, refresh CPU data, and manage access and player links.'],
+              ['Owner', 'Admin access plus runtime configuration and admin-role management.'],
+            ].map(([role, description]) => (
+              <div key={role} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-baseline gap-3">
+                <dt className="text-xs font-semibold text-foreground">{role}</dt>
+                <dd>{description}</dd>
+              </div>
+            ))}
           </dl>
         </AboutSection>
 
-        <AboutSection title="Feedback">
+        <AboutSection title="Feedback" icon={MessageSquare}>
           <p>
             Report bugs, incorrect replay or CPU data, and feature requests in{' '}
             {issuesUrl ? (
@@ -150,10 +156,13 @@ function ServiceGuide() {
   )
 }
 
-function AboutSection({ title, children }: { title: string; children: React.ReactNode }) {
+function AboutSection({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <section className="space-y-2 text-sm text-foreground">
-      <h3 className="font-semibold text-foreground">{title}</h3>
+    <section className="about-section space-y-2 border-t pt-4 text-sm leading-relaxed text-foreground">
+      <h3 className="flex items-center gap-2 font-semibold text-foreground">
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        {title}
+      </h3>
       {children}
     </section>
   )
@@ -182,7 +191,7 @@ function InfoCard({
   return (
     <Card size={compact ? 'sm' : 'default'} className="text-left">
       <CardHeader className="border-b">
-        <CardTitle className="flex items-center justify-between gap-2">
+        <CardTitle role="heading" aria-level={compact ? 2 : 3} className="flex items-center justify-between gap-2">
           <span>{label}</span>
           {loading ? (
             <Skeleton className="h-5 w-16 rounded-full" />
