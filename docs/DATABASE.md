@@ -84,6 +84,11 @@ Both use replay `match_at`, not collection or source-directory dates. Start is
 inclusive UTC midnight; end includes the entire UTC calendar day. Either bound
 may be omitted. Omitting both keeps the existing all-time query path.
 
+New imports combine the GenTool day-folder date with the report's UTC time of
+day, capped at the current instant. The original report text and parsed fields
+are preserved. This keeps incorrect client calendar dates out of stored match
+times and player summaries.
+
 Both date filters display the earliest and latest replay match dates by default,
 obtained from `/console/replays/date-range` in UTC. The All time selection still
 omits date parameters so newly collected data is included automatically. Clearing
@@ -104,6 +109,13 @@ reports but memory use still scales with active players and aliases in the perio
 The `(reporter_id, match_at)` index supports player history access; `match_at` is
 also indexed for date-range scans. Benchmark larger production datasets before
 adding caching or precomputed daily aggregates.
+
+V100017 adds `(match_at DESC, id ASC)` for newest-first replay pagination.
+Non-null replay sort columns use native null ordering so PostgreSQL can use
+the matching index; nullable columns continue to place nulls last.
+
+All-time player reads use stored hardware summaries without a global fallback
+to replay aggregation. Existing summaries are not rebuilt during deployment.
 
 ## Replay and Player Retention
 
@@ -133,8 +145,9 @@ appears as inactive and can still be rescanned by their linked account.
 `GET /console/replay-collection/window` exposes the current inclusive scan dates
 to the collection form. Manual scans outside this window are rejected; rescan
 lookbacks are capped to it. Queued and running scans recheck the window before
-each day. Imports independently reject expired directory dates, expired match
-dates, and future match timestamps, so rescanning cannot restore expired history.
+each day. Imports independently reject expired or future directory dates and
+normalize match timestamps before retention validation, so rescanning cannot
+restore expired history.
 
 Changing retention updates scan validation immediately; deletion occurs on the
 next scheduled cleanup. Increasing retention does not restore previously deleted

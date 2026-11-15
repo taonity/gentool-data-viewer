@@ -67,7 +67,10 @@ class ReplayQueryService(
         val normalizedReporterIds = reporterIds.map(String::trim).filter(String::isNotEmpty).map(String::uppercase).distinct()
         val sortProperty = replaySortProperty(sort)
         val sortDirection = if (direction == "asc") Sort.Direction.ASC else Sort.Direction.DESC
-        val order = Sort.Order(sortDirection, sortProperty).nullsLast()
+        // Explicit DESC NULLS LAST prevents PostgreSQL from using the normal date index order.
+        val order = Sort.Order(sortDirection, sortProperty).let {
+            if (sortProperty in NON_NULL_REPLAY_SORT_PROPERTIES) it else it.nullsLast()
+        }
         val pageable = PageRequest.of(
             page.coerceAtLeast(0),
             size.coerceIn(1, settings.console().maxPageSize),
@@ -147,3 +150,5 @@ internal val REPLAY_SORT_PROPERTIES = mapOf(
 )
 
 internal fun replaySortProperty(sort: String?): String = REPLAY_SORT_PROPERTIES[sort] ?: "matchAt"
+
+private val NON_NULL_REPLAY_SORT_PROPERTIES = setOf("matchAt", "reporterName", "playerNames", "sourceDate", "collectedAt")

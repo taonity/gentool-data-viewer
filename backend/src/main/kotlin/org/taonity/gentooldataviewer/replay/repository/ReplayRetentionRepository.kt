@@ -42,7 +42,7 @@ class ReplayRetentionRepository(private val jdbc: NamedParameterJdbcTemplate) {
         """
         SELECT reporter_id, reporter_name, COUNT(*) AS games, MAX(match_at) AS latest_at
         FROM replay
-        WHERE reporter_id IN (:ids) AND match_at >= :cutoff
+        WHERE reporter_id IN (:ids) AND match_at >= :cutoff AND match_at <= CURRENT_TIMESTAMP
           AND EXISTS (SELECT 1 FROM player_hardware h WHERE h.player_id = replay.reporter_id)
         GROUP BY reporter_id, reporter_name
         """.trimIndent(),

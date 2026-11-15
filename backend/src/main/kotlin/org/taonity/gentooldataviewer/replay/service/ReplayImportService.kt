@@ -15,8 +15,10 @@ import org.taonity.gentooldataviewer.cpu.service.CpuRatingService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import tools.jackson.databind.ObjectMapper
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 @Service
 class ReplayImportService(
@@ -29,6 +31,7 @@ class ReplayImportService(
     private val textParser: ReplayTextParser,
     private val retentionPolicy: ReplayRetentionPolicy,
     private val retentionRepository: ReplayRetentionRepository,
+    private val clock: Clock,
 ) {
     fun exists(sourceUrl: String): Boolean = replayRepository.existsBySourceUrl(sourceUrl)
 
@@ -43,8 +46,13 @@ class ReplayImportService(
     @Transactional
     fun import(sourceUrl: String, sourceDate: LocalDate, parsed: ParsedReplay): Boolean {
         retentionRepository.lock()
-        if (!retentionPolicy.accepts(sourceDate, parsed.matchDate)) return false
+        // sourceDate comes from the GenTool day folder; only trust the report's UTC time of day.
+        val now = clock.instant()
+        val reportedTime = parsed.matchDate.atOffset(ZoneOffset.UTC).toLocalTime()
+        val matchAt = minOf(sourceDate.atTime(reportedTime).toInstant(ZoneOffset.UTC), now)
+        if (!retentionPolicy.accepts(sourceDate, matchAt)) return false
         if (replayRepository.existsBySourceUrl(sourceUrl)) return false
+        val normalized = parsed.copy(matchDate = matchAt)
 
         val replay = replayRepository.save(
             ReplayEntity(
@@ -53,7 +61,7 @@ class ReplayImportService(
                 reporterId = parsed.reporterId,
                 reporterName = parsed.reporterName,
                 playerNames = parsed.teams.flatMap { it.players }.joinToString(", ") { it.name },
-                matchAt = parsed.matchDate,
+                matchAt = matchAt,
                 windowsCompat = parsed.windowsCompat,
                 gentoolVersion = parsed.gentoolVersion,
                 gameVersion = parsed.gameVersion,
@@ -96,7 +104,7 @@ class ReplayImportService(
                 )
             },
         )
-        updateHardware(replayId, parsed)
+        updateHardware(replayId, normalized)
         return true
     }
 
@@ -146,7 +154,8 @@ class ReplayImportService(
             val managed = playerHardwareRepository.save(hardware)
             updateIdentitySummary(managed)
             cpuRatingService.rate(managed)
-        } else if (parsed.matchDate >= current.observedAt) {
+        } else if (parsed.matchDate > current.observedAt ||
+            (parsed.matchDate == current.observedAt && replayId < current.sourceReplayId)) {
             current.gentoolUpdatedAt = updatedAt
             current.latestName = parsed.reporterName
             current.cpu = parsed.cpu
@@ -162,7 +171,9 @@ class ReplayImportService(
     }
 
     private fun updateIdentitySummary(hardware: PlayerHardwareEntity) {
-        val replays = replayRepository.findByReporterIdAndMatchAtGreaterThanEqual(hardware.playerId, retentionPolicy.cutoff())
+        val replays = replayRepository.findByReporterIdAndMatchAtBetween(
+            hardware.playerId, retentionPolicy.cutoff(), clock.instant(),
+        )
         val namesByFrequency = replays
             .groupBy(ReplayEntity::reporterName)
             .map { (name, occurrences) ->

@@ -66,6 +66,24 @@ class ReplayCollectorTest {
     }
 
     @Test
+    fun `collector passes GenTool folder date independently of incorrect report date`() {
+        val date = LocalDate.parse("2026-09-02")
+        val day = URI.create("https://gentool.net/data/zh/2026_09_September/02_Wednesday/")
+        val directory = SourceEntry("Player_ABCDEF123456", day.resolve("Player_ABCDEF123456/"), true)
+        val file = SourceEntry("replay.txt", directory.uri.resolve("replay.txt"), false)
+        val text = "Player Name: Player\nPlayer Id: ABCDEF123456\nMatch Date (UTC): 2099 Jan 01, 10:15:30"
+        val parsed = ReplayTextParser().parse(text)
+        `when`(sourceClient.list(day)).thenReturn(listOf(directory))
+        `when`(sourceClient.list(directory.uri)).thenReturn(listOf(file))
+        `when`(sourceClient.text(file.uri)).thenReturn(text)
+        `when`(textParser.parse(text)).thenReturn(parsed)
+        `when`(importService.import(file.uri.toASCIIString(), date, parsed)).thenReturn(true)
+
+        assertThat(collector.collect(date, date, null) {}.filesImported).isEqualTo(1)
+        verify(importService).import(file.uri.toASCIIString(), date, parsed)
+    }
+
+    @Test
     fun `queued scan skips expired days and future days`() {
         val retained = LocalDate.parse("2026-09-02")
         `when`(retentionPolicy.window()).thenReturn(ReplayCollectionWindowDto(1, retained, retained))

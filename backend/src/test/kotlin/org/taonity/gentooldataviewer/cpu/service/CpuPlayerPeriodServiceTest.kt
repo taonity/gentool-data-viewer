@@ -108,7 +108,7 @@ class CpuPlayerPeriodServiceTest {
     }
 
     @Test
-    fun `future replays are excluded from browsing search date bounds and player statistics`() {
+    fun `future replays are excluded from replay and period views while all time reads stored summaries`() {
         val future = report("malformed", "A", "Malformed future", "2099-01-01T00:00:00Z", "Future CPU")
         val onlyFuture = report("future-only", "Z", "Future-only player", "2099-01-01T00:00:00Z")
         // Simulate lifetime summaries already polluted by earlier imports.
@@ -140,13 +140,14 @@ class CpuPlayerPeriodServiceTest {
         assertThat(service.linked(period, "discord:period", "replayCount", "desc", false)
             .single().player.latestMatch?.matchAt).isEqualTo(Instant.parse("2026-09-09T00:00:00Z"))
 
+        // Legacy summaries stay unchanged; future records must not trigger global aggregation on reads.
         val lifetime = allTimeQuery.list(null, null, 0, 10, null, null)
         assertThat(lifetime.totalElements).isEqualTo(2)
         val player = lifetime.content.single { it.playerId == "A" }
-        assertThat(player.replayCount).isEqualTo(6)
-        assertThat(player.mainName).isEqualTo("Alpha")
-        assertThat(player.latestName).isEqualTo("Future")
-        assertThat(player.reportedCpu).isEqualTo("New CPU")
+        assertThat(player.replayCount).isEqualTo(99)
+        assertThat(player.mainName).isEqualTo("Malformed future")
+        assertThat(player.latestName).isEqualTo("Malformed future")
+        assertThat(player.reportedCpu).isEqualTo("Future CPU")
         assertThat(allTimeQuery.summary().totalPlayers).isEqualTo(2)
         users.saveAndFlush(users.findById("discord:period").orElseThrow().grantOwner())
         val principal = org.taonity.gentooldataviewer.security.principal.AuthenticatedUserPrincipal(
@@ -155,7 +156,7 @@ class CpuPlayerPeriodServiceTest {
         )
         val pinned = allTimeQuery.listLinked(principal, "replayCount", "desc", false).single()
         assertThat(pinned.rank).isEqualTo(1)
-        assertThat(pinned.player.replayCount).isEqualTo(6)
+        assertThat(pinned.player.replayCount).isEqualTo(99)
     }
 
     @Test

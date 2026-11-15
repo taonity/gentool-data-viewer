@@ -10,7 +10,6 @@ import org.taonity.gentooldataviewer.cpu.dto.RankedCpuPlayerDto
 import org.taonity.gentooldataviewer.cpu.repository.CpuBenchmarkRepository
 import org.taonity.gentooldataviewer.cpu.repository.CpuPlayerRankingRepository
 import org.taonity.gentooldataviewer.replay.entity.GentoolLinkStatus
-import org.taonity.gentooldataviewer.replay.dto.MatchDatePeriod
 import org.taonity.gentooldataviewer.replay.entity.PlayerHardwareEntity
 import org.taonity.gentooldataviewer.replay.repository.GentoolUserLinkRepository
 import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
@@ -38,7 +37,6 @@ class CpuPlayerQueryService(
     private val accessGuard: AccessGuard,
     private val settings: AppSettings,
     private val objectMapper: ObjectMapper,
-    private val periodService: CpuPlayerPeriodService,
 ) {
     @Transactional(readOnly = true)
     fun list(
@@ -52,11 +50,6 @@ class CpuPlayerQueryService(
         playerId: String? = null,
         exact: Boolean = false,
     ): PageResponse<CpuPlayerDto> {
-        val period = MatchDatePeriod(null, null)
-        // Lifetime cache includes every imported replay; bypass it while future records exist.
-        if (replayRepository.existsByMatchAtGreaterThan(period.asOf)) {
-            return periodService.list(period, q, field, page, size, sort, direction, linkedOnly, playerId, exact)
-        }
         val pageNumber = page.coerceAtLeast(0)
         val pageSize = size.coerceIn(1, settings.console().maxPageSize)
         val query = q?.trim().orEmpty()
@@ -103,10 +96,6 @@ class CpuPlayerQueryService(
         linkedOnly: Boolean,
     ): List<RankedCpuPlayerDto> {
         val user = accessGuard.requireView(principal)
-        val period = MatchDatePeriod(null, null)
-        if (replayRepository.existsByMatchAtGreaterThan(period.asOf)) {
-            return periodService.linked(period, user.userId, sort, direction, linkedOnly)
-        }
         val playerIds = linkRepository.findByUserId(user.userId)
             .filter { it.status == GentoolLinkStatus.APPROVED }
             .map { it.playerId }
@@ -122,13 +111,14 @@ class CpuPlayerQueryService(
     }
 
     private fun playerDtos(players: List<PlayerHardwareEntity>): Map<String, CpuPlayerDto> {
+        if (players.isEmpty()) return emptyMap()
         val linksByPlayerId = linkRepository.findByPlayerIdInAndStatus(
             players.map { it.playerId },
             GentoolLinkStatus.APPROVED,
         ).associateBy { it.playerId }
         val usersById = userRepository.findAllById(linksByPlayerId.values.map { it.userId })
             .associateBy { it.userId }
-        val latestReplaysByPlayerId = replayRepository.findLatestByReporterIds(players.map { it.playerId })
+        val latestReplaysByPlayerId = replayRepository.findAllById(players.map { it.sourceReplayId })
             .associateBy { it.reporterId }
         val latestReplayPlayers = replayPlayerRepository.findByReplayIdIn(
             latestReplaysByPlayerId.values.mapNotNull { it.id },
@@ -157,10 +147,6 @@ class CpuPlayerQueryService(
 
     @Transactional(readOnly = true)
     fun summary(): CpuPlayerSummaryDto {
-        val period = MatchDatePeriod(null, null)
-        if (replayRepository.existsByMatchAtGreaterThan(period.asOf)) {
-            return periodService.summary(period)
-        }
         return CpuPlayerSummaryDto(
             totalPlayers = hardwareRepository.count(),
             ratedPlayers = hardwareRepository.countByCpuScoreIsNotNull(),

@@ -27,13 +27,11 @@ interface ReplayMatchDateBounds {
 interface ReplayRepository : JpaRepository<ReplayEntity, String> {
     fun existsBySourceUrl(sourceUrl: String): Boolean
 
-    fun existsByMatchAtGreaterThan(matchAt: Instant): Boolean
-
     fun findByPlayerNames(playerNames: String): List<ReplayEntity>
 
     fun findByReporterId(reporterId: String): List<ReplayEntity>
 
-    fun findByReporterIdAndMatchAtGreaterThanEqual(reporterId: String, matchAt: Instant): List<ReplayEntity>
+    fun findByReporterIdAndMatchAtBetween(reporterId: String, from: Instant, asOf: Instant): List<ReplayEntity>
 
     @Query(
         """

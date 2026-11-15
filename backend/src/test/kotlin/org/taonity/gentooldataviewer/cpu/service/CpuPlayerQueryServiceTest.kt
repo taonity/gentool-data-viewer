@@ -51,12 +51,12 @@ class CpuPlayerQueryServiceTest {
         accessGuard,
         settings,
         ObjectMapper(),
-        mock(CpuPlayerPeriodService::class.java),
     )
 
     @Test
     fun `player list exposes Discord identity only for approved links`() {
         val approvedPlayer = player("ABCDEF123456", "Approved player")
+        approvedPlayer.sourceReplayId = "latest-replay"
         val unlinkedPlayer = player("123456ABCDEF", "Unlinked player")
         val pageRequest = PageRequest.of(0, 50)
         val expectedPageable = PageRequest.of(
@@ -102,7 +102,7 @@ class CpuPlayerQueryServiceTest {
             ),
         ).thenReturn(listOf(approvedLink))
         `when`(userRepository.findAllById(listOf(approvedLink.userId))).thenReturn(listOf(discordUser))
-        `when`(replayRepository.findLatestByReporterIds(listOf(approvedPlayer.playerId, unlinkedPlayer.playerId)))
+        `when`(replayRepository.findAllById(listOf(approvedPlayer.sourceReplayId, unlinkedPlayer.sourceReplayId)))
             .thenReturn(listOf(latestReplay))
         `when`(replayPlayerRepository.findByReplayIdIn(listOf("latest-replay"))).thenReturn(
             listOf(

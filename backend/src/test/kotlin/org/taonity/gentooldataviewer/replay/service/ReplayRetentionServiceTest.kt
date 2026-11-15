@@ -150,11 +150,10 @@ class ReplayRetentionServiceTest {
     }
 
     @Test
-    fun `import rejects expired directory dates and expired match dates without creating hardware`() {
-        val currentDate = policy.window().endDate
-        val expired = policy.cutoff().minusSeconds(1)
-        assertThat(importer.import("https://example.invalid/expired-match", currentDate, parsed(expired))).isFalse()
+    fun `import rejects expired and future directory dates without creating hardware`() {
         assertThat(importer.import("https://example.invalid/expired-directory", policy.window().startDate.minusDays(1),
+            parsed(policy.cutoff()))).isFalse()
+        assertThat(importer.import("https://example.invalid/future-directory", policy.window().endDate.plusDays(1),
             parsed(policy.cutoff()))).isFalse()
         assertThat(replays.count()).isZero()
         assertThat(hardware.count()).isZero()

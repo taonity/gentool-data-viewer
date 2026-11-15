@@ -186,6 +186,31 @@ class ReplayImportServiceTest {
     }
 
     @Test
+    fun `import uses folder date instead of past or future header date and preserves UTC time`() {
+        val folderDate = LocalDate.parse("2026-09-14")
+        listOf("2001-01-01T17:59:26Z", "2099-01-01T17:59:26Z").forEachIndexed { index, header ->
+            assertThat(importService.import("https://gentool.net/data/zh/folder-date-$index.txt", folderDate,
+                replay().copy(matchDate = Instant.parse(header)))).isTrue()
+        }
+        assertThat(replayRepository.findAll().map { it.matchAt })
+            .containsOnly(Instant.parse("2026-09-14T17:59:26Z"))
+        val hardware = hardwareRepository.findById("8313DCDFD572").orElseThrow()
+        assertThat(hardware.observedAt).isEqualTo(Instant.parse("2026-09-14T17:59:26Z"))
+        assertThat(hardware.replayCount).isEqualTo(2)
+    }
+
+    @Test
+    fun `import clamps future time today to now in replay and player summary while preserving source text`() {
+        val parsed = replay().copy(matchDate = Instant.parse("2099-01-01T23:59:59Z"))
+        assertThat(importService.import("https://gentool.net/data/zh/clamped.txt", LocalDate.parse("2026-09-15"), parsed))
+            .isTrue()
+        val imported = replayRepository.findAll().single()
+        assertThat(imported.matchAt).isEqualTo(Instant.parse("2026-09-15T12:00:00Z"))
+        assertThat(imported.rawText).isEqualTo(parsed.rawText)
+        assertThat(hardwareRepository.findById(parsed.reporterId).orElseThrow().observedAt).isEqualTo(imported.matchAt)
+    }
+
+    @Test
     fun `repairs players missing from previously imported no team replay`() {
         replayRepository.save(
             ReplayEntity(
