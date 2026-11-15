@@ -135,13 +135,19 @@ row_2 ~~~ row_3
 subgraph row_4[" "]
 direction LR
 table_9["<table class='schema-table'><thead><tr><th colspan='3'>replay_player</th></tr><tr><th>Column name</th><th>Data type</th><th>Constraints</th></tr></thead><tbody><tr><td>id</td><td class='typeText'>varchar(36)</td><td class='primaryKey'>PK</td></tr><tr><td>replay_id</td><td class='typeText'>varchar(36)</td><td class='foreignKey'>FK · NOT NULL</td></tr><tr><td>team_number</td><td class='typeNumber'>int</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>slot_number</td><td class='typeNumber'>int</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>address</td><td class='typeText'>varchar(32)</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>name</td><td class='typeText'>varchar(255)</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>army</td><td class='typeText'>varchar(255)</td><td class='plainConstraint'>—</td></tr></tbody></table>"]
-table_11["<table class='schema-table'><thead><tr><th colspan='3'>spring_session</th></tr><tr><th>Column name</th><th>Data type</th><th>Constraints</th></tr></thead><tbody><tr><td>primary_id</td><td class='typeText'>char(36)</td><td class='primaryKey'>PK</td></tr><tr><td>session_id</td><td class='typeText'>char(36)</td><td class='uniqueKey'>UK · NOT NULL</td></tr><tr><td>creation_time</td><td class='typeNumber'>bigint</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>last_access_time</td><td class='typeNumber'>bigint</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>max_inactive_interval</td><td class='typeNumber'>int</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>expiry_time</td><td class='typeNumber'>bigint</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>principal_name</td><td class='typeText'>varchar(100)</td><td class='plainConstraint'>—</td></tr></tbody></table>"]
-table_12["<table class='schema-table'><thead><tr><th colspan='3'>spring_session_attributes</th></tr><tr><th>Column name</th><th>Data type</th><th>Constraints</th></tr></thead><tbody><tr><td>session_primary_id</td><td class='typeText'>char(36)</td><td class='primaryKey'>PK, FK</td></tr><tr><td>attribute_name</td><td class='typeText'>varchar(200)</td><td class='primaryKey'>PK</td></tr><tr><td>attribute_bytes</td><td class='typeBinary'>bytea</td><td class='plainConstraint'>NOT NULL</td></tr></tbody></table>"]
+table_11["<table class='schema-table'><thead><tr><th colspan='3'>replay_retention_lock</th></tr><tr><th>Column name</th><th>Data type</th><th>Constraints</th></tr></thead><tbody><tr><td>id</td><td class='typeNumber'>int</td><td class='primaryKey'>PK</td></tr></tbody></table>"]
 table_9 ~~~ table_11
 end
 style row_4 fill:transparent,stroke:transparent
 row_3 ~~~ row_4
-table_12 -->|"<span class='schema-edge'>session_primary_id<br/>0..* → 1</span>"| table_11
+subgraph row_5[" "]
+direction LR
+table_12["<table class='schema-table'><thead><tr><th colspan='3'>spring_session</th></tr><tr><th>Column name</th><th>Data type</th><th>Constraints</th></tr></thead><tbody><tr><td>primary_id</td><td class='typeText'>char(36)</td><td class='primaryKey'>PK</td></tr><tr><td>session_id</td><td class='typeText'>char(36)</td><td class='uniqueKey'>UK · NOT NULL</td></tr><tr><td>creation_time</td><td class='typeNumber'>bigint</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>last_access_time</td><td class='typeNumber'>bigint</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>max_inactive_interval</td><td class='typeNumber'>int</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>expiry_time</td><td class='typeNumber'>bigint</td><td class='plainConstraint'>NOT NULL</td></tr><tr><td>principal_name</td><td class='typeText'>varchar(100)</td><td class='plainConstraint'>—</td></tr></tbody></table>"]
+table_13["<table class='schema-table'><thead><tr><th colspan='3'>spring_session_attributes</th></tr><tr><th>Column name</th><th>Data type</th><th>Constraints</th></tr></thead><tbody><tr><td>session_primary_id</td><td class='typeText'>char(36)</td><td class='primaryKey'>PK, FK</td></tr><tr><td>attribute_name</td><td class='typeText'>varchar(200)</td><td class='primaryKey'>PK</td></tr><tr><td>attribute_bytes</td><td class='typeBinary'>bytea</td><td class='plainConstraint'>NOT NULL</td></tr></tbody></table>"]
+end
+style row_5 fill:transparent,stroke:transparent
+row_4 ~~~ row_5
+table_13 -->|"<span class='schema-edge'>session_primary_id<br/>0..* → 1</span>"| table_12
 table_9 -.->|"<span class='schema-edge'>replay_id<br/>0..* → 1</span>"| table_6
 table_5 -.->|"<span class='schema-edge'>source_replay_id<br/>0..* → 1</span>"| table_6
 table_7 -.->|"<span class='schema-edge'>replay_id<br/>0..* → 1</span>"| table_6
@@ -150,7 +156,7 @@ table_10 -.->|"<span class='schema-edge'>job_id<br/>0..* → 1</span>"| table_8
 table_4 -.->|"<span class='schema-edge'>decided_by_user_id<br/>0..* → 0..1</span>"| table_0
 table_4 -->|"<span class='schema-edge'>user_id<br/>0..* → 1</span>"| table_0
 classDef schemaNode fill:transparent,stroke:transparent
-class table_0,table_1,table_2,table_3,table_4,table_5,table_6,table_7,table_8,table_9,table_10,table_11,table_12 schemaNode
+class table_0,table_1,table_2,table_3,table_4,table_5,table_6,table_7,table_8,table_9,table_10,table_11,table_12,table_13 schemaNode
 ```
 <!-- mermerd-end -->
 
