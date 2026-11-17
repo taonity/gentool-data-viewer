@@ -1,3 +1,4 @@
+import { BUSINESS_DETAILS } from '@/config/business'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
@@ -18,8 +19,8 @@ export default function PrivacyPolicyPage() {
         <p className="text-sm font-medium text-muted-foreground">Effective September 9, 2026</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-normal sm:text-5xl">Privacy Policy</h1>
         <p className="mt-5 text-lg leading-8 text-muted-foreground">
-          This policy explains how Taonity processes personal data when you use GenTool Data Viewer,
-          including when you sign in with Discord. Taonity is an independent project and is the
+          This policy explains how {BUSINESS_DETAILS.name} processes personal data when you use GenTool Data Viewer,
+          including when you sign in with Discord. {BUSINESS_DETAILS.name} is an independent project and is the
           controller of the data described here.
         </p>
       </div>
@@ -30,7 +31,7 @@ export default function PrivacyPolicyPage() {
           This policy applies to the GenTool Data Viewer website, its API, and its Discord
           integration (the “Service”). Questions, privacy requests, and account or data deletion
           requests may be sent to{' '}
-          <a className={linkClass} href="mailto:taonity.org@gmail.com">taonity.org@gmail.com</a>.
+          <a className={linkClass} href={`mailto:${BUSINESS_DETAILS.email}`}>{BUSINESS_DETAILS.email}</a>.
           The Service is not affiliated with or endorsed by Discord or GenTool.
         </p>
       </section>
@@ -77,7 +78,7 @@ export default function PrivacyPolicyPage() {
         </ul>
         <p className={paragraphClass}>
           Where a legal basis is required, processing is based on providing the Service you request,
-          Taonity’s legitimate interests in operating and securing the Service and maintaining
+          {BUSINESS_DETAILS.name}’s legitimate interests in operating and securing the Service and maintaining
           accurate community replay records, compliance with legal obligations, or consent where
           the law requires it. You may object to processing based on legitimate interests by using
           the contact above.
@@ -94,7 +95,7 @@ export default function PrivacyPolicyPage() {
           </li>
           <li>
             Infrastructure providers may process data solely to host, store, monitor, back up, and
-            secure the Service on Taonity’s behalf.
+            secure the Service on {BUSINESS_DETAILS.name}’s behalf.
           </li>
           <li>
             Replay, player, hardware, and linked Discord display information may be visible to
@@ -106,7 +107,7 @@ export default function PrivacyPolicyPage() {
           </li>
         </ul>
         <p className={paragraphClass}>
-          Taonity does not sell personal data, share Discord API data with data brokers or advertising
+          {BUSINESS_DETAILS.name} does not sell personal data, share Discord API data with data brokers or advertising
           networks, use it for targeted advertising, or use it to train artificial intelligence models.
         </p>
       </section>
@@ -150,16 +151,16 @@ export default function PrivacyPolicyPage() {
         <p className={paragraphClass}>
           Depending on where you live, you may ask to access, correct, update, export, restrict,
           object to, or delete your personal data, or withdraw consent. You may also complain to
-          your local data-protection authority. Taonity does not discriminate against users for
+          your local data-protection authority. {BUSINESS_DETAILS.name} does not discriminate against users for
           exercising privacy rights.
         </p>
         <p className={paragraphClass}>
-          To make a request, email <a className={linkClass} href="mailto:taonity.org@gmail.com">taonity.org@gmail.com</a>{' '}
+          To make a request, email <a className={linkClass} href={`mailto:${BUSINESS_DETAILS.email}`}>{BUSINESS_DETAILS.email}</a>{' '}
           from an address where you can receive a reply and include your Discord user ID or the
           GenTool record involved. Additional information will be requested only when reasonably
           necessary to verify the request. Disconnecting the app in Discord stops future OAuth
           access but does not itself delete stored data; use the same email address to request
-          deletion. Taonity will respond within the period required by applicable law.
+          deletion. {BUSINESS_DETAILS.name} will respond within the period required by applicable law.
         </p>
       </section>
 
@@ -167,7 +168,7 @@ export default function PrivacyPolicyPage() {
         <h2 className={headingClass} id="transfers">8. International processing</h2>
         <p className={paragraphClass}>
           The Service is available internationally, and data may be processed in countries other
-          than your own. Where required, Taonity relies on legally recognized safeguards for such
+          than your own. Where required, {BUSINESS_DETAILS.name} relies on legally recognized safeguards for such
           transfers. Discord API data transferred from the EEA or United Kingdom is also governed
           by the transfer terms incorporated into the Discord Developer Terms of Service.
         </p>
@@ -176,7 +177,7 @@ export default function PrivacyPolicyPage() {
       <section aria-labelledby="security">
         <h2 className={headingClass} id="security">9. Security</h2>
         <p className={paragraphClass}>
-          Taonity uses reasonable technical and organizational safeguards, including encrypted
+          {BUSINESS_DETAILS.name} uses reasonable technical and organizational safeguards, including encrypted
           network transport in production, restricted administrative access, HTTP-only and secure
           session cookies, CSRF protection, access controls, and data minimization. No system is
           completely secure. If an incident creates a legally reportable risk, affected users and
@@ -189,7 +190,7 @@ export default function PrivacyPolicyPage() {
         <p className={paragraphClass}>
           The Service is not directed to anyone under 13 or under the higher minimum age required
           in their country. Users who authenticate with Discord must also meet Discord’s age
-          requirements. Contact Taonity if you believe data from an ineligible child has been
+          requirements. Contact {BUSINESS_DETAILS.name} if you believe data from an ineligible child has been
           processed so it can be deleted.
         </p>
       </section>

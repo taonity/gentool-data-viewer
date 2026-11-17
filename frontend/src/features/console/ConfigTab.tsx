@@ -79,6 +79,7 @@ export function ConfigTab({
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [exactMatch, setExactMatch] = useState(false)
+
   const wasActive = useRef(false)
 
   const draftsFromSchema = (next: ConfigSchema) =>
@@ -183,28 +184,22 @@ export function ConfigTab({
 
   if (forceLoading || !schema) {
     return (
-      <div className="config-panel console-inset flex flex-col gap-3">
-        <div className="config-toolbar sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="config-panel flex flex-col gap-3">
+        <div className="config-toolbar sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="config-search relative flex-1 basis-56">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               disabled
+              aria-label="Search settings"
               placeholder="Search settings…"
               className="h-8 pl-8"
             />
           </div>
-          <label className="flex h-8 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              className="size-4"
-              aria-label="Exact match"
-              checked={exactMatch}
-              disabled
-              readOnly
-            />
-            Exact
+          <label className="flex min-h-11 shrink-0 items-center gap-2 text-xs text-muted-foreground sm:min-h-8">
+            <Switch checked={exactMatch} disabled />
+            Exact match
           </label>
           <span className="hidden text-xs text-muted-foreground md:inline">
             Applies live · no restart
@@ -220,8 +215,8 @@ export function ConfigTab({
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          <nav className="hidden w-48 shrink-0 flex-col gap-1 sm:flex">
+        <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start">
+          <nav aria-label="Configuration groups" className="hidden w-48 shrink-0 flex-col gap-1 md:flex">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="flex h-8 items-center justify-between px-2.5">
                 <Skeleton className="h-3.5 w-20" />
@@ -250,9 +245,9 @@ export function ConfigTab({
   const overriddenByGroup = new Map(groups.map((g) => [g.name, g.fields.some((f) => f.overridden)]))
 
   return (
-    <div className="config-panel console-inset flex flex-col gap-3">
+    <div className="config-panel flex flex-col gap-3">
       {/* Sticky toolbar: search + live-apply hint + save/discard */}
-      <div className="config-toolbar sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="config-toolbar sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="config-search relative flex-1 basis-56">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -261,20 +256,14 @@ export function ConfigTab({
               setQuery(event.target.value)
               if (!event.target.value.trim()) setExactMatch(false)
             }}
+            aria-label="Search settings"
             placeholder="Search settings…"
             className="h-8 pl-8"
           />
         </div>
-        <label className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            className="size-4 accent-primary"
-            aria-label="Exact match"
-            checked={exactMatch}
-            disabled={!query.trim()}
-            onChange={(event) => setExactMatch(event.target.checked)}
-          />
-          Exact
+        <label className="flex min-h-9 shrink-0 items-center gap-1.5 text-xs text-muted-foreground sm:min-h-8">
+          <Switch aria-label="Exact match" checked={exactMatch} disabled={!q} onCheckedChange={setExactMatch} />
+          <span>Exact<span className="hidden sm:inline"> match</span></span>
         </label>
         <span className="hidden text-xs text-muted-foreground md:inline">
           Applies live · no restart
@@ -291,8 +280,7 @@ export function ConfigTab({
               variant="ghost"
               className="h-8"
               disabled={saving || dirtyKeys.length === 0}
-              aria-label="Discard changes"
-              title="Discard changes"
+              aria-label="Discard changes" title="Discard changes"
               onClick={discard}
             >
               <RotateCcw className="lg:hidden" /><span className="hidden lg:inline">Discard</span>
@@ -301,8 +289,7 @@ export function ConfigTab({
               size="sm"
               className="h-8"
               disabled={saving || dirtyKeys.length === 0}
-              aria-label="Save changes"
-              title={dirtyKeys.length > 0 ? `Save changes (${dirtyKeys.length} unsaved)` : 'Save changes'}
+              aria-label="Save changes" title={`Save changes (${dirtyKeys.length} unsaved)`}
               onClick={save}
             >
               <Save className="lg:hidden" />
@@ -313,17 +300,17 @@ export function ConfigTab({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start">
         {/* Group navigation (hidden while searching) */}
         {!q && (
-          <nav className="config-groups flex flex-wrap gap-1 pb-1 sm:sticky sm:top-14 sm:w-48 sm:shrink-0 sm:flex-col sm:pb-0">
+          <nav aria-label="Configuration groups" className="config-groups flex min-w-0 flex-wrap gap-1 md:sticky md:top-14 md:w-48 md:shrink-0 md:flex-col">
             {groups.map((g) => (
               <button
                 key={g.name}
                 type="button"
                 onClick={() => setActiveGroup(g.name)}
                 className={cn(
-                  'flex min-w-0 items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-left text-xs transition-colors sm:border-transparent sm:text-sm',
+                  'flex min-w-0 items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-left text-xs transition-colors md:border-transparent md:text-sm',
                   g.name === activeGroup
                     ? 'bg-accent font-medium text-accent-foreground'
                     : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
@@ -525,7 +512,8 @@ function FieldRow({
   return (
     <div
       className={cn(
-        'config-row flex items-center gap-3 px-3 py-2',
+        'config-row config-field grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 md:flex md:gap-3',
+        field.type === 'BOOL' && 'flex',
         field.overridden && 'border-l-2 border-l-amber-500/60',
       )}
     >
@@ -552,6 +540,7 @@ function FieldControl({
   if (field.type === 'BOOL') {
     return (
       <Switch
+        aria-label={field.label}
         checked={value === 'true'}
         disabled={disabled}
         onCheckedChange={(checked) => onChange(checked ? 'true' : 'false')}
@@ -562,7 +551,7 @@ function FieldControl({
   if (field.type === 'ENUM') {
     return (
       <Select value={value} onValueChange={(v) => onChange(v ?? '')} disabled={disabled}>
-        <SelectTrigger size="sm" className="w-44">
+        <SelectTrigger size="sm" className="w-full md:w-44" aria-label={field.label}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -580,6 +569,7 @@ function FieldControl({
     return (
       <Textarea
         id={field.key}
+        aria-label={field.label}
         value={value}
         readOnly={disabled}
         className="max-h-80 min-h-28 resize-y font-mono text-xs"
@@ -592,9 +582,10 @@ function FieldControl({
   const hasRange = isNumber && (field.min !== null || field.max !== null)
 
   return (
-    <div className={cn('config-control flex min-w-0 items-center gap-2', stacked ? 'w-full' : 'justify-end')}>
+    <div className={cn('config-control min-w-0 flex items-center gap-2', stacked ? 'w-full' : 'config-value col-span-2 md:justify-end')}>
       <Input
         id={field.key}
+        aria-label={field.label}
         type={isNumber ? 'number' : 'text'}
         inputMode={field.type === 'DOUBLE' ? 'decimal' : isNumber ? 'numeric' : undefined}
         step={field.type === 'DOUBLE' ? 'any' : isNumber ? 1 : undefined}
@@ -605,7 +596,7 @@ function FieldControl({
         placeholder={field.type === 'STRING_LIST' ? 'comma, separated, values' : undefined}
         className={cn(
           'h-8',
-          isNumber ? 'w-24 text-right tabular-nums' : stacked ? 'w-full font-mono text-xs' : 'w-56',
+          isNumber ? 'w-full text-right tabular-nums md:w-24' : stacked ? 'w-full font-mono text-xs' : 'w-full md:w-56',
         )}
         onChange={(e) => onChange(e.target.value)}
       />

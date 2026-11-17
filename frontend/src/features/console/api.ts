@@ -56,7 +56,7 @@ async function errorMessage(res: Response): Promise<string> {
 async function get<T>(path: string): Promise<T> {
   const res = await fetchWithTimeout(`${BASE}${path}`, { timeoutMs: 60_000 })
   if (!res.ok) {
-    throw new ApiError(res.status, `Request failed (${res.status})`)
+    throw new ApiError(res.status, await errorMessage(res))
   }
   return res.json() as Promise<T>
 }
@@ -124,8 +124,10 @@ export const consoleApi = {
   unlinkGentoolUser: (userId: string, playerId: string) =>
     mutate<void>(`/player-links/${encodeURIComponent(userId)}/${encodeURIComponent(playerId)}`, 'DELETE'),
 
-  listAuditLogs: (page: number, size: number, q?: string, field?: string, exact?: boolean) =>
-    get<PageResponse<AuditLog>>(buildListQuery('/audit-logs', page, size, q, field, undefined, undefined, { exact })),
+  getAuditDateRange: () => get<{ startDate: string | null; endDate: string | null }>('/audit-logs/date-range'),
+
+  listAuditLogs: (page: number, size: number, q?: string, field?: string, sort?: string, direction?: string, exact?: boolean, startDate?: string, endDate?: string) =>
+    get<PageResponse<AuditLog>>(buildListQuery('/audit-logs', page, size, q, field, sort, direction, { exact, startDate, endDate })),
 
   getConfig: () => get<ConfigSchema>('/config'),
 

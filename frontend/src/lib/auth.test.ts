@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { checkBackendLiveness, fetchAuthenticatedUserStatus } from '@/lib/auth'
+import { checkBackendLiveness, fetchAuthenticatedUserStatus, safeLocalPath } from '@/lib/auth'
 import { DEFAULT_NETWORK_ERROR_MESSAGE, DEFAULT_TIMEOUT_ERROR_MESSAGE } from '@/lib/clientApi'
 
 vi.mock('@/lib/clientApi', () => ({
@@ -89,5 +89,14 @@ describe('auth api', () => {
       ok: false,
       message: DEFAULT_NETWORK_ERROR_MESSAGE,
     })
+  })
+})
+
+describe('post-login paths', () => {
+  it.each(['/?tab=admin', '/?tab=replays&player=ABC#details', '/privacy'])('accepts local path %s', value => {
+    expect(safeLocalPath(value)).toBe(value)
+  })
+  it.each([null, '', 'https://example.com', '//example.com', '/\\example.com', 'javascript:alert(1)'])('rejects external or invalid path %s', value => {
+    expect(safeLocalPath(value)).toBeNull()
   })
 })

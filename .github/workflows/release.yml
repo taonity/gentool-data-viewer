@@ -279,8 +279,11 @@ jobs:
       contents: write
 
   notify-prod:
-    needs: deploy-prod
-    if: ${{ always() && (needs.deploy-prod.result == 'success' || needs.deploy-prod.result == 'failure') }}
+    needs:
+      - prepare
+      - approve-prod
+      - deploy-prod
+    if: ${{ always() && (needs.prepare.outputs.skip_approval == 'true' || needs.approve-prod.result == 'success') && (needs.deploy-prod.result == 'success' || needs.deploy-prod.result == 'failure') }}
     uses: ./.github/workflows/notify.yml
     with:
       environment: prod

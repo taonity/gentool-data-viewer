@@ -60,6 +60,7 @@ Local set: `h2,stub-discord,local` (`local` auto-includes `plain-log`). Add `dem
 - **Controller pattern**: `@RestController`, inject services, use `@AuthenticationPrincipal principal: AuthenticatedUserPrincipal` for auth. `ControllerLoggingInterceptor` automatically logs every controller method invocation.
 - **CSRF**: SPA pattern with `CookieCsrfTokenRepository` + `SpaCsrfTokenRequestHandler`. Frontend reads CSRF cookie and sends `X-XSRF-TOKEN` header on mutating requests.
 - **Frontend API proxy**: every backend call is proxied through Next.js API routes in `src/app/api/`. Never call the backend directly from client components.
+- **Data tables**: use `frontend/src/features/console/DataTab.tsx` for paginated tables. Every column defines `sortKey` and `defaultWidth`; each table defines `columnWidthsKey` and `defaultSortKey`. Keep resizing, overflow previews, sortable headers, column visibility, and silent refresh shared. Mark control-only columns `sortable: false` and `interactive: true`.
 - __DB migrations__: Flyway SQL scripts in `templates/docker/flyway/sql/tables/` (naming: `V100000__description.sql`). H2 profile uses Flyway with `filesystem:` locations.
 - **Demo data**: when a persistent feature benefits from local examples, add an idempotent `DemoDataContributor` in that feature package under `@Profile("demo-data")`. Use deterministic markers, never overwrite existing records, and extend `DemoDataProfileTest`.
 

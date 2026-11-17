@@ -4,6 +4,7 @@ services:
     environment:
       FRONTEND_PROFILE: ${FRONTEND_PROFILE:?FRONTEND_PROFILE must be set}
       LOCAL_BACKEND_URL: http://backend:8080
+      BACKEND_REQUEST_TIMEOUT_MS: ${BACKEND_REQUEST_TIMEOUT_MS:-60000}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/actuator/health"]
       interval: 10s

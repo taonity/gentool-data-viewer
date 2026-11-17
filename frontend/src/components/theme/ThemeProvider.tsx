@@ -1,11 +1,10 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { THEME_STORAGE_KEY } from './themeInit'
 
 export type Theme = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
-
-export const THEME_STORAGE_KEY = 'theme'
 
 type ThemeContextValue = {
   /** The user's selection: an explicit theme or "system" (follow OS/browser). */
@@ -34,7 +33,7 @@ function resolve(theme: Theme): ResolvedTheme {
  *
  * The selection is persisted in localStorage and defaults to "system", which follows the
  * OS/browser `prefers-color-scheme`. A blocking inline script in the document head (see
- * {@link themeInitScript}) applies the correct class before hydration to avoid a flash.
+ * themeInitScript) applies the correct class before hydration to avoid a flash.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system')
@@ -86,9 +85,3 @@ export function useTheme(): ThemeContextValue {
   if (!ctx) throw new Error('useTheme must be used within a ThemeProvider')
   return ctx
 }
-
-/**
- * Inline script that runs before React hydrates to set the initial `dark` class from the
- * stored preference (or OS setting), preventing a light/dark flash on first paint.
- */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}');var d=t==='dark'||((t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`

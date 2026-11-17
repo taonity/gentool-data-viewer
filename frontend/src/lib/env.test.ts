@@ -44,3 +44,17 @@ describe('server environment', () => {
     expect(getServerEnv().localBackendUrl).toBe('http://backend:8080')
   })
 })
+
+describe('backend timeout override', () => {
+  it('accepts a positive integer override', () => {
+    vi.stubEnv('FRONTEND_PROFILE', 'local')
+    vi.stubEnv('BACKEND_REQUEST_TIMEOUT_MS', '12345')
+    expect(getServerEnv().backendRequestTimeoutMs).toBe(12345)
+    expect(getServerEnv().benchmarkRefreshTimeoutMs).toBe(240000)
+  })
+  it.each(['0', '-1', '1.2', 'not-a-number', '2147483648'])('rejects invalid timeout %s', value => {
+    vi.stubEnv('FRONTEND_PROFILE', 'local')
+    vi.stubEnv('BACKEND_REQUEST_TIMEOUT_MS', value)
+    expect(() => getServerEnv()).toThrow('BACKEND_REQUEST_TIMEOUT_MS must be a positive integer')
+  })
+})

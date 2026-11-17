@@ -69,3 +69,21 @@ describe('match date period requests', () => {
     )
   })
 })
+describe('audit queries', () => {
+  it('combines UTC dates, exact scoped search, sort and pagination', async () => {
+    await consoleApi.listAuditLogs(1, 20, 'CHANGE_ROLE', 'action', 'actorUserId', 'asc', true, '2026-11-01', '2026-11-13')
+    expect(Object.fromEntries(requestedUrl().searchParams)).toEqual({
+      page: '1', size: '20', q: 'CHANGE_ROLE', field: 'action', sort: 'actorUserId', direction: 'asc', exact: 'true',
+      startDate: '2026-11-01', endDate: '2026-11-13',
+    })
+  })
+  it('loads audit bounds independently of current filters', async () => {
+    await consoleApi.getAuditDateRange()
+    expect(requestedUrl().pathname).toBe('/api/console/audit-logs/date-range')
+    expect(requestedUrl().search).toBe('')
+  })
+  it('surfaces backend validation messages on reads', async () => {
+    vi.mocked(fetchWithTimeout).mockResolvedValue(new Response(JSON.stringify({ errorMessage: 'Invalid date period' }), { status: 400 }))
+    await expect(consoleApi.listAuditLogs(0, 20)).rejects.toThrow('Invalid date period')
+  })
+})

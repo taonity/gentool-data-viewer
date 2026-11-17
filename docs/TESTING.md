@@ -48,6 +48,10 @@ npm run test:watch --prefix frontend
 
 ## Backend expectations
 
+CI uploads `backend-test-reports` even when tests fail. Download the artifact from the Backend Validation workflow run for Surefire/Failsafe results; reports are retained for 14 days.
+
+`ConsoleDataControllerTest` covers audit sorting, exact search, inclusive UTC date boundaries, invalid dates, available bounds, and admin-only access. `SessionPersistenceTest` exercises login using its persisted JDBC session cookie. Override the Discord stub port with `-Dapp.stub.discord.port=9562`; demo replay, benchmark, and avatar URLs follow the same port.
+
 - Use `@SpringBootTest`, `@AutoConfigureMockMvc`, and the `h2` profile for MVC integration tests.
 - Cover anonymous rejection and authenticated behavior for protected controllers.
 - Use the OAuth2 stub flow when persistence or session behavior matters; [`ControllerTestsBaseClass`](../backend/src/test/kotlin/org/example/gentooldataviewer/other/ControllerTestsBaseClass.kt) provides that pattern.
@@ -81,3 +85,5 @@ class ExampleControllerTest : ControllerTestsBaseClass() {
 ## Frontend expectations
 
 Use Vitest for environment parsing, authentication helpers, proxy behavior, and failure cases. Keep tests beside their source when practical. Current focused patterns are [`auth.test.ts`](../frontend/src/lib/auth.test.ts), [`env.test.ts`](../frontend/src/lib/env.test.ts), and [`runtimeConfig.test.ts`](../frontend/src/lib/runtimeConfig.test.ts).
+
+Run `npm run demo:screenshots --prefix frontend` for authenticated desktop/mobile browser checks and screenshots. The demo suite also checks admin searches across the full dataset, independent table preferences, role restrictions, failed role edits, preserved grant drafts, cross-table refresh, browser history, keyboard row details, pagination focus, and theme selection before application scripts load. Its setup signs in through the Discord stub and saves the Owner session. For interactive development, use the bottom-right Developer tools button (or Alt+Shift+D) and choose Owner before checking protected UI.

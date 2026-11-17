@@ -129,6 +129,7 @@ class DemoDataProfileTest {
         val atlas = playerHardwareRepository.findById("D3A000000001").orElseThrow()
         assertThat(atlas.mainName).isEqualTo("Atlas")
         assertThat(atlas.aliasesJson).contains("Atlas_GT", "Atlas2v2")
+        assertThat(playerDtos.single { it.playerId == atlas.playerId }.aliases).hasSize(20)
         assertThat(atlas.replayCount).isEqualTo(4)
         assertThat(cpuBenchmarkRepository.findAll()).allMatch {
             it.sourceUrl.startsWith("https://www.cpubenchmark.net/cpu.php?") &&

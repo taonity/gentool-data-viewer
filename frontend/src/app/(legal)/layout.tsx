@@ -1,45 +1,19 @@
 import Link from 'next/link'
+import { getAppIdentity } from '@/lib/appIdentity'
 
-const links = [
-  { href: '/privacy', label: 'Privacy' },
-  { href: '/terms', label: 'Terms' },
-]
-
-export default function LegalLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function BusinessLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-w-0 flex-1 flex-col">
       <header className="border-b bg-background/95">
-        <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-4 py-4 pl-5 pr-14 sm:pl-8 sm:pr-16">
-          <Link className="font-semibold tracking-normal" href="/">
-            GenTool Data Viewer
-          </Link>
+        <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 pr-14 pl-5 sm:pr-16 sm:pl-8">
+          <Link href="/" className="inline-flex min-h-9 items-center rounded-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">{getAppIdentity().name}</Link>
           <nav aria-label="Legal documents" className="flex items-center gap-5 text-sm text-muted-foreground">
-            {links.map((link) => (
-              <Link
-                className="underline-offset-4 hover:text-foreground hover:underline"
-                href={link.href}
-                key={link.href}
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Link href="/privacy" className="inline-flex min-h-9 items-center rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">Privacy</Link>
+            <Link href="/terms" className="inline-flex min-h-9 items-center rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">Terms</Link>
           </nav>
         </div>
       </header>
-
-      {children}
-
-      <footer className="border-t">
-        <div className="mx-auto flex w-full max-w-4xl flex-wrap gap-x-5 gap-y-2 px-5 py-6 text-sm text-muted-foreground sm:px-8">
-          <span>Taonity</span>
-          <a className="underline-offset-4 hover:text-foreground hover:underline" href="mailto:taonity.org@gmail.com">
-            taonity.org@gmail.com
-          </a>
-          <Link className="underline-offset-4 hover:text-foreground hover:underline" href="/">
-            Return to application
-          </Link>
-        </div>
-      </footer>
+      <main className="min-w-0 flex-1 wrap-anywhere">{children}</main>
     </div>
   )
 }

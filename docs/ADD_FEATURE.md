@@ -24,6 +24,7 @@ Use this checklist to add one vertical feature without bypassing existing bounda
    Preserve backend response status, headers, and body.
 10. Build the UI inside the relevant feature directory.
    [`frontend/src/features/console`](../frontend/src/features/console/) shows the current feature organization.
+   Use `DataTab` for paginated data, with explicit `sortKey` and `defaultWidth` on every column and a unique `columnWidthsKey` and `defaultSortKey` per table. Control-only columns use `sortable: false` and `interactive: true`; use `mobileTools` to move compact controls into the mobile heading. For an authorized complete-list endpoint, use `pageRows` to search and sort before pagination. Keep server-paginated endpoints on server queries. Use `DatePeriodFilter` with a stable `loadRange` callback for available UTC date bounds.
 11. Add focused backend tests for authorization, validation, service behavior, persistence, error mapping, and demo-data idempotency as applicable.
    Add frontend tests for proxy and UI behavior.
 12. Follow [Testing](TESTING.md) for current commands and test patterns.

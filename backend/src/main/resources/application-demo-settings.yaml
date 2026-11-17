@@ -27,10 +27,10 @@ app:
       retention-days: 30
       cron: "0 0 4 * * *"
   replay-collector:
-    base-url: http://127.0.0.1:9561/demo-replays/
+    base-url: http://127.0.0.1:${app.stub.discord.port}/demo-replays/
     schedule-enabled: false
   cpu-benchmark:
-    base-url: http://127.0.0.1:9561/demo-benchmarks/
+    base-url: http://127.0.0.1:${app.stub.discord.port}/demo-benchmarks/
     schedule-enabled: false
   discord:
-    cdn-base-url: http://127.0.0.1:9561
+    cdn-base-url: http://127.0.0.1:${app.stub.discord.port}

@@ -22,6 +22,7 @@ import { ReplaysTab } from './ReplaysTab'
 import { CpuPlayersTab } from './CpuPlayersTab'
 import { MyGentoolTab } from './MyGentoolTab'
 import { AppInfoPanel } from '@/features/info/AppInfoPanel'
+import { browserNavigation, consoleTabUrl, type TabKey } from './navigation'
 import type { AccessInfo, ConsoleRole } from './types'
 
 const ROLE_BADGE: Record<ConsoleRole, 'default' | 'secondary' | 'outline'> = {
@@ -45,29 +46,10 @@ const LOADING_ADMIN_ACCESS: AccessInfo = {
   accessRequestsEnabled: false,
 }
 
-type TabKey = 'players' | 'replays' | 'gentool' | 'collection' | 'config' | 'admin' | 'about'
 const TAB_STORAGE_KEY = 'console.activeTab'
-const TAB_KEYS = new Set<TabKey>(['players', 'replays', 'gentool', 'collection', 'config', 'admin', 'about'])
-
-function browserNavigation(fallbackTab: TabKey): { tab: TabKey; playerId: string | null; replayId: string | null } {
-  const params = new URLSearchParams(window.location.search)
-  const requestedTab = params.get('tab')
-  const tab = requestedTab && TAB_KEYS.has(requestedTab as TabKey) ? requestedTab as TabKey : fallbackTab
-  const replayId = tab === 'replays' ? params.get('replay')?.trim() || null : null
-  const playerId = !replayId && (tab === 'players' || tab === 'replays')
-    ? params.get('player')?.trim().toUpperCase() || null
-    : null
-  return { tab, playerId, replayId }
-}
 
 function writeBrowserNavigation(tab: TabKey, playerId: string | null, replayId: string | null, replace = false) {
-  const url = new URL(window.location.href)
-  url.searchParams.set('tab', tab)
-  if (playerId && (tab === 'players' || tab === 'replays')) url.searchParams.set('player', playerId)
-  else url.searchParams.delete('player')
-  if (replayId && tab === 'replays') url.searchParams.set('replay', replayId)
-  else url.searchParams.delete('replay')
-  const nextUrl = `${url.pathname}${url.search}${url.hash}`
+  const nextUrl = consoleTabUrl(window.location.href, tab, playerId, replayId)
   if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) return
   window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl)
 }
@@ -90,6 +72,7 @@ export default function DataConsole({
 }) {
   const [access, setAccess] = useState<AccessInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const [accessResolved, setAccessResolved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<TabKey>('players')
   const [playerId, setPlayerId] = useState<string | null>(null)
@@ -122,11 +105,12 @@ export default function DataConsole({
       setError('Failed to load access information.')
     } finally {
       setLoading(false)
+      setAccessResolved(true)
     }
   }, [])
 
   useLayoutEffect(() => {
-    const restored = browserNavigation(storedTab())
+    const restored = browserNavigation(window.location.search, storedTab())
     setTab(restored.tab)
     setPlayerId(restored.playerId)
     setReplayId(restored.replayId)
@@ -136,7 +120,7 @@ export default function DataConsole({
     setTabRestored(true)
 
     const restoreFromHistory = () => {
-      const next = browserNavigation(storedTab())
+      const next = browserNavigation(window.location.search, storedTab())
       setTab(next.tab)
       setPlayerId(next.playerId)
       setReplayId(next.replayId)
@@ -157,14 +141,16 @@ export default function DataConsole({
     if (!authenticated) {
       setAccess(null)
       setLoading(false)
+      setAccessResolved(false)
       return
     }
+    setAccessResolved(false)
     setLoading(true)
     void loadAccess()
   }, [authenticated, loadAccess])
 
   useEffect(() => {
-    if (forceLoading || authenticationLoading || loading) return
+    if (forceLoading || authenticationLoading || loading || (authenticated && !accessResolved)) return
     const allowed = tab === 'gentool'
       ? authenticated
       : tab === 'config'
@@ -175,7 +161,7 @@ export default function DataConsole({
     if (!allowed) {
       selectTab('players')
     }
-  }, [access, authenticated, authenticationLoading, forceLoading, loading, selectTab, tab])
+  }, [access, accessResolved, authenticated, authenticationLoading, forceLoading, loading, selectTab, tab])
 
   // Load the pending-request count independently of the Admin tab so the tab badge is accurate
   // even before an admin opens the tab (the tab is mounted lazily).
@@ -199,7 +185,7 @@ export default function DataConsole({
   }, [access?.accessRequestsEnabled, access?.isAdmin, authenticated, forceLoading])
 
   const canView = access?.canView === true
-  const accessLoading = authenticated && loading
+  const accessLoading = authenticated && (loading || !accessResolved)
   const showConfig = authenticated && (accessLoading || canView)
   const showMyGentool = authenticated
   const showCollection = authenticated && (accessLoading || access?.isAdmin === true)

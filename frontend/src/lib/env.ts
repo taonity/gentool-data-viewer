@@ -22,6 +22,16 @@ function required(name: string): string {
   return value
 }
 
+function positiveInteger(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim()
+  if (!raw) return fallback
+  const value = Number(raw)
+  if (!Number.isSafeInteger(value) || value <= 0 || value > 2_147_483_647) {
+    throw new Error(`${name} must be a positive integer no greater than 2147483647`)
+  }
+  return value
+}
+
 function frontendProfile(): FrontendProfile {
   const profile = required('FRONTEND_PROFILE')
   if (!isFrontendProfile(profile)) {
@@ -37,6 +47,7 @@ export function getServerEnv(): ServerEnv {
   return {
     profile,
     ...config,
+    backendRequestTimeoutMs: positiveInteger('BACKEND_REQUEST_TIMEOUT_MS', config.backendRequestTimeoutMs),
     localBackendUrl: process.env.LOCAL_BACKEND_URL?.trim() || config.localBackendUrl,
   }
 }

@@ -18,7 +18,10 @@ function roundCssPixel(value: number): number {
 function storedWidths(storageKey: string | undefined): Record<string, number> {
   if (!storageKey) return {}
   try {
-    return JSON.parse(localStorage.getItem(storageKey) ?? '{}') as Record<string, number>
+    const value: unknown = JSON.parse(localStorage.getItem(storageKey) ?? '{}')
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).filter(([, width]) => typeof width === 'number' && Number.isFinite(width)))
+      : {}
   } catch {
     return {}
   }
@@ -32,6 +35,7 @@ async function copyColumnBorders(): Promise<number> {
       const container = table.closest<HTMLElement>('[data-slot="table-container"]')
       return {
         key: table.dataset.columnLayoutKey,
+        layout: getComputedStyle(table).display === 'block' ? 'records' : 'table',
         table: {
           width: roundCssPixel(tableRect.width),
           viewportLeft: roundCssPixel(tableRect.left),
@@ -56,7 +60,7 @@ async function copyColumnBorders(): Promise<number> {
     })
 
   const exportedAt = new Date()
-  const activeTab = localStorage.getItem('console.activeTab') ?? 'unknown'
+  const activeTab = document.querySelector('[data-slot="tabs-trigger"][aria-selected="true"]')?.textContent?.trim() || 'unknown'
   const payload = {
     version: 1,
     scope: 'current-tab',
@@ -129,7 +133,7 @@ export function DevToolsPanel() {
         type="button"
         size="icon"
         variant="outline"
-        className="fixed right-3 bottom-3 z-[60] size-8 bg-background/95 shadow-md backdrop-blur"
+        className="fixed right-3 bottom-16 z-[60] size-11 bg-background/95 sm:bottom-12 sm:size-8 shadow-md backdrop-blur"
         onClick={() => setOpen(true)}
         aria-label="Open developer tools"
         title="Developer tools (Alt+Shift+D)"
@@ -142,7 +146,7 @@ export function DevToolsPanel() {
 
   return (
     <aside
-      className="fixed right-3 bottom-3 z-[60] w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border bg-card/95 p-2.5 shadow-lg backdrop-blur"
+      className="fixed right-3 bottom-3 z-[60] max-h-[calc(100dvh-1.5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-lg border bg-card/95 p-2.5 shadow-lg backdrop-blur"
       aria-label="Developer tools"
       data-dev-tools-panel
       data-force-loading={forceLoading}
@@ -157,6 +161,7 @@ export function DevToolsPanel() {
           size="icon-sm"
           variant="ghost"
           onClick={() => setOpen(false)}
+          className="min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
           aria-label="Close developer tools"
           title="Close (Escape)"
         >
@@ -169,7 +174,7 @@ export function DevToolsPanel() {
           type="button"
           size="sm"
           variant={forceLoading ? 'default' : 'outline'}
-          className="justify-start"
+          className="min-h-11 justify-start sm:min-h-0"
           onClick={() => {
             const enabled = !forceLoading
             setDevLoadingEnabled(enabled)
@@ -188,7 +193,7 @@ export function DevToolsPanel() {
           type="button"
           size="sm"
           variant="outline"
-          className="justify-start"
+          className="min-h-11 justify-start sm:min-h-0"
           title="Copy resizable column borders from the current tab"
           onClick={() => {
             void copyColumnBorders().then((count) => {
@@ -210,6 +215,7 @@ export function DevToolsPanel() {
                 key={login.registrationId}
                 type="button"
                 size="xs"
+                className="min-h-11 sm:min-h-0"
                 variant="outline"
                 onClick={() => {
                   window.location.href = `${backendUrl}/oauth2/authorization/${login.registrationId}`

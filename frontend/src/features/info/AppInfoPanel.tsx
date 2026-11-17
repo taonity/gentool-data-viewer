@@ -90,7 +90,7 @@ function ServiceGuide() {
           with match details, player hardware, and CPU comparisons.
         </p>
       </CardHeader>
-      <CardContent className="about-sections grid gap-x-8 gap-y-5 md:grid-cols-2">
+      <CardContent className="about-sections grid lg:grid-cols-2">
         <AboutSection title="Replays and scans" icon={Clapperboard}>
           <p>
             Replay data comes from GenTool&apos;s public Zero Hour archive. The service reads GenTool&apos;s
@@ -158,7 +158,7 @@ function ServiceGuide() {
 
 function AboutSection({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <section className="about-section space-y-2 border-t pt-4 text-sm leading-relaxed text-foreground">
+    <section className="about-section space-y-2 text-sm leading-relaxed text-foreground">
       <h3 className="flex items-center gap-2 font-semibold text-foreground">
         <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         {title}

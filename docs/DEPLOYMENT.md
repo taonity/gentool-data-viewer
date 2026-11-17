@@ -46,6 +46,8 @@ The environment file contains Compose bootstrap selectors, credentials, and the 
 
 The backend defaults to a 768 MiB container limit, with an initial heap target of 10% and a maximum heap of 60% of that limit. Override `BACKEND_MEMORY_LIMIT`, `BACKEND_INITIAL_RAM_PERCENTAGE`, or `BACKEND_MAX_RAM_PERCENTAGE` in the deployment environment only after checking container memory and GC metrics under representative load. To attach a debugger temporarily, set `BACKEND_JAVA_EXTRA_OPTIONS` to the required JDWP agent options.
 
+The frontend accepts `BACKEND_REQUEST_TIMEOUT_MS` for ordinary proxied backend requests (default 60000; positive integer up to 2147483647). Benchmark refresh keeps its separate longer timeout. Pass the variable to the frontend container when overriding it. `FRONTEND_PROFILE=stage` also selects the staging app title, favicon, and installable-app icons at runtime; production uses the regular identity. Manual deployments and production releases send ntfy notifications using the existing notification secrets.
+
 The file is passed with Compose's `--env-file` option for interpolation. Services receive only their explicitly listed variables, so database and OAuth credentials are not injected into the frontend container.
 
 The production override [`docker-compose.prodenv.yml`](../templates/docker/docker-compose.prodenv.yml) attaches backend and frontend to the external `prodenv-shared-internal` network. That network must already exist in the target production environment.

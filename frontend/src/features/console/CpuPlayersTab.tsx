@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Clapperboard, ExternalLink, Loader2, RefreshCw, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -68,6 +68,41 @@ function DiscordIdentity({ user }: { user: DiscordUser }) {
   )
 }
 
+function PlayerAliases({ player }: { player: CpuPlayer }) {
+  const text = player.aliases.length ? player.aliases.join(', ') : '—'
+  const id = useId()
+  const textRef = useRef<HTMLSpanElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+
+  useEffect(() => {
+    const element = textRef.current
+    if (!element) return
+    const measure = () => {
+      if (!expanded) setOverflows(element.scrollWidth > element.clientWidth + 1)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [text, expanded])
+
+  return (
+    <span className="player-aliases block min-w-0">
+      <span className="hidden truncate lg:block">{text}</span>
+      <span className="mobile-aliases flex min-w-0 items-start gap-2 lg:hidden">
+        <span id={id} ref={textRef} className="alias-values min-w-0 flex-1" data-expanded={expanded || undefined}>{text}</span>
+        {overflows && <button type="button" className="alias-toggle w-10 shrink-0 cursor-pointer text-right text-primary underline underline-offset-2 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label={`${expanded ? 'Collapse' : 'Show all'} aliases for ${player.mainName}`}
+          aria-controls={id} aria-expanded={expanded}
+          onClick={() => setExpanded(previous => !previous)}>
+          {expanded ? 'Less' : 'More'}
+        </button>}
+      </span>
+    </span>
+  )
+}
+
 function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<CpuPlayer>[] {
   return [
   {
@@ -120,7 +155,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
     label: 'Aliases',
     sortKey: 'aliases',
     value: (player) => player.aliases.join(', '),
-    render: (player) => player.aliases.length ? player.aliases.join(', ') : '—',
+    render: (player) => <PlayerAliases player={player} />,
     cellClassName: 'truncate text-muted-foreground',
     defaultWidth: 190,
     searchKey: 'aliases',
@@ -162,6 +197,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'latestName',
+    defaultWidth: 160,
     label: 'Latest name',
     sortKey: 'latestName',
     value: (player) => player.latestName,
@@ -171,6 +207,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'benchmark',
+    defaultWidth: 240,
     label: 'PassMark match',
     sortKey: 'benchmark',
     value: (player) => player.benchmarkModel ?? '',
@@ -190,6 +227,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'status',
+    defaultWidth: 140,
     mobileCompact: true,
     label: 'Match',
     sortKey: 'status',
@@ -232,6 +270,7 @@ function playerColumns(onNavigateToPlayer: (playerId: string) => void): Column<C
   },
   {
     key: 'scoreUpdatedAt',
+    defaultWidth: 180,
     mobileCompact: true,
     label: 'Score updated',
     sortKey: 'scoreUpdatedAt',
@@ -330,7 +369,7 @@ export function CpuPlayersTab({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-3">
       <DatePeriodFilter value={period} onChange={setPeriod} active={active} forceLoading={forceLoading}
         refreshToken={tableRefreshToken} onError={onError} />
       <DataTab<CpuPlayer>

@@ -26,24 +26,27 @@ spring:
             scope: identify
         provider:
           discord:
-            authorization-uri: http://127.0.0.1:9561/oauth2/authorize
-            token-uri: http://127.0.0.1:9561/api/oauth2/token
-            user-info-uri: http://127.0.0.1:9561/api/users/@me
+            authorization-uri: http://127.0.0.1:${app.stub.discord.port}/oauth2/authorize
+            token-uri: http://127.0.0.1:${app.stub.discord.port}/api/oauth2/token
+            user-info-uri: http://127.0.0.1:${app.stub.discord.port}/api/users/@me
             user-name-attribute: id
           discord-stub-alice:
-            authorization-uri: http://127.0.0.1:9561/oauth2/authorize
-            token-uri: http://127.0.0.1:9561/api/oauth2/token
-            user-info-uri: http://127.0.0.1:9561/api/users/@me/alice
+            authorization-uri: http://127.0.0.1:${app.stub.discord.port}/oauth2/authorize
+            token-uri: http://127.0.0.1:${app.stub.discord.port}/api/oauth2/token
+            user-info-uri: http://127.0.0.1:${app.stub.discord.port}/api/users/@me/alice
             user-name-attribute: id
           discord-stub-bob:
-            authorization-uri: http://127.0.0.1:9561/oauth2/authorize
-            token-uri: http://127.0.0.1:9561/api/oauth2/token
-            user-info-uri: http://127.0.0.1:9561/api/users/@me/bob
+            authorization-uri: http://127.0.0.1:${app.stub.discord.port}/oauth2/authorize
+            token-uri: http://127.0.0.1:${app.stub.discord.port}/api/oauth2/token
+            user-info-uri: http://127.0.0.1:${app.stub.discord.port}/api/users/@me/bob
             user-name-attribute: id
 
 app:
+  stub:
+    discord:
+      port: 9561
   discord:
-    bot-api-base-url: http://127.0.0.1:9561/api/v10/
+    bot-api-base-url: http://127.0.0.1:${app.stub.discord.port}/api/v10/
     bot-token: stub-discord-bot-token
   console:
     owner-discord-ids: "100000000000000000"

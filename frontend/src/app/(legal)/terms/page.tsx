@@ -1,3 +1,4 @@
+import { BUSINESS_DETAILS } from '@/config/business'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
@@ -19,7 +20,7 @@ export default function TermsPage() {
         <h1 className="mt-3 text-4xl font-semibold tracking-normal sm:text-5xl">Terms of Service</h1>
         <p className="mt-5 text-lg leading-8 text-muted-foreground">
           These terms govern your use of GenTool Data Viewer, an independent project operated by
-          Taonity. By accessing or using the Service, you agree to these terms.
+          {BUSINESS_DETAILS.name}. By accessing or using the Service, you agree to these terms.
         </p>
       </div>
 
@@ -50,7 +51,7 @@ export default function TermsPage() {
           <li>You are responsible for activity performed through your Discord-authenticated session.</li>
           <li>You must not share access, impersonate another person, or provide a Discord user ID you are not authorized to link.</li>
           <li>Roles and protected features may require approval and may be changed or revoked to protect the Service or its users.</li>
-          <li>You must promptly report suspected unauthorized account access to Taonity.</li>
+          <li>You must promptly report suspected unauthorized account access to {BUSINESS_DETAILS.name}.</li>
         </ul>
       </section>
 
@@ -67,7 +68,7 @@ export default function TermsPage() {
         </ul>
         <p className={paragraphClass}>
           Report security issues, abuse, policy violations, or unlawful content to{' '}
-          <a className={linkClass} href="mailto:taonity.org@gmail.com">taonity.org@gmail.com</a>.
+          <a className={linkClass} href={`mailto:${BUSINESS_DETAILS.email}`}>{BUSINESS_DETAILS.email}</a>.
           Reports will be reviewed and appropriate action may be taken.
         </p>
       </section>
@@ -76,7 +77,7 @@ export default function TermsPage() {
         <h2 className={headingClass} id="data">5. Replay data and privacy</h2>
         <p className={paragraphClass}>
           Replay records come from third-party public sources and may include user-submitted names,
-          addresses, hardware details, and other metadata. Taonity does not guarantee that this data
+          addresses, hardware details, and other metadata. {BUSINESS_DETAILS.name} does not guarantee that this data
           is complete, current, accurate, or authorized by every person mentioned. Do not use it to
           identify, contact, harass, or make consequential decisions about anyone.
         </p>
@@ -91,7 +92,7 @@ export default function TermsPage() {
       <section aria-labelledby="ownership">
         <h2 className={headingClass} id="ownership">6. Ownership and third parties</h2>
         <p className={paragraphClass}>
-          Taonity retains its rights in the Service’s software, design, and original content. These
+          {BUSINESS_DETAILS.name} retains its rights in the Service’s software, design, and original content. These
           terms do not transfer ownership of Discord, GenTool, game, replay, or user content. Those
           materials remain subject to their owners’ rights and applicable third-party terms. Links
           and integrations are provided for convenience; third-party services are independently
@@ -103,7 +104,7 @@ export default function TermsPage() {
         <h2 className={headingClass} id="availability">7. Availability and changes</h2>
         <p className={paragraphClass}>
           The Service is a non-commercial pet project provided without a service-level commitment.
-          Taonity may modify, suspend, restrict, or discontinue any part of it, including in response
+          {BUSINESS_DETAILS.name} may modify, suspend, restrict, or discontinue any part of it, including in response
           to legal, security, hosting, Discord, or GenTool requirements. Where reasonably possible,
           material changes affecting users will be communicated in advance.
         </p>
@@ -112,7 +113,7 @@ export default function TermsPage() {
       <section aria-labelledby="termination">
         <h2 className={headingClass} id="termination">8. Suspension and termination</h2>
         <p className={paragraphClass}>
-          Taonity may restrict or terminate access when you violate these terms, create legal or
+          {BUSINESS_DETAILS.name} may restrict or terminate access when you violate these terms, create legal or
           security risk, abuse the Service, or when required by a platform provider or authority.
           You may stop using the Service at any time. To request deletion of your stored Discord
           account data, follow the process in the Privacy Policy. Provisions that by their nature
@@ -134,10 +135,10 @@ export default function TermsPage() {
       <section aria-labelledby="liability">
         <h2 className={headingClass} id="liability">10. Limitation of liability</h2>
         <p className={paragraphClass}>
-          To the fullest extent permitted by law, Taonity is not liable for indirect, incidental,
+          To the fullest extent permitted by law, {BUSINESS_DETAILS.name} is not liable for indirect, incidental,
           special, consequential, exemplary, or punitive loss, or loss of data, profits, goodwill,
-          or opportunity arising from use of the Service. Taonity’s aggregate liability relating to
-          the Service will not exceed the greater of the amount you paid Taonity for the Service in
+          or opportunity arising from use of the Service. {BUSINESS_DETAILS.name}’s aggregate liability relating to
+          the Service will not exceed the greater of the amount you paid {BUSINESS_DETAILS.name} for the Service in
           the preceding twelve months or EUR 50. These limits do not apply where liability cannot
           legally be limited, including for fraud or deliberate misconduct.
         </p>
@@ -149,7 +150,7 @@ export default function TermsPage() {
           Applicable mandatory law governs these terms. Courts with jurisdiction under applicable
           law may hear disputes. If any provision is unenforceable, the remainder stays effective.
           A failure to enforce a provision is not a waiver. You may not transfer your rights under
-          these terms without Taonity’s consent. These terms and the Privacy Policy are the entire
+          these terms without {BUSINESS_DETAILS.name}’s consent. These terms and the Privacy Policy are the entire
           agreement about your use of the Service.
         </p>
       </section>
@@ -160,7 +161,7 @@ export default function TermsPage() {
           Updated terms will be posted here with a new effective date. Material changes will receive
           reasonable additional notice when possible. Continuing to use the Service after updated
           terms take effect means you accept them; otherwise, stop using the Service. Contact
-          Taonity at <a className={linkClass} href="mailto:taonity.org@gmail.com">taonity.org@gmail.com</a>.
+          {BUSINESS_DETAILS.name} at <a className={linkClass} href={`mailto:${BUSINESS_DETAILS.email}`}>{BUSINESS_DETAILS.email}</a>.
         </p>
       </section>
     </article>

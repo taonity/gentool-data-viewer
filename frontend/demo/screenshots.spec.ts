@@ -2,6 +2,30 @@ import { expect, test } from '@playwright/test'
 import { createScreenshotCapture } from '@taonity/demo-screenshots'
 
 const capture = createScreenshotCapture(expect)
+test.describe('initial theme', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+
+  for (const { saved, system, dark } of [
+    { saved: 'dark', system: 'light', dark: true },
+    { saved: 'light', system: 'dark', dark: false },
+    { saved: 'system', system: 'dark', dark: true },
+    { saved: null, system: 'dark', dark: true },
+  ] as const) {
+    test(`applies ${saved ?? 'default'} theme before application scripts load (${system} system)`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: system })
+      await page.addInitScript(value => {
+        if (value === null) localStorage.removeItem('theme')
+        else localStorage.setItem('theme', value)
+      }, saved)
+      await page.route(/\/_next\/.*\.js(?:\?|$)/, route => route.abort())
+      await page.goto('/contact')
+      await expect(page.getByRole('heading', { name: 'Contact', exact: true })).toBeVisible()
+      expect(await page.locator('html').evaluate(element => element.classList.contains('dark'))).toBe(dark)
+      await expect(page.locator('head > #theme-init')).toHaveCount(1)
+    })
+  }
+})
+
 const scenes = [
   { name: 'players', tab: 'players', ready: 'Atlas' },
   { name: 'replays', tab: 'replays', ready: 'Demo Alpine Pass' },
@@ -105,7 +129,7 @@ for (const scene of scenes) {
       }
       expect(failures).toEqual([])
       if (testInfo.project.name.startsWith('desktop')) {
-        const clip = await page.locator('main main').evaluate(element => {
+        const clip = await page.locator('.console-shell > div').evaluate(element => {
           const bounds = element.getBoundingClientRect()
           return { x: Math.floor(bounds.left) - 16, y: 0, width: Math.ceil(bounds.width) + 32, height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, innerHeight) }
         })
@@ -116,3 +140,33 @@ for (const scene of scenes) {
     })
   })
 }
+
+test.describe('console interactions', () => {
+  test.use({ storageState: 'test-results/demo-owner.json' })
+
+  test('restores tabs through URLs and browser history', async ({ page }) => {
+    await page.goto('/?tab=admin')
+    await expect(page.getByRole('tab', { name: /^Admin/ })).toHaveAttribute('aria-selected', 'true')
+    await page.getByRole('tab', { name: 'Config', exact: true }).click()
+    await expect(page).toHaveURL(/\?tab=config$/)
+    await expect(page.getByRole('textbox', { name: 'Search settings' })).toBeVisible()
+    await page.goBack()
+    await expect(page.getByRole('tab', { name: /^Admin/ })).toHaveAttribute('aria-selected', 'true')
+    await page.goForward()
+    await expect(page.getByRole('tab', { name: 'Config', exact: true })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  test('opens row details with the keyboard', async ({ page }) => {
+    await page.goto('/?tab=admin')
+    const rows = page.locator('[data-table-id="audit-log"] .record-row[tabindex]')
+    await expect(rows).not.toHaveCount(0)
+    await rows.first().scrollIntoViewIfNeeded()
+    await rows.first().focus()
+    await expect(rows.first()).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(rows.first()).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.locator('.record-detail')).toContainText('Record ID')
+    await page.keyboard.press('Space')
+    await expect(rows.first()).toHaveAttribute('aria-expanded', 'false')
+  })
+})

@@ -107,6 +107,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'cpu',
+    defaultWidth: 240,
     label: 'CPU',
     sortKey: 'cpu',
     value: (replay) => replay.cpu ?? '',
@@ -117,6 +118,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'matchMode',
+    defaultWidth: 110,
     mobileCompact: true,
     label: 'Mode',
     sortKey: 'matchMode',
@@ -126,6 +128,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'startCash',
+    defaultWidth: 120,
     mobileCompact: true,
     label: 'Start cash',
     sortKey: 'startCash',
@@ -136,6 +139,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'gentoolVersion',
+    defaultWidth: 105,
     mobileCompact: true,
     label: 'GenTool',
     sortKey: 'gentoolVersion',
@@ -145,6 +149,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'gameVersion',
+    defaultWidth: 180,
     label: 'Game version',
     sortKey: 'gameVersion',
     value: (replay) => replay.gameVersion ?? '',
@@ -154,6 +159,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'windowsCompat',
+    defaultWidth: 160,
     label: 'Windows',
     sortKey: 'windowsCompat',
     value: (replay) => replay.windowsCompat ?? '',
@@ -162,6 +168,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'repInfoInUse',
+    defaultWidth: 100,
     mobileCompact: true,
     label: 'RepInfo',
     sortKey: 'repInfoInUse',
@@ -171,6 +178,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'replaySize',
+    defaultWidth: 120,
     mobileCompact: true,
     label: 'Replay size',
     sortKey: 'replaySize',
@@ -181,6 +189,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'sourceDate',
+    defaultWidth: 160,
     label: 'Source date',
     sortKey: 'sourceDate',
     initialSortDirection: 'desc',
@@ -190,6 +199,7 @@ const REPLAY_COLUMNS: Column<Replay>[] = [
   },
   {
     key: 'collectedAt',
+    defaultWidth: 180,
     label: 'Collected',
     sortKey: 'collectedAt',
     initialSortDirection: 'desc',
@@ -262,7 +272,7 @@ export function ReplaysTab({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
     <DatePeriodFilter value={period} onChange={setPeriod} active={active} forceLoading={forceLoading} onError={onError} />
     <DataTab<Replay>
       columns={REPLAY_COLUMNS}

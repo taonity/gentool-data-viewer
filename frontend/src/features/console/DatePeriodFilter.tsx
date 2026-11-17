@@ -12,12 +12,14 @@ export interface DatePeriod {
   endDate: string
 }
 
-export function DatePeriodFilter({ value, onChange, active, forceLoading, refreshToken = 0, onError }: {
+export function DatePeriodFilter({ value, onChange, active = true, forceLoading = false, refreshToken = 0, loadRange = consoleApi.getReplayDateRange, label = 'Match dates (UTC)', onError }: {
   value: DatePeriod
   onChange: (period: DatePeriod) => void
-  active: boolean
-  forceLoading: boolean
+  active?: boolean
+  forceLoading?: boolean
   refreshToken?: number
+  loadRange?: () => Promise<{ startDate: string | null; endDate: string | null }>
+  label?: string
   onError: (message: string) => void
 }) {
   const id = useId()
@@ -35,22 +37,22 @@ export function DatePeriodFilter({ value, onChange, active, forceLoading, refres
     if (!active || forceLoading) return
     let current = true
     setLoading(true)
-    consoleApi.getReplayDateRange()
+    loadRange()
       .then((range) => {
         if (current) setAvailable({ startDate: range.startDate ?? '', endDate: range.endDate ?? '' })
       })
       .catch(() => {
-        if (current) onError('Failed to load available replay dates.')
+        if (current) onError('Failed to load available dates.')
       })
       .finally(() => {
         if (current) setLoading(false)
       })
     return () => { current = false }
-  }, [active, forceLoading, refreshToken, onError])
+  }, [active, forceLoading, refreshToken, loadRange, onError])
 
   return (
-    <div role="group" aria-label="Match date period" className="date-period flex max-w-full flex-wrap items-center gap-x-3 gap-y-2 border-b pb-2 sm:pb-3">
-      <span className="text-xs font-medium text-muted-foreground">Match dates (UTC)</span>
+    <div role="group" aria-label={label} className="date-period flex max-w-full flex-wrap items-center gap-x-3 gap-y-2 border-b pb-2 sm:pb-3">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="date-controls flex max-w-full flex-wrap items-center gap-2">
         <div className="date-field flex min-w-0 items-center gap-2">
           <label htmlFor={`${id}-start`} className="w-8 shrink-0 text-xs text-muted-foreground">From</label>

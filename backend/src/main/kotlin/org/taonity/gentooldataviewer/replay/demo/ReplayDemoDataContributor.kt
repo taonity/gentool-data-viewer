@@ -10,6 +10,7 @@ import org.taonity.gentooldataviewer.replay.parser.ParsedReplay
 import org.taonity.gentooldataviewer.replay.parser.ParsedTeam
 import org.taonity.gentooldataviewer.replay.service.ReplayImportService
 import org.taonity.gentooldataviewer.replay.service.ReplayRetentionPolicy
+import org.taonity.gentooldataviewer.replay.repository.PlayerHardwareRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -21,6 +22,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import tools.jackson.databind.ObjectMapper
 
 @Component
 @Profile("demo-data")
@@ -31,6 +33,8 @@ class ReplayDemoDataContributor(
     private val benchmarkMatcher: CpuBenchmarkMatcher,
     private val retentionPolicy: ReplayRetentionPolicy,
     private val clock: Clock,
+    private val hardwareRepository: PlayerHardwareRepository,
+    private val objectMapper: ObjectMapper,
 ) : DemoDataContributor {
     override val feature: String = "replays"
 
@@ -63,6 +67,10 @@ class ReplayDemoDataContributor(
             )
         }
         check(imported == REPLAY_COUNT) { "Expected $REPLAY_COUNT demo replays, imported $imported" }
+        // Include a longer historical alias summary than the sample replay window covers.
+        // This only runs for a newly created fixture set, preserving seed idempotency.
+        hardwareRepository.findById(PLAYERS.first().id).orElseThrow().aliasesJson =
+            objectMapper.writeValueAsString(ATLAS_ALIASES)
         return imported + PLAYERS.size
     }
 
@@ -192,6 +200,12 @@ class ReplayDemoDataContributor(
 
     private companion object {
         const val REPLAY_COUNT = 50
+        val ATLAS_ALIASES = listOf(
+            "Atlas_GT", "Atlas2v2", "AtlasZH", "AtlasZeroHour", "Atlas_Commander",
+            "Atlas_GLA", "Atlas_USA", "Atlas_China", "Atlas_Stealth", "Atlas_Laser",
+            "Atlas_Airforce", "Atlas_Infantry", "Atlas_Tank", "Atlas_Nuke", "Atlas_Toxin",
+            "Atlas_Demo", "Atlas_Challenge", "Atlas_Quickmatch", "Atlas_TeamGames", "Atlas_Classic",
+        )
         val PLAYERS = listOf(
             DemoPlayer("D3A000000001", "Atlas", listOf("Atlas_GT", "Atlas2v2"), "Intel Core i7-13700K", 4326, "5060"),
             DemoPlayer("D3A000000002", "Birch", listOf("BirchLeaf", "B1rch"), "AMD Ryzen 7 7800X3D", 3759, "5299"),

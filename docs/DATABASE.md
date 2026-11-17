@@ -79,6 +79,10 @@ spring:
 
 ## Match Date Periods
 
+With the `demo-data` profile, the Players table includes **Atlas** with 20 aliases
+to demonstrate alias expansion on mobile. The inline toggle does not increase
+the collapsed row height.
+
 Players and Replays accept optional `startDate` and `endDate` in `YYYY-MM-DD` form.
 Both use replay `match_at`, not collection or source-directory dates. Start is
 inclusive UTC midnight; end includes the entire UTC calendar day. Either bound
