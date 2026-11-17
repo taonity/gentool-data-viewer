@@ -85,6 +85,34 @@ test.describe('table interactions', () => {
     expect(await aliases.evaluate(element => element.getBoundingClientRect().height)).toBe(collapsedHeight)
   })
 
+  test('keeps mobile pagination controls on one row', async ({ page }) => {
+    await page.goto('/?tab=players')
+    await expect(page.getByRole('navigation', { name: 'Pagination above records' })).toContainText('1–15 of 15')
+    for (const width of [320, 390, 767]) {
+      await page.setViewportSize({ width, height: 844 })
+      const layouts = await page.locator('.data-pagination').evaluateAll(elements => elements.map(element => {
+        const bounds = element.getBoundingClientRect()
+        const children = [...element.children].map(child => child.getBoundingClientRect())
+        return {
+          centers: children.map(child => child.top + child.height / 2),
+          overlaps: children.some((child, index) => {
+            const previous = children[index - 1]
+            return previous !== undefined && child.left < previous.right
+          }),
+          overflows: element.scrollWidth > element.clientWidth || children.some(child => child.left < bounds.left || child.right > bounds.right),
+          countClipped: element.firstElementChild!.scrollWidth > element.firstElementChild!.clientWidth,
+        }
+      }))
+      expect(layouts).toHaveLength(2)
+      for (const layout of layouts) {
+        expect(Math.max(...layout.centers) - Math.min(...layout.centers)).toBeLessThanOrEqual(1)
+        expect(layout.overlaps).toBe(false)
+        expect(layout.overflows).toBe(false)
+        expect(layout.countClipped).toBe(false)
+      }
+    }
+  })
+
   test('returns focus and scroll to the top pagination after bottom controls load records', async ({ page }) => {
     await page.route('**/api/console/users', route => route.fulfill({ json: users }))
     await page.goto('/?tab=admin')

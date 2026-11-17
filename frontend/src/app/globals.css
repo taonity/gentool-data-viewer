@@ -170,12 +170,7 @@ html {
 @media (width < 768px) {
   .data-pagination {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .data-pagination > :last-child {
-    grid-column: 1 / -1;
-    justify-self: end;
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
 }
 

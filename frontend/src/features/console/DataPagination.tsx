@@ -39,7 +39,7 @@ export function DataPagination({
       tabIndex={-1}
       className="data-pagination grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 text-xs text-muted-foreground sm:flex sm:flex-wrap sm:justify-between"
     >
-      <span className="min-w-0 tabular-nums" role={position === 'top' ? 'status' : undefined}>
+      <span className="min-w-0 truncate tabular-nums" role={position === 'top' ? 'status' : undefined}>
         {totalElements === undefined ? 'Loading…' : `${firstRow.toLocaleString()}–${lastRow.toLocaleString()} of ${totalElements.toLocaleString()}`}
       </span>
       <div className="flex items-center gap-2 sm:ml-auto">
@@ -83,11 +83,11 @@ export function DataPagination({
             disabled={loading || totalPages === undefined || totalPages === 0}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={() => setDraft(null)}
-            className="h-7 w-14 shrink-0 px-1 text-center text-xs tabular-nums"
+            className="h-7 w-10 shrink-0 px-1 text-center text-xs tabular-nums sm:w-14"
           />
           <span className="inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap tabular-nums">
             <span aria-hidden="true">/</span>
-            <span className="min-w-[4ch] text-right">{pageCount}</span>
+            <span className="min-w-[2ch] text-right sm:min-w-[4ch]">{pageCount}</span>
           </span>
         </form>
         <Button variant="outline" size="sm" className="px-1.5 sm:px-2.5" aria-label="Next page" disabled={loading || totalPages === undefined || page + 1 >= pageCount} onClick={() => onPageChange(page + 1)}>
